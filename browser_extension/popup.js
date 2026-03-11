@@ -14,7 +14,7 @@ function addEndpointRow(url = '') {
   const row = document.createElement('div');
   row.className = 'endpoint-row';
   row.innerHTML = `
-    <input type="text" placeholder="http://localhost:11434/describe" value="${url}">
+    <input type="text" placeholder="http://localhost:11434/save" value="${url}">
     <button class="btn-icon" title="Remove">×</button>
   `;
   row.querySelector('.btn-icon').addEventListener('click', () => row.remove());
@@ -22,7 +22,7 @@ function addEndpointRow(url = '') {
   row.querySelector('input').focus();
 }
 
-function getEndpoints() {
+function getEndpointInputs() {
   return Array.from($list.querySelectorAll('input[type="text"]'))
     .map(i => i.value.trim())
     .filter(Boolean);
@@ -55,13 +55,13 @@ async function init() {
   const { config = {} } = await browser.storage.local.get('config');
   $interval.value = config.interval ?? 10;
   ($list.querySelectorAll('.endpoint-row') || []).forEach(r => r.remove());
-  (config.endpoints ?? ['http://localhost:11434/describe']).forEach(addEndpointRow);
+  (config.endpoints ?? ['http://localhost:11434/save']).forEach(addEndpointRow);
 
-  const running = bg.captureState.running;
+  const running = bg?.captureState?.running;
   syncUI(running);
 
   // replay background log into popup
-  for (const entry of bg.captureState.log) {
+  for (const entry of bg?.captureState?.log ?? []) {
     appendLog(entry.msg, entry.type);
   }
 }
@@ -74,7 +74,7 @@ $btnAdd.addEventListener('click', () => addEndpointRow());
 
 $btnSave.addEventListener('click', async () => {
   const interval = Math.max(1, parseInt($interval.value) || 10);
-  const endpoints = getEndpoints();
+  const endpoints = getEndpointInputs();
 
   // validate
   let valid = true;
@@ -89,14 +89,14 @@ $btnSave.addEventListener('click', async () => {
   appendLog('Config saved.', 'ok');
 
   // if running, restart the alarm with new interval
-  if (bg.captureState.running) {
+  if (bg?.captureState?.running) {
     bg.restartAlarm(interval);
     appendLog(`Interval updated → ${interval}s`, '');
   }
 });
 
 $btnToggle.addEventListener('click', async () => {
-  if (bg.captureState.running) {
+  if (bg?.captureState?.running) {
     bg.stopCapture();
     syncUI(false);
     appendLog('Capture stopped.', '');

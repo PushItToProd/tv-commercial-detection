@@ -26,9 +26,10 @@ function bgLog(msg, type = '') {
 
 // ── alarm ───────────────────────────────────────────────────────────────────
 
-function startCapture() {
+async function startCapture() {
   captureState.running = true;
-  browser.alarms.create(ALARM_NAME, { periodInMinutes: getIntervalMinutes() });
+  const periodInMinutes = await getIntervalMinutes();
+  browser.alarms.create(ALARM_NAME, { periodInMinutes });
   // fire immediately so the user sees it working right away
   doCapture();
 }
