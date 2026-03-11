@@ -1,0 +1,37 @@
+{
+  "manifest_version": 2,
+  "name": "Commercial Detector",
+  "version": "1.0",
+  "description": "Detects commercials on webpages.",
+  "icons": {
+    "48": "icons/border-48.png"
+  },
+
+  "permissions": [
+    "activeTab",
+    "downloads",
+    "<all_urls>"
+  ],
+
+  "content_scripts": [
+    {
+      "matches": [
+        "*://tv.youtube.com/*"
+      ],
+      "js": [
+        "main.js"
+      ]
+    }
+  ],
+
+  "browser_action": {
+    "default_icon": "icons/capture.png",
+    "default_title": "Capture Tab"
+  },
+  "background": {
+    "scripts": [
+      "background.js"
+    ],
+    "persistent": false
+  }
+}
