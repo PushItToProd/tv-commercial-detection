@@ -2,7 +2,8 @@
 
 const captureState = {
   running: false,
-  log: []   // ring buffer of { msg, type } — replayed into popup on open
+  tabId: null,  // tab being monitored; capture stops if this tab is closed
+  log: []       // ring buffer of { msg, type } — replayed into popup on open
 };
 
 const ALARM_NAME = 'frame-capture';
@@ -28,6 +29,9 @@ function bgLog(msg, type = '') {
 
 async function startCapture() {
   if (captureState.running) return;   // guard against double-start
+  const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
+  if (!tab) { bgLog('No active tab — cannot start.', 'err'); return; }
+  captureState.tabId = tab.id;
   captureState.running = true;
   const periodInMinutes = await getIntervalMinutes();
   browser.alarms.create(ALARM_NAME, { periodInMinutes });
@@ -37,6 +41,7 @@ async function startCapture() {
 
 function stopCapture() {
   captureState.running = false;
+  captureState.tabId = null;
   browser.alarms.clear(ALARM_NAME);
 }
 
@@ -52,6 +57,13 @@ async function getIntervalMinutes() {
 
 browser.alarms.onAlarm.addListener(alarm => {
   if (alarm.name === ALARM_NAME) doCapture();
+});
+
+browser.tabs.onRemoved.addListener(tabId => {
+  if (captureState.running && tabId === captureState.tabId) {
+    stopCapture();
+    bgLog('Monitored tab closed — capture stopped.', 'err');
+  }
 });
 
 // ── core capture ─────────────────────────────────────────────────────────────
@@ -74,16 +86,16 @@ async function doCapture() {
     return;
   }
 
-  // get the active tab
-  let tabs;
+  // capture from the specific tab that was active when capture started
+  let tab;
   try {
-    tabs = await browser.tabs.query({ active: true, currentWindow: true });
+    tab = await browser.tabs.get(captureState.tabId);
   } catch (e) {
-    bgLog('Could not query tabs: ' + e.message, 'err');
+    bgLog('Monitored tab is gone — stopping.', 'err');
+    stopCapture();
     return;
   }
 
-  const tab = tabs[0];
   if (!tab) { bgLog('No active tab.', 'err'); return; }
 
   try {
