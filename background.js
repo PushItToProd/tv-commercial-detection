@@ -32,7 +32,7 @@ browser.browserAction.onClicked.addListener(async (tab) => {
     await browser.downloads.download({
       url: blobUrl,
       filename: filename,
-      saveAs: false
+      saveAs: true
     });
 
     console.log(`Frame saved as: ${filename}`, rect ?? "(full screenshot)");
