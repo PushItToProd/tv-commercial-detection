@@ -27,6 +27,7 @@ function bgLog(msg, type = '') {
 // ── alarm ───────────────────────────────────────────────────────────────────
 
 async function startCapture() {
+  if (captureState.running) return;   // guard against double-start
   captureState.running = true;
   const periodInMinutes = await getIntervalMinutes();
   browser.alarms.create(ALARM_NAME, { periodInMinutes });
@@ -147,6 +148,31 @@ function cropImage(dataUrl, rect) {
     img.src = dataUrl;
   });
 }
+
+// ── message handler (used by popup) ─────────────────────────────────────────
+
+browser.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+  switch (msg.type) {
+    case 'getState':
+      sendResponse({ running: captureState.running, log: captureState.log });
+      break;
+    case 'start':
+      startCapture();
+      sendResponse({ ok: true });
+      break;
+    case 'stop':
+      stopCapture();
+      sendResponse({ ok: true });
+      break;
+    case 'restartAlarm':
+      restartAlarm(msg.interval);
+      sendResponse({ ok: true });
+      break;
+  }
+  return true;
+});
+
+// ── image utilities ──────────────────────────────────────────────────────────
 
 function dataUrlToBlob(dataUrl) {
   const [header, data] = dataUrl.split(',');

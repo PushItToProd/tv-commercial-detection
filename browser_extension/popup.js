@@ -1,5 +1,3 @@
-const bg = browser.extension.getBackgroundPage();
-
 const $interval = document.getElementById('interval');
 const $list = document.getElementById('endpoints-list');
 const $btnAdd = document.getElementById('btn-add');
@@ -57,11 +55,11 @@ async function init() {
   ($list.querySelectorAll('.endpoint-row') || []).forEach(r => r.remove());
   (config.endpoints ?? ['http://localhost:11434/save']).forEach(addEndpointRow);
 
-  const running = bg?.captureState?.running;
-  syncUI(running);
+  const state = await browser.runtime.sendMessage({ type: 'getState' });
+  syncUI(state.running);
 
   // replay background log into popup
-  for (const entry of bg?.captureState?.log ?? []) {
+  for (const entry of state.log ?? []) {
     appendLog(entry.msg, entry.type);
   }
 }
@@ -89,15 +87,17 @@ $btnSave.addEventListener('click', async () => {
   appendLog('Config saved.', 'ok');
 
   // if running, restart the alarm with new interval
-  if (bg?.captureState?.running) {
-    bg.restartAlarm(interval);
+  const state = await browser.runtime.sendMessage({ type: 'getState' });
+  if (state.running) {
+    await browser.runtime.sendMessage({ type: 'restartAlarm', interval });
     appendLog(`Interval updated → ${interval}s`, '');
   }
 });
 
 $btnToggle.addEventListener('click', async () => {
-  if (bg?.captureState?.running) {
-    bg.stopCapture();
+  const state = await browser.runtime.sendMessage({ type: 'getState' });
+  if (state.running) {
+    await browser.runtime.sendMessage({ type: 'stop' });
     syncUI(false);
     appendLog('Capture stopped.', '');
   } else {
@@ -107,7 +107,7 @@ $btnToggle.addEventListener('click', async () => {
       appendLog('Add at least one endpoint first.', 'err');
       return;
     }
-    bg.startCapture();
+    await browser.runtime.sendMessage({ type: 'start' });
     syncUI(true);
     appendLog(`Capture started (every ${config.interval ?? 10}s → ${endpoints.length} endpoint(s)).`, 'ok');
   }
