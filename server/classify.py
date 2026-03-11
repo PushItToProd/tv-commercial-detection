@@ -14,7 +14,7 @@ PROMPT = (
 )
 
 
-def classify_image(image_path: str) -> str:
+def _classify_image(image_path: str) -> str:
     with open(image_path, "rb") as f:
         image_data = base64.b64encode(f.read()).decode("utf-8")
 
@@ -38,14 +38,21 @@ def classify_image(image_path: str) -> str:
     )
 
     reply = response.choices[0].message.content.strip().lower()
+    return reply
 
+
+def get_classification_from_response(reply: str) -> str:
     if "type=ad" in reply:
         return "ad"
     elif "type=racing" in reply:
         return "content"
     else:
-        print(f"Warning: Could not determine classification from model response: '{reply}'")
         return "unknown"
+
+
+def classify_image(image_path: str) -> str:
+    reply = _classify_image(image_path)
+    return get_classification_from_response(reply)
 
 
 if __name__ == "__main__":
