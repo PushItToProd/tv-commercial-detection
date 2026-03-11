@@ -35,6 +35,7 @@ def _classify_image(image_path: str) -> str:
             }
         ],
         max_tokens=500,
+        temperature=0.6,
     )
 
     content = response.choices[0].message.content
