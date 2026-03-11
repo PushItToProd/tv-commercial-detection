@@ -16,7 +16,7 @@ PROMPT = (
 )
 
 
-MAX_DIMENSION = 768
+MAX_DIMENSION = 1024
 
 
 def _resize_image(image_path: str) -> bytes:
@@ -26,7 +26,7 @@ def _resize_image(image_path: str) -> bytes:
         if img.mode != "RGB":
             img = img.convert("RGB")
         buf = io.BytesIO()
-        img.save(buf, format="JPEG", quality=75)
+        img.save(buf, format="JPEG", quality=50)
         return buf.getvalue()
 
 
