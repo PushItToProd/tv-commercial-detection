@@ -3,8 +3,13 @@ from datetime import datetime
 from pathlib import Path
 import json
 import os
+import tempfile
+from classify import classify_image
 
 app = Flask(__name__)
+
+# In-memory state for the most recent /receive classification
+_state = {"classification": None}  # None | "ad" | "content" | "unknown"
 
 SAVE_DIR = Path(os.environ.get("SAVE_DIR", "frames"))
 SAVE_DIR.mkdir(parents=True, exist_ok=True)
@@ -226,6 +231,86 @@ buildGrid();
 </body>
 </html>"""
 
+    return Response(html, mimetype="text/html")
+
+
+@app.route("/receive", methods=["POST"])
+def receive():
+    if "image" not in request.files:
+        return jsonify({"error": "No image field in request"}), 400
+
+    image = request.files["image"]
+
+    # Write to a temp file so classify_image (which expects a path) can read it
+    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
+        image.save(tmp.name)
+        tmp_path = tmp.name
+
+    try:
+        result = classify_image(tmp_path)
+    finally:
+        os.unlink(tmp_path)
+
+    _state["classification"] = result
+    print(f"Received image → classified as: {result}  |  page: {request.form.get('page_title', '?')}")
+    return jsonify({"classification": result}), 200
+
+
+@app.route("/is_ad/status")
+def is_ad_status():
+    return jsonify({"classification": _state["classification"]})
+
+
+@app.route("/is_ad")
+def is_ad():
+    html = """<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ad Detector</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    display: flex; align-items: center; justify-content: center;
+    height: 100vh; font-family: sans-serif;
+    background: #333; transition: background 0.4s;
+  }
+  #label {
+    font-size: 20vw; font-weight: bold; color: #fff;
+    text-shadow: 0 4px 24px rgba(0,0,0,0.5);
+    letter-spacing: 0.05em;
+  }
+</style>
+</head>
+<body>
+<div id="label">...</div>
+<script>
+function update() {
+  fetch('/is_ad/status')
+    .then(r => r.json())
+    .then(data => {
+      const c = data.classification;
+      const el = document.getElementById('label');
+      if (c === 'ad') {
+        document.body.style.background = '#cc0033';
+        el.textContent = 'AD';
+      } else if (c === 'content') {
+        document.body.style.background = '#00882b';
+        el.textContent = 'RACING';
+      } else {
+        document.body.style.background = '#333';
+        el.textContent = c === null ? '...' : '?';
+      }
+    })
+    .catch(() => {});
+}
+
+update();
+setInterval(update, 2000);
+</script>
+</body>
+</html>"""
     return Response(html, mimetype="text/html")
 
 
