@@ -8,8 +8,9 @@ PROMPT = (
     "You are analyzing a screenshot from a TV broadcast. "
     "Determine whether the image shows a TV commercial/advertisement, "
     "or actual race content (cars, track, drivers, pit lane, etc.). "
-    "Reply with exactly one word: 'ad' if it is a commercial, "
-    "or 'race' if it shows race content."
+    "In 100 words or less, describe what you see in the image. "
+    "Then, based on that description, end your message with either 'type=ad' or "
+    "'type=racing'."
 )
 
 
@@ -33,10 +34,18 @@ def classify_image(image_path: str) -> str:
                 ],
             }
         ],
-        max_tokens=10,
+        max_tokens=500,
     )
 
-    return response.choices[0].message.content.strip().lower()
+    reply = response.choices[0].message.content.strip().lower()
+
+    if "type=ad" in reply:
+        return "ad"
+    elif "type=racing" in reply:
+        return "content"
+    else:
+        print(f"Warning: Could not determine classification from model response: '{reply}'")
+        return "unknown"
 
 
 if __name__ == "__main__":
