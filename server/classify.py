@@ -37,7 +37,10 @@ def _classify_image(image_path: str) -> str:
         max_tokens=500,
     )
 
-    reply = response.choices[0].message.content.strip().lower()
+    content = response.choices[0].message.content
+    if content is None:
+        return "unknown"
+    reply = content.strip().lower()
     return reply
 
 
