@@ -10,6 +10,9 @@
   "permissions": [
     "activeTab",
     "downloads",
+    "alarms",
+    "storage",
+    "tabs",
     "<all_urls>"
   ],
 
@@ -26,12 +29,17 @@
 
   "browser_action": {
     "default_icon": "icons/capture.png",
-    "default_title": "Capture Tab"
+    "default_title": "Capture Tab",
+    "default_popup": "popup.html"
   },
   "background": {
     "scripts": [
       "background.js"
     ],
     "persistent": false
-  }
+  },
+
+  "web_accessible_resources": [
+    "content_scripts/get_video_bounds.js"
+  ]
 }
