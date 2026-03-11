@@ -103,23 +103,27 @@ async function doCapture() {
     const results = await browser.tabs.executeScript(tab.id, { file: 'content_scripts/get_video_bounds.js' });
     const info = results[0];
 
-    // skip this tick if there's no video or it's not currently playing
+    // skip this tick if there's no video at all
     if (!info) { bgLog('No video found — skipping.', ''); return; }
-    if (!info.playing) { bgLog('Video paused — skipping.', ''); return; }
 
-    // 2. screenshot
-    const dataUrl = await browser.tabs.captureVisibleTab(tab.windowId, { format: 'png' });
-
-    // 3. crop to the video rect
-    const finalUrl = await cropImage(dataUrl, info);
-
-    // 4. POST to each endpoint concurrently
-    const blob = dataUrlToBlob(finalUrl);
+    const isPaused = !info.playing;
     const timestamp = new Date().toISOString();
 
+    let blob = null;
+    if (!isPaused) {
+      // 2. screenshot
+      const dataUrl = await browser.tabs.captureTab(tab.tabId, { format: 'png' });
+
+      // 3. crop to the video rect
+      const finalUrl = await cropImage(dataUrl, info);
+      blob = dataUrlToBlob(finalUrl);
+    }
+
+    // 4. POST to each endpoint concurrently
     const posts = endpoints.map(async url => {
       const form = new FormData();
-      form.append('image', blob, `frame_${timestamp}.png`);
+      if (blob) form.append('image', blob, `frame_${timestamp}.png`);
+      form.append('is_paused', isPaused ? 'true' : 'false');
       form.append('timestamp', timestamp);
       form.append('page_title', tab.title ?? '');
       form.append('page_url', tab.url ?? '');
@@ -127,7 +131,7 @@ async function doCapture() {
       try {
         const res = await fetch(url, { method: 'POST', body: form });
         if (res.ok) {
-          bgLog(`POST ${url} → ${res.status}`, 'ok');
+          bgLog(`POST ${url} → ${res.status}${isPaused ? ' (paused)' : ''}`, 'ok');
         } else {
           bgLog(`POST ${url} → ${res.status} ${res.statusText}`, 'err');
         }

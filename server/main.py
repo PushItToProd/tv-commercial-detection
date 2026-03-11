@@ -10,7 +10,10 @@ from classify import classify_image
 app = Flask(__name__)
 
 # In-memory state for the most recent /receive classification
-_state = {"classification": None}  # None | "ad" | "content" | "unknown"
+_state = {
+    "classification": None, # None | "ad" | "content" | "unknown"
+    "paused": True,  # Whether the video is currently paused (based on last /receive request)
+}
 
 SAVE_DIR = Path(os.environ.get("SAVE_DIR", "frames"))
 SAVE_DIR.mkdir(parents=True, exist_ok=True)
@@ -242,7 +245,13 @@ buildGrid();
 
 @app.route("/receive", methods=["POST"])
 def receive():
+    is_paused = request.form.get("is_paused", "").lower() in ("true", "1", "yes")
+    _state["paused"] = is_paused
+
     if "image" not in request.files:
+        if is_paused:
+            print(f"Paused (no image)  |  page: {request.form.get('page_title', '?')}")
+            return jsonify({"classification": _state["classification"], "paused": True}), 200
         return jsonify({"error": "No image field in request"}), 400
 
     image = request.files["image"]
@@ -260,7 +269,7 @@ def receive():
 
     _state["classification"] = result
     print(f"Received image → classified as: {result}  |  page: {request.form.get('page_title', '?')}")
-    return jsonify({"classification": result}), 200
+    return jsonify({"classification": result, "paused": is_paused}), 200
 
 
 @app.route("/report_wrong", methods=["POST"])
@@ -293,7 +302,7 @@ def report_wrong():
 
 @app.route("/is_ad/status")
 def is_ad_status():
-    return jsonify({"classification": _state["classification"]})
+    return jsonify({"classification": _state["classification"], "paused": _state["paused"]})
 
 
 @app.route("/is_ad")
@@ -316,6 +325,10 @@ def is_ad():
     text-shadow: 0 4px 24px rgba(0,0,0,0.5);
     letter-spacing: 0.05em;
   }
+  #paused-indicator {
+    font-size: 4vw; font-weight: bold; color: rgba(255,255,255,0.65);
+    letter-spacing: 0.1em; margin-top: 0.5rem; min-height: 1.2em;
+  }
   #buttons {
     position: fixed; bottom: 2rem;
     display: flex; gap: 1rem;
@@ -331,6 +344,7 @@ def is_ad():
 </head>
 <body>
 <div id="label">...</div>
+<div id="paused-indicator"></div>
 <div id="buttons"></div>
 <script>
 function reportWrong(correctLabel) {
@@ -369,7 +383,9 @@ function update() {
     .then(r => r.json())
     .then(data => {
       const c = data.classification;
+      const paused = data.paused;
       const el = document.getElementById('label');
+      const pausedEl = document.getElementById('paused-indicator');
       if (c === 'ad') {
         document.body.style.background = '#cc0033';
         el.textContent = 'AD';
@@ -380,6 +396,7 @@ function update() {
         document.body.style.background = '#333';
         el.textContent = c === null ? '...' : '?';
       }
+      pausedEl.textContent = paused ? '⏸ PAUSED' : '';
       updateButtons(c);
     })
     .catch(() => {});
