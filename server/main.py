@@ -3,6 +3,7 @@ from datetime import datetime
 from pathlib import Path
 import json
 import os
+import shutil
 import tempfile
 from classify import classify_image
 
@@ -14,6 +15,11 @@ _state = {"classification": None}  # None | "ad" | "content" | "unknown"
 SAVE_DIR = Path(os.environ.get("SAVE_DIR", "frames"))
 SAVE_DIR.mkdir(parents=True, exist_ok=True)
 LABELS_FILE = SAVE_DIR / "labels.json"
+
+INCORRECT_DIR = Path(os.environ.get("INCORRECT_DIR", "incorrect_frames"))
+INCORRECT_DIR.mkdir(parents=True, exist_ok=True)
+
+_LAST_IMAGE_PATH = Path(tempfile.gettempdir()) / "tv_detector_last_frame.png"
 
 
 def load_labels() -> dict:
@@ -248,12 +254,41 @@ def receive():
 
     try:
         result = classify_image(tmp_path)
+        shutil.copy2(tmp_path, _LAST_IMAGE_PATH)
     finally:
         os.unlink(tmp_path)
 
     _state["classification"] = result
     print(f"Received image → classified as: {result}  |  page: {request.form.get('page_title', '?')}")
     return jsonify({"classification": result}), 200
+
+
+@app.route("/report_wrong", methods=["POST"])
+def report_wrong():
+    data = request.get_json()
+    if not data or "correct_label" not in data:
+        return jsonify({"error": "Missing correct_label"}), 400
+    correct_label = data["correct_label"]
+    if correct_label not in ("ad", "content"):
+        return jsonify({"error": "correct_label must be 'ad' or 'content'"}), 400
+    if not _LAST_IMAGE_PATH.exists():
+        return jsonify({"error": "No image available"}), 400
+
+    filename = datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + ".png"
+    dest = INCORRECT_DIR / filename
+    shutil.copy2(_LAST_IMAGE_PATH, dest)
+
+    labels_file = INCORRECT_DIR / "labels.json"
+    labels = {}
+    if labels_file.exists():
+        with open(labels_file) as f:
+            labels = json.load(f)
+    labels[filename] = {"correct_label": correct_label, "classified_as": _state["classification"]}
+    with open(labels_file, "w") as f:
+        json.dump(labels, f, indent=2)
+
+    print(f"Correction saved: {dest}  |  classified as: {_state['classification']}, correct: {correct_label}")
+    return jsonify({"saved": filename, "correct_label": correct_label}), 200
 
 
 @app.route("/is_ad/status")
@@ -272,7 +307,7 @@ def is_ad():
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
-    display: flex; align-items: center; justify-content: center;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
     height: 100vh; font-family: sans-serif;
     background: #333; transition: background 0.4s;
   }
@@ -281,11 +316,54 @@ def is_ad():
     text-shadow: 0 4px 24px rgba(0,0,0,0.5);
     letter-spacing: 0.05em;
   }
+  #buttons {
+    position: fixed; bottom: 2rem;
+    display: flex; gap: 1rem;
+  }
+  .btn-correction {
+    padding: 0.6rem 1.4rem; font-size: 1.1rem; font-weight: bold;
+    border: none; border-radius: 8px; cursor: pointer;
+    background: rgba(255,255,255,0.2); color: #fff;
+    transition: background 0.2s;
+  }
+  .btn-correction:hover { background: rgba(255,255,255,0.38); }
 </style>
 </head>
 <body>
 <div id="label">...</div>
+<div id="buttons"></div>
 <script>
+function reportWrong(correctLabel) {
+  fetch('/report_wrong', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({correct_label: correctLabel})
+  })
+  .then(r => r.json())
+  .then(data => { if (data.error) alert(data.error); })
+  .catch(() => {});
+}
+
+function updateButtons(c) {
+  const div = document.getElementById('buttons');
+  div.innerHTML = '';
+  if (c === 'ad' || c === 'content') {
+    const btn = document.createElement('button');
+    btn.className = 'btn-correction';
+    btn.textContent = 'Wrong!';
+    btn.onclick = () => reportWrong(c === 'ad' ? 'content' : 'ad');
+    div.appendChild(btn);
+  } else if (c !== null && c !== undefined) {
+    [['ad', 'Ad'], ['content', 'Racing']].forEach(([lbl, display]) => {
+      const btn = document.createElement('button');
+      btn.className = 'btn-correction';
+      btn.textContent = display;
+      btn.onclick = () => reportWrong(lbl);
+      div.appendChild(btn);
+    });
+  }
+}
+
 function update() {
   fetch('/is_ad/status')
     .then(r => r.json())
@@ -302,6 +380,7 @@ function update() {
         document.body.style.background = '#333';
         el.textContent = c === null ? '...' : '?';
       }
+      updateButtons(c);
     })
     .catch(() => {});
 }
