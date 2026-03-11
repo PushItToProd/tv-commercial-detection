@@ -1,5 +1,6 @@
 import json
 import sys
+import time
 from pathlib import Path
 
 from classify import _classify_image, get_classification_from_response
@@ -22,14 +23,20 @@ def main():
     incorrectly_unknown = []
 
     for f in image_files:
+        sys.stdout.flush()
         actual = labels[f.name]
+
+        start_time = time.perf_counter()
         resp = _classify_image(f.as_posix())
+        elapsed_time = time.perf_counter() - start_time
+
         classification = get_classification_from_response(resp)
 
         if classification == actual:
-            print(f"{f.name}: correct ({classification})")
+            print(f"{f.name}: correct ({classification}) - {elapsed_time:.2f}s")
             continue
-        print(f"{f.name}: incorrect (classified as {classification}, expected {actual})")
+
+        print(f"{f.name}: incorrect (classified as {classification}, expected {actual}) - {elapsed_time:.2f}s")
 
         num_incorrect += 1
 
@@ -41,8 +48,6 @@ def main():
             incorrectly_unknown.append(f.name)
 
         print(f"  Model reply for incorrect classification: {resp}")
-
-        sys.stdout.flush()
 
     print(f"Processed {len(image_files)} images, {num_incorrect} incorrect classifications.")
     print(f"Num. incorrectly marked as ads: {len(incorrectly_marked_as_ads)}")
