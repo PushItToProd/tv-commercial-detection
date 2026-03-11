@@ -62,9 +62,9 @@ def _classify_image(image_path: str) -> str:
 
 
 def get_classification_from_response(reply: str) -> str:
-    if "type=ad" in reply:
+    if reply.endswith("type=ad"):
         return "ad"
-    elif "type=racing" in reply:
+    elif reply.endswith("type=racing"):
         return "content"
     else:
         return "unknown"
