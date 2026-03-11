@@ -1,5 +1,7 @@
 import base64
+import io
 import sys
+from PIL import Image
 from openai import OpenAI
 
 SERVER_URL = "http://192.168.1.27:3002"
@@ -14,9 +16,23 @@ PROMPT = (
 )
 
 
+MAX_DIMENSION = 768
+
+
+def _resize_image(image_path: str) -> bytes:
+    """Resize image so its longest side is at most MAX_DIMENSION, then return JPEG bytes."""
+    with Image.open(image_path) as img:
+        img.thumbnail((MAX_DIMENSION, MAX_DIMENSION), Image.LANCZOS)
+        if img.mode != "RGB":
+            img = img.convert("RGB")
+        buf = io.BytesIO()
+        img.save(buf, format="JPEG", quality=75)
+        return buf.getvalue()
+
+
 def _classify_image(image_path: str) -> str:
-    with open(image_path, "rb") as f:
-        image_data = base64.b64encode(f.read()).decode("utf-8")
+    image_bytes = _resize_image(image_path)
+    image_data = base64.b64encode(image_bytes).decode("utf-8")
 
     client = OpenAI(base_url=f"{SERVER_URL}/v1", api_key="none")
 
@@ -29,7 +45,7 @@ def _classify_image(image_path: str) -> str:
                     {"type": "text", "text": PROMPT},
                     {
                         "type": "image_url",
-                        "image_url": {"url": f"data:image/png;base64,{image_data}"},
+                        "image_url": {"url": f"data:image/jpeg;base64,{image_data}"},
                     },
                 ],
             }
