@@ -99,16 +99,19 @@ async function doCapture() {
   if (!tab) { bgLog('No active tab.', 'err'); return; }
 
   try {
-    // 1. get video rect from page
+    // 1. get video info from page
     const results = await browser.tabs.executeScript(tab.id, { file: 'content_scripts/get_video_bounds.js' });
-    const rect = results[0];
+    const info = results[0];
+
+    // skip this tick if there's no video or it's not currently playing
+    if (!info) { bgLog('No video found — skipping.', ''); return; }
+    if (!info.playing) { bgLog('Video paused — skipping.', ''); return; }
 
     // 2. screenshot
     const dataUrl = await browser.tabs.captureVisibleTab(tab.windowId, { format: 'png' });
 
-    // 3. crop if we found a video
-    const finalUrl = rect ? await cropImage(dataUrl, rect) : dataUrl;
-    if (!rect) bgLog('No video found — sending full screenshot.', '');
+    // 3. crop to the video rect
+    const finalUrl = await cropImage(dataUrl, info);
 
     // 4. POST to each endpoint concurrently
     const blob = dataUrlToBlob(finalUrl);

@@ -1,4 +1,5 @@
-// Find the largest visible video element on the page and return its bounding rect
+// Find the largest visible video element on the page and return its playing
+// status and bounding rect if it's playing. Returns null if no video is found.
 (function () {
   const clamp0 = n => Math.max(0, n);
 
@@ -15,10 +16,14 @@
     return r.width * r.height > bestR.width * bestR.height ? v : best;
   });
 
+  // Check if the video is paused or ended
+  if (video.paused || video.ended) return { playing: false };
+
   const rect = video.getBoundingClientRect();
   const dpr = window.devicePixelRatio || 1;
 
   return {
+    playing: true,
     x:      Math.round(clamp0(rect.left   * dpr)),
     y:      Math.round(clamp0(rect.top    * dpr)),
     width:  Math.round(clamp0(rect.width  * dpr)),
