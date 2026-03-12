@@ -1,5 +1,5 @@
 {
-  "matrix_url": "http://localhost:5000",
+  "matrix_url": "http://192.168.1.27:5000",
   "ad_output_setting": {
     "A": "1",
     "B": "4"

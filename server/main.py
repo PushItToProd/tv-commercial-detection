@@ -33,6 +33,7 @@ _LAST_IMAGE_PATH = Path(tempfile.gettempdir()) / "tv_detector_last_frame.png"
 # Rolling buffer of recent frames: each entry is (iso_timestamp: str, png_bytes: bytes)
 _RECENT_FRAMES: deque = deque(maxlen=5)
 
+# TODO: support loading settings from env as well as config file
 CONFIG_FILE = Path(os.environ.get("CONFIG_FILE", "config.json"))
 
 LOAD_EXAMPLES = False
