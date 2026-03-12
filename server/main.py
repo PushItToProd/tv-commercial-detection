@@ -2,15 +2,22 @@ import json
 import os
 from pathlib import Path
 
+from flask import Flask, Response
+from prometheus_flask_exporter import PrometheusMetrics
+
 import classify
-from flask import Flask
 from routes.receive import receive_bp
 from routes.review import review_bp
 from routes.status import status_bp
 
 
+metrics = PrometheusMetrics.for_app_factory()
+
+
 def create_app() -> Flask:
     app = Flask(__name__)
+
+    metrics.init_app(app)
 
     # Defaults
     app.config.from_mapping(
@@ -43,6 +50,11 @@ def create_app() -> Flask:
     app.register_blueprint(receive_bp)
     app.register_blueprint(review_bp)
     app.register_blueprint(status_bp)
+
+    @app.route('/metrics')
+    def get_metrics():
+        metrics_response, content_type = metrics.generate_metrics()
+        return Response(metrics_response, mimetype=content_type)
     return app
 
 
