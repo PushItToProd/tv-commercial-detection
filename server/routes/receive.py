@@ -54,8 +54,16 @@ def receive():
         os.unlink(tmp_path)
 
     committed = state.classification
+
+    # We ignore "unknown" here -- e.g. if we get `content -> unknown ->
+    # content`, treat that like two consecutive `content` results and switch to
+    # content. Right now any "unknown" in the middle of two identical results
+    # will prevent switching, which is not ideal since "unknown" is often just a
+    # momentary uncertainty.
     pending = state.last_result
-    state.last_result = result
+    if result != "unknown":
+        state.last_result = result
+
     # Commit only when the same result appears twice in a row and differs from current state
     if result == pending and result != committed and result in ("ad", "content"):
         state.classification = result
