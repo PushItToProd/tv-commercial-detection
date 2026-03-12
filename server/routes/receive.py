@@ -27,8 +27,13 @@ def receive():
 
     image = request.files["image"]
 
+    # Preserve the uploaded extension (.jpg or .png) so PIL detects the format correctly
+    ext = Path(image.filename).suffix.lower() if image.filename else ".jpg"
+    if ext not in (".jpg", ".jpeg", ".png"):
+        ext = ".jpg"
+
     # Write to a temp file so classify_image (which expects a path) can read it
-    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
+    with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as tmp:
         image.save(tmp.name)
         tmp_path = tmp.name
 
@@ -41,7 +46,7 @@ def receive():
     try:
         with open(tmp_path, "rb") as f:
             frame_bytes = f.read()
-        recent_frames.append((datetime.now().isoformat(), frame_bytes))
+        recent_frames.append((datetime.now().isoformat(), frame_bytes, ext))
         shutil.copy2(tmp_path, last_image_path)
     except Exception as e:
         print(f"Error saving recent frame: {e}")
@@ -82,9 +87,9 @@ def report_wrong():
             labels = json.load(f)
 
     saved = []
-    for i, (ts, frame_bytes) in enumerate(recent_frames):
+    for i, (ts, frame_bytes, ext) in enumerate(recent_frames):
         safe_ts = ts.replace(":", "-").replace(".", "-")
-        filename = f"{safe_ts}_{i}.png"
+        filename = f"{safe_ts}_{i}{ext}"
         dest = incorrect_dir / filename
         dest.write_bytes(frame_bytes)
         labels[filename] = {"correct_label": correct_label, "classified_as": state.classification}

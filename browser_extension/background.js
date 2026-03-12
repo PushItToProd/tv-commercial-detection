@@ -111,7 +111,7 @@ async function doCapture() {
 
     let blob = null;
     if (!isPaused) {
-      // 2. screenshot
+      // 2. screenshot (PNG so the crop step has lossless input before JPEG encoding)
       const dataUrl = await browser.tabs.captureTab(tab.tabId, { format: 'png' });
 
       // 3. crop to the video rect
@@ -122,7 +122,7 @@ async function doCapture() {
     // 4. POST to each endpoint concurrently
     const posts = endpoints.map(async url => {
       const form = new FormData();
-      if (blob) form.append('image', blob, `frame_${timestamp}.png`);
+      if (blob) form.append('image', blob, `frame_${timestamp}.jpg`);
       form.append('is_paused', isPaused ? 'true' : 'false');
       form.append('timestamp', timestamp);
       form.append('page_title', tab.title ?? '');
@@ -161,7 +161,7 @@ function cropImage(dataUrl, rect) {
         rect.x, rect.y, rect.width, rect.height,
         0, 0, rect.width, rect.height
       );
-      resolve(canvas.toDataURL('image/png'));
+      resolve(canvas.toDataURL('image/jpeg', 0.6));
     };
     img.onerror = reject;
     img.src = dataUrl;
