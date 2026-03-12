@@ -2,6 +2,7 @@ import argparse
 import base64
 import io
 import sys
+from pathlib import Path
 from PIL import Image
 from openai import OpenAI
 
@@ -21,8 +22,27 @@ MAX_DIMENSION = 1024
 
 # Each entry is (image_path, expected_assistant_reply).
 # The reply should be a short description followed by the label, e.g.:
-#   "A car dealership ad with a red sedan. type=ad"
+#   "the image shows a tv broadcast of a nascar cup series race event. type=racing"
 EXAMPLES: list[tuple[str, str]] = []
+
+PROMPT_DIR = Path(__file__).parent / "prompt"
+
+
+def load_examples() -> list[tuple[str, str]]:
+    """Load few-shot examples from prompt/ad_frames and prompt/race_frames.
+
+    Each subdirectory contains .png files and paired .png.txt files whose
+    content is the expected assistant reply for that image.
+    """
+    examples: list[tuple[str, str]] = []
+    for subdir in ("ad_frames", "race_frames"):
+        # TODO: make sure we handle the case where the prompt directory doesn't exist
+        for img_path in sorted((PROMPT_DIR / subdir).glob("*.png")):
+            txt_path = img_path.with_suffix(".png.txt")
+            if txt_path.exists():
+                reply = txt_path.read_text().strip()
+                examples.append((str(img_path), reply))
+    return examples
 
 
 def _resize_image(image_path: str) -> bytes:
@@ -95,11 +115,16 @@ def get_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument('image_path', type=str, help='Path to the image to classify')
     parser.add_argument('--include-reply', action='store_true', help='Whether to include the full assistant reply in the output')
+    parser.add_argument('--load-examples', action='store_true', help='Whether to load few-shot examples from the prompt directory')
     return parser
 
 
 def main():
     args = get_parser().parse_args()
+
+    if args.load_examples:
+        global EXAMPLES
+        EXAMPLES = load_examples()
 
     if args.include_reply:
         reply = _classify_image(args.image_path)

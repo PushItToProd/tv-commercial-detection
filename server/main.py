@@ -9,6 +9,7 @@ import tempfile
 import threading
 import urllib.request
 from classify import classify_image
+import classify
 
 app = Flask(__name__)
 
@@ -33,6 +34,13 @@ _LAST_IMAGE_PATH = Path(tempfile.gettempdir()) / "tv_detector_last_frame.png"
 _RECENT_FRAMES: deque = deque(maxlen=5)
 
 CONFIG_FILE = Path(os.environ.get("CONFIG_FILE", "config.json"))
+
+
+@app.before_request
+def initialize_examples():
+    if classify.EXAMPLES:
+        return  # already loaded
+    classify.EXAMPLES = classify.load_examples()
 
 
 def load_config() -> dict:
@@ -110,7 +118,7 @@ def serve_frame(filename):
 
 
 @app.route("/classify", methods=["POST"])
-def classify():
+def handle_classify():
     data = request.get_json()
     if not data or "filename" not in data or "label" not in data:
         return jsonify({"error": "Missing filename or label"}), 400
