@@ -96,6 +96,9 @@ def _classify_image(image_path: str) -> str:
             messages=messages,
             max_tokens=500,
             temperature=0.6,
+            top_p=0.95,
+            presence_penalty=1.5,
+            extra_body=dict(top_k=20),
         )
 
     content = response.choices[0].message.content
