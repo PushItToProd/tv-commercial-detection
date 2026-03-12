@@ -26,7 +26,9 @@ PROMPT = (
     "- A product (food, vehicle, consumer goods) as the primary visual subject\n"
     "- Lifestyle or non-racing scenarios (people in a home, restaurant, or outdoor setting)\n"
     "- A brand logo or slogan dominating most of the screen\n"
-    "- 'Fox side-by-side': race footage shrunk to one side while a product ad fills the other *and* the scoring leaderboard is at the top of the screen, not the left\n"
+    "- 'Fox side-by-side': race footage shrunk to to the LEFT side with a horizontal scoring leaderboard at the TOP of the screen while a product ad fills the right half and a sponsor logo is displayed in the lower left\n"
+    # TODO: have to adjust this for other series
+    "- Any type of race cars other than NASCAR Cup Series cars (e.g. Formula 1, IndyCar, NASCAR Trucks, sports cars)\n"
     "- Racing-themed imagery (cars, drivers) used to sell a product rather than show live action\n\n"
     "In 100 words or less, describe what you see in the image. "
     "Then end your message with either 'type=ad' or 'type=racing'."
