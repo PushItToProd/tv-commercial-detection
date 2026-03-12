@@ -43,9 +43,9 @@
 - [x] deploy everything in docker
   - [ ] move the per-app docker-compose config into `~/Code/docker/tv-commercial-detector/docker-compose.yml`
 - [/] make everything configurable via env vars
+- [x] split flask app into blueprints
 - [ ] refactor to use Flask's config support https://flask.palletsprojects.com/en/stable/config/
-- [ ] split flask app into blueprints
-- [ ] persist state in a better way than just keeping it in a dict in memory
+- [ ] persist state in a better way than just keeping it in a dataclass in memory
 - [ ] move outputs out of `server/` directory into a configurable folder someplace else
 
 ### Classification/Receiver
