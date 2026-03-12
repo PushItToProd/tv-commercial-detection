@@ -139,17 +139,14 @@
   - [x] add buttons to manually trigger ad/not-ad mode
 - "Wrong!" button
   - [x] when I click "Wrong!", save the last few images in case I don't manage to hit the button right away
+  - [ ] when I click "Wrong!", it should include a unique ID (timestamp?) of the image reported so there's no race condition from hitting it a split second too late
   - [ ] when I click "Wrong!", automatically swap back and maybe temporarily pause auto-switching
     - [ ] ambitious: when I click "Wrong!", temporarily update the classifier prompt to include the relevant screenshot as an example. 
       - not sure how long it should be updated for - probably just until the classification changes again
   - [x] show the latest screenshot on the UI so I can tell what I'm marking as wrong
 
 - [ ] stretch: allow controlling YTTV (pause, rewind, etc.) from the web UI
-
 - [ ] include `incorrect_frames` in the `/review` endpoint so I can classify them
-
 - [ ] if the server stops responding when the UI polls for updates, show that the connection was lost
-
 - [ ] when the classification first changes, even if we don't actually switch the switcher yet, update the UI to show it thinks it's about to change
-
 - [ ] show a counter of the number of seconds since the last image was received
