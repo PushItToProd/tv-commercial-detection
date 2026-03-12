@@ -16,6 +16,7 @@ _state = {
     "classification": None, # None | "ad" | "content" | "unknown"
     "paused": True,  # Whether the video is currently paused (based on last /receive request)
     "auto_switch": True,  # Whether to automatically apply matrix settings on classification change
+    "last_result": None,  # The immediately previous classification result (for debounce)
 }
 
 SAVE_DIR = Path(os.environ.get("SAVE_DIR", "frames"))
@@ -306,12 +307,18 @@ def receive():
     finally:
         os.unlink(tmp_path)
 
-    previous = _state["classification"]
-    _state["classification"] = result
-    print(f"Received image → classified as: {result}  |  page: {request.form.get('page_title', '?')}")
-    if result != previous and result in ("ad", "content") and _state["auto_switch"]:
-        apply_matrix_settings(result)
-    return jsonify({"classification": result, "paused": is_paused}), 200
+    committed = _state["classification"]
+    last = _state["last_result"]
+    _state["last_result"] = result
+    # Only switch if the same result appears twice in a row and differs from committed state
+    if result == last and result != committed and result in ("ad", "content"):
+        _state["classification"] = result
+        print(f"Received image → committed: {result}  |  page: {request.form.get('page_title', '?')}")
+        if _state["auto_switch"]:
+            apply_matrix_settings(result)
+    else:
+        print(f"Received image → classified as: {result}  |  page: {request.form.get('page_title', '?')}")
+    return jsonify({"classification": _state["classification"], "paused": is_paused}), 200
 
 
 @app.route("/report_wrong", methods=["POST"])
