@@ -9,12 +9,27 @@ from openai import OpenAI
 SERVER_URL = "http://192.168.1.27:3002"
 
 PROMPT = (
-    "You are analyzing a screenshot from a TV broadcast. "
-    "Determine whether the image shows a TV commercial/advertisement, "
-    "or actual race content (cars, track, drivers, pit lane, etc.). "
+    "You are analyzing a screenshot from a Fox Sports NASCAR Cup Series TV broadcast. "
+    "Determine whether the broadcast has cut to a commercial break (type=ad), "
+    "or whether it is showing actual race content (type=racing).\n\n"
+    "RACE BROADCAST — strong indicators, classify as type=racing:\n"
+    "- A vertical scoring strip/leaderboard along the LEFT edge showing driver positions, lap data, or car numbers\n"
+    "- Race cars on a track (wide shot, aerial view, or in-car cockpit/dashboard view)\n"
+    "- Pit lane or pit road activity\n"
+    "- Drivers, crew members, or on-air commentators at the race venue or broadcast booth\n"
+    "- A studio segment with commentators standing in front of a branded Fox backdrop or holding microphones with the Fox logo\n"
+    "- Pre/post-race analysis: track maps, statistics, replays\n"
+    "- Sponsor logos in the CORNER of the screen (e.g. Wendy's bug, Sonic logo) — "
+    "these are normal in-broadcast overlays, NOT indicators of an ad\n"
+    "- A brief network promo or lower-third for another event shown over the race broadcast\n\n"
+    "AD BREAK — strong indicators, classify as type=ad:\n"
+    "- A product (food, vehicle, consumer goods) as the primary visual subject\n"
+    "- Lifestyle or non-racing scenarios (people in a home, restaurant, or outdoor setting)\n"
+    "- A brand logo or slogan dominating most of the screen\n"
+    "- 'Fox side-by-side': race footage shrunk to one side while a product ad fills the other *and* the scoring leaderboard is at the top of the screen, not the left\n"
+    "- Racing-themed imagery (cars, drivers) used to sell a product rather than show live action\n\n"
     "In 100 words or less, describe what you see in the image. "
-    "Then, based on that description, end your message with either 'type=ad' or "
-    "'type=racing'."
+    "Then end your message with either 'type=ad' or 'type=racing'."
 )
 
 
@@ -98,9 +113,9 @@ def _classify_image(image_path: str) -> str:
 
 
 def get_classification_from_response(reply: str) -> str:
-    if reply.endswith("type=ad"):
+    if reply.endswith("type=ad") or "type=ad" in reply:
         return "ad"
-    elif reply.endswith("type=racing"):
+    elif reply.endswith("type=racing") or "type=racing" in reply:
         return "content"
     else:
         return "unknown"
