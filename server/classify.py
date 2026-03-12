@@ -90,10 +90,14 @@ def classify_image(image_path: str) -> str:
     return get_classification_from_response(reply)
 
 
-if __name__ == "__main__":
+def main():
     if len(sys.argv) != 2:
         print(f"Usage: {sys.argv[0]} <image.png>")
         sys.exit(1)
 
     result = classify_image(sys.argv[1])
     print(result)
+
+
+if __name__ == "__main__":
+    main()
