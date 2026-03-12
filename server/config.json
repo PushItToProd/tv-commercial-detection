@@ -1,0 +1,11 @@
+{
+  "matrix_url": "http://localhost:5000",
+  "ad_output_setting": {
+    "A": "1",
+    "B": "4"
+  },
+  "race_output_setting": {
+    "A": "4",
+    "B": "1"
+  }
+}
