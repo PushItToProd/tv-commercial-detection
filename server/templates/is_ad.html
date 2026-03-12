@@ -148,7 +148,8 @@ function update() {
         document.body.style.background = '#333';
         el.textContent = c === null ? '...' : '?';
       }
-      pausedEl.textContent = paused ? '⏸ PAUSED' : '';
+      const pending = data.pending;
+      pausedEl.textContent = paused ? '⏸ PAUSED' : pending ? '⏳ PENDING CHANGE' : '';
       updateButtons(c);
       const frameEl = document.getElementById('last-frame');
       frameEl.src = '/is_ad/last_frame?t=' + Date.now();

@@ -11,6 +11,9 @@ class AppState:
     auto_switch: bool = True
     last_result: str | None = None  # Immediately previous result, used for debounce
 
+    def is_pending_change(self) -> bool:
+        return self.last_result is not None and self.last_result != self.classification
+
 
 state = AppState()
 
