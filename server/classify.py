@@ -2,8 +2,9 @@ import argparse
 import base64
 import io
 import json
-import sys
+import re
 from pathlib import Path
+
 from PIL import Image
 from openai import OpenAI
 
@@ -14,6 +15,7 @@ PROMPT = (
     "Determine whether the broadcast has cut to a commercial break, "
     "or whether it is showing actual race content.\n\n"
     "RACE BROADCAST — strong indicators:\n"
+    "- A logo for 'Fox' or 'FS1' in the upper-right corner\n"
     "- A vertical scoring strip/leaderboard along the LEFT edge showing driver positions, lap data, or car numbers (may include a sponsor logo in the top left)\n"
     "- Race cars on a track (wide shot, aerial view, or in-car cockpit/dashboard view)\n"
     "- Pit lane or pit road activity\n"
@@ -129,30 +131,45 @@ def _classify_image(image_path: str) -> str:
     return reply
 
 
+AD_MATCH_REGEX = re.compile(r'\btype=ad\b|\"classification\"\s*:\s*\"ad\"')
+RACING_MATCH_REGEX = re.compile(r'\btype=racing\b|\"classification\"\s*:\s*\"racing\"')
+
+
+def _extract_json(reply: str) -> dict | None:
+    """Extract and parse the first complete JSON object from the reply."""
+    start = reply.find("{")
+    end = reply.rfind("}")
+    if start != -1 and end != -1 and end > start:
+        try:
+            return json.loads(reply[start : end + 1])
+        except json.JSONDecodeError:
+            pass
+    return None
+
+
 def get_classification_from_response(reply: str) -> str:
-    try:
-        data = json.loads(reply)
-        # Deterministic overrides based on strong structural signals
-        scoreboard_pos = data.get("scoreboard", {}).get("position")
-        if scoreboard_pos == "left_vertical":
-            return "content"
-        if data.get("layout") == "side_by_side":
-            return "ad"
-        if data.get("primary_subject") in ("product", "lifestyle_scene", "brand_logo"):
-            return "ad"
+    data = _extract_json(reply)
+    if data is not None:
+        # # Deterministic overrides based on strong structural signals
+        # scoreboard_pos = data.get("scoreboard", {}).get("position")
+        # if scoreboard_pos == "left_vertical":
+        #     return "content"
+        # if data.get("layout") == "side_by_side":
+        #     return "ad"
+        # if data.get("primary_subject") in ("product", "lifestyle_scene", "brand_logo"):
+        #     return "ad"
+
         # Fall back to the model's own classification field
         classification = data.get("classification")
         if classification == "racing":
             return "content"
         if classification == "ad":
             return "ad"
-    except (json.JSONDecodeError, AttributeError):
-        pass
 
     # Text fallback for when JSON parsing fails
-    if "type=ad" in reply:
+    if AD_MATCH_REGEX.search(reply):
         return "ad"
-    if "type=racing" in reply:
+    if RACING_MATCH_REGEX.search(reply):
         return "content"
     return "unknown"
 
