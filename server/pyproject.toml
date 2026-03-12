@@ -21,5 +21,6 @@ py-modules = [
     "classify",
     "state",
     "matrix",
+    "metrics",
 ]
 packages = ["routes"]

@@ -3,15 +3,12 @@ import os
 from pathlib import Path
 
 from flask import Flask, Response
-from prometheus_flask_exporter import PrometheusMetrics
+from metrics import metrics
 
 import classify
 from routes.receive import receive_bp
 from routes.review import review_bp
 from routes.status import status_bp
-
-
-metrics = PrometheusMetrics.for_app_factory()
 
 
 def create_app() -> Flask:

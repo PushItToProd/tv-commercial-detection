@@ -9,6 +9,9 @@ from pathlib import Path
 from PIL import Image
 from openai import OpenAI
 
+import prometheus_client
+
+
 SERVER_URL = os.environ.get("LLAMA_SERVER_URL", "http://192.168.1.27:3002")
 
 PROMPT_FILE = os.environ.get("PROMPT_FILE", Path(__file__).parent / "prompt" / "prompt.txt")
@@ -23,6 +26,13 @@ MAX_DIMENSION = 1024
 EXAMPLES: list[tuple[str, str]] = []
 
 PROMPT_DIR = Path(__file__).parent / "prompt"
+
+
+CLASSIFICATION_TIME = prometheus_client.Histogram(
+    "classification_time_seconds",
+    "Time spent classifying each image",
+    buckets=[0.5, 1, 1.25, 1.5, 1.75, 2, 5, 10],
+)
 
 
 def load_examples() -> list[tuple[str, str]]:
@@ -59,6 +69,7 @@ def encode_image(image_path):
     return image_data
 
 
+@CLASSIFICATION_TIME.time()
 def _classify_image(image_path: str) -> str:
     image_data = encode_image(image_path)
 
