@@ -10,15 +10,6 @@
     - [ ] Cup on NBC
     - [ ] Trucks
 
-- [ ] show a visual indicator when an ad has been detected and it's about to switch
-  - [ ] provide a way to preempt and tell it it's wrong
-  - [ ] provide a way to confirm and switch right away
-
-- [ ] elegantly handle timeouts from both the llama.cpp server and the HDMI Matrix control server
-- [ ] handle latency and backpressure -- right now I have two external components that can have high-ish response times, but right now I have no way to handle that. 
-  - e.g. if I were to use a more intensive prompt for classification that takes >2s to run and then set the browser extension to send screenshost every second, I think I would end up DoSing my server. It would be better if the extension could "feel" that latency and back off
-  - I suppose a rudimentary way to do it would be to make all the request processing on the `/receive` endpoint synchronous, so it only sends a response after classification is finished and the switcher has switched (if needed). Of course, the extension's scheduled screenshot sending would need to be tweaked so it could tell if it had gotten a response from the server for its last request yet and skip sending a new screenshot if it hasn't.
-
 ## Extension
 
 - [x] only capture screenshots if video is playing
@@ -31,7 +22,7 @@
 - [ ] notify the server when the sender stops or starts
 - [ ] if I'm actively interacting with the video player, avoid switching
 - [ ] allow configuring separate intervals for each endpoint
-- [ ] compress/resize images at capture time so we don't have to do it server side
+- [x] compress/resize images at capture time so we don't have to do it server side
   - `browser.tabs.captureTab()` takes an `ImageDetails` as its second arg
     - https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/tabs/captureTab
   - -> `ImageDetails` can be used to set the file type and quality
@@ -54,6 +45,11 @@
 - [ ] move outputs out of `server/` directory into a configurable folder someplace else
 
 ### Classification/Receiver
+
+- [ ] elegantly handle timeouts from both the llama.cpp server and the HDMI Matrix control server
+- [ ] handle latency and backpressure -- right now I have two external components that can have high-ish response times, but right now I have no way to handle that. 
+  - e.g. if I were to use a more intensive prompt for classification that takes >2s to run and then set the browser extension to send screenshost every second, I think I would end up DoSing my server. It would be better if the extension could "feel" that latency and back off
+  - I suppose a rudimentary way to do it would be to make all the request processing on the `/receive` endpoint synchronous, so it only sends a response after classification is finished and the switcher has switched (if needed). Of course, the extension's scheduled screenshot sending would need to be tweaked so it could tell if it had gotten a response from the server for its last request yet and skip sending a new screenshot if it hasn't.
 
 - [x] support .jpg in addition to .png files so we can compress on the client side
   - [ ] review jpg support -- some places still assume png
@@ -115,6 +111,8 @@
 - [x] try using Qwen 0.8B with my improved prompt
   - -> still not very good
 
+- [ ] could I just give Claude or some agent access to my `check_classification.py` script and prompt it to iterate on the prompt until we end up with an optimal one?
+
 #### Improvement ideas
 
 - [ ] grab closed captions/subtitles and include them with the screenshot when sending to the LLM
@@ -131,6 +129,10 @@
 - [ ] try to avoid sending multiple parallel requests to change inputs
 
 ### UI
+
+- [ ] show a visual indicator when an ad has been detected and it's about to switch
+  - [ ] provide a way to preempt and tell it it's wrong
+  - [ ] provide a way to confirm and switch right away
 
 - [x] move UI templates into html files
 - [x] add a toggle to turn switching on and off
