@@ -15,6 +15,9 @@
   - [ ] provide a way to confirm and switch right away
 
 - [ ] elegantly handle timeouts from both the llama.cpp server and the HDMI Matrix control server
+- [ ] handle latency and backpressure -- right now I have two external components that can have high-ish response times, but right now I have no way to handle that. 
+  - e.g. if I were to use a more intensive prompt for classification that takes >2s to run and then set the browser extension to send screenshost every second, I think I would end up DoSing my server. It would be better if the extension could "feel" that latency and back off
+  - I suppose a rudimentary way to do it would be to make all the request processing on the `/receive` endpoint synchronous, so it only sends a response after classification is finished and the switcher has switched (if needed). Of course, the extension's scheduled screenshot sending would need to be tweaked so it could tell if it had gotten a response from the server for its last request yet and skip sending a new screenshot if it hasn't.
 
 ## Extension
 
@@ -28,14 +31,16 @@
 - [ ] notify the server when the sender stops or starts
 - [ ] if I'm actively interacting with the video player, avoid switching
 - [ ] allow configuring separate intervals for each endpoint
-- [ ] compress/resize images at capture time -- `browser.tabs.captureTab()` takes an `ImageDetails` as its second arg
-  - https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/tabs/captureTab
-  - https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/extensionTypes/ImageDetails
-    - `{format: "jpeg", quality: 60}` 
-    - [ ] use `rect` instead of `cropImage`
+- [ ] compress/resize images at capture time so we don't have to do it server side
+  - `browser.tabs.captureTab()` takes an `ImageDetails` as its second arg
+    - https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/tabs/captureTab
+  - -> `ImageDetails` can be used to set the file type and quality
+    - https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/extensionTypes/ImageDetails
+      - `{format: "jpeg", quality: 60}`
+      - [ ] use `rect` param instead of `cropImage`
   - potentially resize using canvas https://stackoverflow.com/a/39637827
 
-- [ ] +if the classifier service returned its result to the extension, the extension could mute and (if possible) skip ahead automatically until it's not on an ad break anymore
+- [ ] +if the classifier service returned its result to the extension, the extension could do things like mute and (if possible) skip ahead automatically until it's not on an ad break anymore
 - [ ] package the extension so I can install it permanently in firefox
 
 ## Web app
@@ -50,6 +55,8 @@
 
 ### Classification/Receiver
 
+- [ ] support .jpg in addition to .png files so we can compress on the client side
+- [ ] factor out an enum of classification labels
 - [ ] keep track of last receive time, if we haven't gotten a new screenshot in a while (depending on the receive frequency), update the state to reflect possible connection loss
 
 - [ ] periodically save some subset of received images along with their responses from the LLM, so later I can review them and find ones that I disagree with
@@ -71,6 +78,7 @@
 - [x] I suppose I could also take a set of correctly and incorrectly classified images, feed them to the LLM I'm using to classify them, ask it what it sees, then ask it to generate a prompt for itself with a summary of elements to look for based on the actual classifications.
 
 - [ ] record metrics about how long classification takes
+  - https://prometheus.github.io/client_python/exporting/http/flask/
 
 - [x] prompt the model to specifically look for certain attributes like scoreboard position and emit it all in JSON
 - [ ] maybe include the previous reported state in the prompt to see if that helps -- e.g. `You last reported seeing (an ad|racing).`
@@ -103,8 +111,6 @@
 - [x] try using Qwen 0.8B with my improved prompt
   - -> still not very good
 
-- [ ] support .jpg in addition to .png files
-
 #### Improvement ideas
 
 - [ ] grab closed captions/subtitles and include them with the screenshot when sending to the LLM
@@ -118,10 +124,11 @@
 - [x] turn off auto-switch when paused
 - [ ] if I send two commands to the switcher back-to-back, will it handle them both without me needing to wait for its response?
   - not sure, but I was doing something with switching back and forth, after which my NUC seemingly randomly glitched out -- seems like it's maybe not ideal
+- [ ] try to avoid sending multiple parallel requests to change inputs
 
 ### UI
 
-- [ ] move UI templates into html files
+- [x] move UI templates into html files
 - [x] add a toggle to turn switching on and off
   - [x] add buttons to manually trigger ad/not-ad mode
 - "Wrong!" button
