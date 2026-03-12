@@ -5,16 +5,13 @@ import tempfile
 from datetime import datetime
 from pathlib import Path
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, current_app, jsonify, request
 
 from classify import classify_image
 from matrix import apply_matrix_settings
 from state import last_image_path, recent_frames, state
 
 receive_bp = Blueprint("receive", __name__)
-
-INCORRECT_DIR = Path(os.environ.get("INCORRECT_DIR", "incorrect_frames"))
-INCORRECT_DIR.mkdir(parents=True, exist_ok=True)
 
 
 @receive_bp.route("/receive", methods=["POST"])
@@ -77,7 +74,8 @@ def report_wrong():
     if not recent_frames:
         return jsonify({"error": "No image available"}), 400
 
-    labels_file = INCORRECT_DIR / "labels.json"
+    incorrect_dir = current_app.config["INCORRECT_DIR"]
+    labels_file = incorrect_dir / "labels.json"
     labels = {}
     if labels_file.exists():
         with open(labels_file) as f:
@@ -87,7 +85,7 @@ def report_wrong():
     for i, (ts, frame_bytes) in enumerate(recent_frames):
         safe_ts = ts.replace(":", "-").replace(".", "-")
         filename = f"{safe_ts}_{i}.png"
-        dest = INCORRECT_DIR / filename
+        dest = incorrect_dir / filename
         dest.write_bytes(frame_bytes)
         labels[filename] = {"correct_label": correct_label, "classified_as": state.classification}
         saved.append(filename)
@@ -95,5 +93,5 @@ def report_wrong():
     with open(labels_file, "w") as f:
         json.dump(labels, f, indent=2)
 
-    print(f"Correction saved: {len(saved)} frame(s) to {INCORRECT_DIR}  |  classified as: {state.classification}, correct: {correct_label}")
+    print(f"Correction saved: {len(saved)} frame(s) to {incorrect_dir}  |  classified as: {state.classification}, correct: {correct_label}")
     return jsonify({"saved": saved, "correct_label": correct_label}), 200

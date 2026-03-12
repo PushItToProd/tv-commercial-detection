@@ -1,28 +1,16 @@
 import json
-import os
 import threading
 import urllib.request
-from pathlib import Path
 
-CONFIG_FILE = Path(os.environ.get("CONFIG_FILE", "config.json"))
-
-
-def load_config() -> dict:
-    if CONFIG_FILE.exists():
-        with open(CONFIG_FILE) as f:
-            config = json.load(f)
-        if os.environ.get("HDMI_MATRIX_URL"):
-            config["matrix_url"] = os.environ["HDMI_MATRIX_URL"]
-        return config
-    return {}
+from flask import current_app
 
 
 def apply_matrix_settings(classification: str) -> None:
     """Send HDMI matrix switch commands for the given classification in a background thread."""
-    config = load_config()
-    matrix_url = config.get("matrix_url", "http://localhost:5000")
-    key = "ad_output_setting" if classification == "ad" else "race_output_setting"
-    settings: dict = config.get(key, {})
+    # Capture config values before spawning thread — current_app is not available off-context
+    matrix_url = current_app.config["MATRIX_URL"]
+    key = "AD_OUTPUT_SETTING" if classification == "ad" else "RACE_OUTPUT_SETTING"
+    settings: dict = dict(current_app.config.get(key, {}))
     if not settings:
         return
 

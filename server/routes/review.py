@@ -1,26 +1,23 @@
 import json
-import os
 from datetime import datetime
 from pathlib import Path
 
-from flask import Blueprint, jsonify, render_template, request, send_from_directory
+from flask import Blueprint, current_app, jsonify, render_template, request, send_from_directory
 
 review_bp = Blueprint("review", __name__)
 
-SAVE_DIR = Path(os.environ.get("SAVE_DIR", "frames"))
-SAVE_DIR.mkdir(parents=True, exist_ok=True)
-LABELS_FILE = SAVE_DIR / "labels.json"
-
 
 def load_labels() -> dict:
-    if LABELS_FILE.exists():
-        with open(LABELS_FILE) as f:
+    labels_file = current_app.config["SAVE_DIR"] / "labels.json"
+    if labels_file.exists():
+        with open(labels_file) as f:
             return json.load(f)
     return {}
 
 
 def save_labels(labels: dict) -> None:
-    with open(LABELS_FILE, "w") as f:
+    labels_file = current_app.config["SAVE_DIR"] / "labels.json"
+    with open(labels_file, "w") as f:
         json.dump(labels, f, indent=2)
 
 
@@ -39,7 +36,8 @@ def save():
         dt = datetime.now()
 
     filename = dt.strftime("%Y-%m-%d_%H-%M-%S") + ".png"
-    save_path = SAVE_DIR / filename
+    save_dir = current_app.config["SAVE_DIR"]
+    save_path = save_dir / filename
     image.save(save_path)
 
     print(f"Saved: {save_path}  |  page: {request.form.get('page_title', '?')}")
@@ -49,7 +47,7 @@ def save():
 @review_bp.route("/frames/<filename>")
 def serve_frame(filename):
     # send_from_directory prevents path traversal
-    return send_from_directory(SAVE_DIR.resolve(), filename)
+    return send_from_directory(current_app.config["SAVE_DIR"].resolve(), filename)
 
 
 @review_bp.route("/classify", methods=["POST"])
@@ -72,7 +70,8 @@ def handle_classify():
 
 @review_bp.route("/review")
 def review():
+    save_dir = current_app.config["SAVE_DIR"]
     labels = load_labels()
-    images = sorted(p.name for p in SAVE_DIR.glob("*.png"))
+    images = sorted(p.name for p in save_dir.glob("*.png"))
     image_data = [{"filename": f, "label": labels.get(f)} for f in images]
     return render_template("review.html", image_data=image_data)

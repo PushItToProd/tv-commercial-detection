@@ -1,6 +1,6 @@
-from flask import Blueprint, jsonify, render_template, request
+from flask import Blueprint, current_app, jsonify, render_template, request
 
-from matrix import apply_matrix_settings, load_config
+from matrix import apply_matrix_settings
 from state import state
 
 status_bp = Blueprint("status", __name__)
@@ -8,13 +8,12 @@ status_bp = Blueprint("status", __name__)
 
 @status_bp.route("/is_ad/status")
 def is_ad_status():
-    config = load_config()
     return jsonify({
         "classification": state.classification,
         "paused": state.paused,
         "auto_switch": state.auto_switch,
-        "ad_input_a": config.get("ad_output_setting", {}).get("A", "?"),
-        "race_input_a": config.get("race_output_setting", {}).get("A", "?"),
+        "ad_input_a": current_app.config.get("AD_OUTPUT_SETTING", {}).get("A", "?"),
+        "race_input_a": current_app.config.get("RACE_OUTPUT_SETTING", {}).get("A", "?"),
     })
 
 
