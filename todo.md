@@ -1,6 +1,12 @@
-- [ ] right now I have things hardcoded for just Cup -- I'll need to add separate prompts other series too
-  - [ ] probably need to detect which series I'm watching using YTTV and/or live feed data
-  - [ ] eventually handle Amazon Prime, too
+- [ ] right now I have things hardcoded for just Cup on Fox -- I'll need to add separate prompts other series too
+  - [ ] add a dropdown to the UI that lets you pick from multiple prompt presets
+    - [ ] eventually: detect which series I'm watching using YTTV and/or live feed data (if a race is live)
+  - series/networks to handle:
+    - [ ] Xfinity on CW
+    - [ ] Cup on Amazon Prime
+    - [ ] Cup on TNT
+    - [ ] Cup on NBC
+    - [ ] Trucks
 
 ## Extension
 
@@ -21,7 +27,8 @@
     - [ ] use `rect` instead of `cropImage`
   - potentially resize using canvas https://stackoverflow.com/a/39637827
 
-- [ ] if the classifier service returned its result to the extension, the extension could mute and (if possible) skip ahead automatically until it's not on an ad break anymore
+- [ ] +if the classifier service returned its result to the extension, the extension could mute and (if possible) skip ahead automatically until it's not on an ad break anymore
+- [ ] package the extension so I can install it permanently in firefox
 
 ## Web app
 
