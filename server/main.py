@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify, send_from_directory, Response
+from collections import deque
 from datetime import datetime
 from pathlib import Path
 import json
@@ -27,6 +28,9 @@ INCORRECT_DIR = Path(os.environ.get("INCORRECT_DIR", "incorrect_frames"))
 INCORRECT_DIR.mkdir(parents=True, exist_ok=True)
 
 _LAST_IMAGE_PATH = Path(tempfile.gettempdir()) / "tv_detector_last_frame.png"
+
+# Rolling buffer of recent frames: each entry is (iso_timestamp: str, png_bytes: bytes)
+_RECENT_FRAMES: deque = deque(maxlen=5)
 
 CONFIG_FILE = Path(os.environ.get("CONFIG_FILE", "config.json"))
 
@@ -303,6 +307,9 @@ def receive():
 
     try:
         result = classify_image(tmp_path)
+        with open(tmp_path, "rb") as f:
+            frame_bytes = f.read()
+        _RECENT_FRAMES.append((datetime.now().isoformat(), frame_bytes))
         shutil.copy2(tmp_path, _LAST_IMAGE_PATH)
     finally:
         os.unlink(tmp_path)
@@ -329,24 +336,29 @@ def report_wrong():
     correct_label = data["correct_label"]
     if correct_label not in ("ad", "content"):
         return jsonify({"error": "correct_label must be 'ad' or 'content'"}), 400
-    if not _LAST_IMAGE_PATH.exists():
+    if not _RECENT_FRAMES:
         return jsonify({"error": "No image available"}), 400
-
-    filename = datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + ".png"
-    dest = INCORRECT_DIR / filename
-    shutil.copy2(_LAST_IMAGE_PATH, dest)
 
     labels_file = INCORRECT_DIR / "labels.json"
     labels = {}
     if labels_file.exists():
         with open(labels_file) as f:
             labels = json.load(f)
-    labels[filename] = {"correct_label": correct_label, "classified_as": _state["classification"]}
+
+    saved = []
+    for i, (ts, frame_bytes) in enumerate(_RECENT_FRAMES):
+        safe_ts = ts.replace(":", "-").replace(".", "-")
+        filename = f"{safe_ts}_{i}.png"
+        dest = INCORRECT_DIR / filename
+        dest.write_bytes(frame_bytes)
+        labels[filename] = {"correct_label": correct_label, "classified_as": _state["classification"]}
+        saved.append(filename)
+
     with open(labels_file, "w") as f:
         json.dump(labels, f, indent=2)
 
-    print(f"Correction saved: {dest}  |  classified as: {_state['classification']}, correct: {correct_label}")
-    return jsonify({"saved": filename, "correct_label": correct_label}), 200
+    print(f"Correction saved: {len(saved)} frame(s) to {INCORRECT_DIR}  |  classified as: {_state['classification']}, correct: {correct_label}")
+    return jsonify({"saved": saved, "correct_label": correct_label}), 200
 
 
 @app.route("/auto_switch", methods=["POST"])
