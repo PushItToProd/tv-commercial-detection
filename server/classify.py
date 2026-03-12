@@ -1,3 +1,4 @@
+import argparse
 import base64
 import io
 import sys
@@ -90,12 +91,26 @@ def classify_image(image_path: str) -> str:
     return get_classification_from_response(reply)
 
 
-def main():
-    if len(sys.argv) != 2:
-        print(f"Usage: {sys.argv[0]} <image.png>")
-        sys.exit(1)
+def get_parser():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('image_path', type=str, help='Path to the image to classify')
+    parser.add_argument('--include-reply', action='store_true', help='Whether to include the full assistant reply in the output')
+    return parser
 
-    result = classify_image(sys.argv[1])
+
+def main():
+    args = get_parser().parse_args()
+
+    if args.include_reply:
+        reply = _classify_image(args.image_path)
+        # print("Assistant reply:")
+        print(reply)
+        classification = get_classification_from_response(reply)
+        # print(f"Classification: {classification}")
+        _ = classification  # avoid unused variable warning
+        return
+
+    result = classify_image(args.image_path)
     print(result)
 
 
