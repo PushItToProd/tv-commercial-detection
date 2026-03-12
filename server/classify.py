@@ -1,6 +1,7 @@
 import argparse
 import base64
 import io
+import os
 import json
 import re
 from pathlib import Path
@@ -10,47 +11,8 @@ from openai import OpenAI
 
 SERVER_URL = "http://192.168.1.27:3002"
 
-PROMPT = (
-    "You are analyzing a screenshot from a Fox Sports NASCAR Cup Series TV broadcast. "
-    "Determine whether the broadcast has cut to a commercial break, "
-    "or whether it is showing actual race content.\n\n"
-    "RACE BROADCAST — strong indicators:\n"
-    "- A logo for 'Fox' or 'FS1' in the upper-right corner\n"
-    "- A vertical scoring strip/leaderboard along the LEFT edge showing driver positions, lap data, or car numbers (may include a sponsor logo in the top left) ALWAYS indicates that this is actual race content\n"
-    "- Race cars on a track (wide shot, aerial view, or in-car cockpit/dashboard view)\n"
-    "- Pit lane or pit road activity\n"
-    "- Drivers, crew members, or on-air commentators at the race venue or broadcast booth\n"
-    "- A studio segment with commentators standing in front of a branded Fox backdrop or holding microphones with the Fox logo\n"
-    "- Pre/post-race analysis: track maps, statistics, replays\n"
-    "- Sponsor logos in the CORNER of the screen, particularly the upper-left and lower-right (e.g. Wendy's bug, Sonic logo) — "
-    "these are normal in-broadcast overlays, NOT indicators of an ad\n"
-    "- Sponsor banners at the top or bottom of the screen\n"
-    "- A brief network promo or lower-third for another event shown over the race broadcast\n\n"
-    "AD BREAK — strong indicators:\n"
-    "- 'Fox side-by-side': race footage shrunk to the LEFT side with a horizontal scoring leaderboard at the TOP of the screen while a product ad fills the right half\n"
-    "- A large sponsor logo (e.g. 'Ford Racing') in the LOWER LEFT corner below an inset image of racing\n"
-    "- A product (food, vehicle, consumer goods) as the primary visual subject\n"
-    "- Lifestyle or non-racing scenarios (people in a home, restaurant, or outdoor setting)\n"
-    "- A brand logo or slogan dominating most of the screen\n"
-    # TODO: have to adjust this for other series
-    "- Any type of race cars other than NASCAR Cup Series cars (e.g. open-wheel cars, Formula 1, IndyCar, NASCAR Trucks, sports cars, motorcycles)\n"
-    "- Highly cinematic shots of race cars or racing scenes that are more typical of commercials than live sports broadcasts\n"
-    "- Racing-themed imagery (cars, drivers) used to sell a product rather than show live action\n\n"
-    "Respond with a JSON object using this exact schema (description first, classification last):\n"
-    "{\n"
-    '  "description": "<describe what you see in 100 words or less>",\n'
-    '  "scoreboard": {\n'
-    '    "present": <true|false>,\n'
-    '    "position": "<left_vertical|top_horizontal|none>"\n'
-    '  },\n'
-    '  "layout": "<full_screen|side_by_side|picture_in_picture>",\n'
-    '  "primary_subject": "<race_cars_on_track|in_car_camera|pit_lane|people_at_venue|commentators_or_interview|broadcast_graphic|product|lifestyle_scene|brand_logo>",\n'
-    '  "race_cars_present": <true|false>,\n'
-    '  "corner_sponsor_bug": <true|false>,\n'
-    '  "classification": "<racing|ad>"\n'
-    "}\n"
-    "Output only the JSON object, with no additional text."
-)
+PROMPT_FILE = os.environ.get("PROMPT_FILE", Path(__file__).parent / "prompt" / "prompt.txt")
+PROMPT = Path(PROMPT_FILE).read_text()
 
 
 MAX_DIMENSION = 1024
