@@ -404,35 +404,35 @@ def is_ad():
     display: flex; gap: 1rem;
   }
   .btn-correction {
-    padding: 0.6rem 1.4rem; font-size: 1.1rem; font-weight: bold;
-    border: none; border-radius: 8px; cursor: pointer;
+    padding: 1rem 2.4rem; font-size: 1.6rem; font-weight: bold;
+    border: none; border-radius: 12px; cursor: pointer;
     background: rgba(255,255,255,0.2); color: #fff;
     transition: background 0.2s;
   }
   .btn-correction:hover { background: rgba(255,255,255,0.38); }
   #top-controls {
     position: fixed; top: 0; left: 0; right: 0;
-    display: flex; align-items: center; gap: 1rem; padding: 0.75rem 1.2rem;
+    display: flex; align-items: center; gap: 1.5rem; padding: 1rem 1.6rem;
     background: rgba(0,0,0,0.4); z-index: 10; flex-wrap: wrap;
   }
-  .ctrl-label { font-size: 0.9rem; color: rgba(255,255,255,0.8); white-space: nowrap; }
-  .toggle-wrap { display: flex; align-items: center; gap: 0.5rem; }
-  .toggle { position: relative; display: inline-block; width: 40px; height: 22px; }
+  .ctrl-label { font-size: 1.3rem; color: rgba(255,255,255,0.8); white-space: nowrap; }
+  .toggle-wrap { display: flex; align-items: center; gap: 0.75rem; }
+  .toggle { position: relative; display: inline-block; width: 64px; height: 36px; }
   .toggle input { opacity: 0; width: 0; height: 0; }
   .toggle-slider {
     position: absolute; inset: 0; cursor: pointer;
-    background: #555; border-radius: 22px; transition: background 0.2s;
+    background: #555; border-radius: 36px; transition: background 0.2s;
   }
   .toggle-slider:before {
     content: ''; position: absolute;
-    width: 16px; height: 16px; left: 3px; top: 3px;
+    width: 26px; height: 26px; left: 5px; top: 5px;
     background: #fff; border-radius: 50%; transition: transform 0.2s;
   }
   .toggle input:checked + .toggle-slider { background: #0c6; }
-  .toggle input:checked + .toggle-slider:before { transform: translateX(18px); }
+  .toggle input:checked + .toggle-slider:before { transform: translateX(28px); }
   .btn-matrix {
-    padding: 0.4rem 0.9rem; font-size: 0.85rem; font-weight: bold;
-    border: 2px solid rgba(255,255,255,0.3); border-radius: 6px; cursor: pointer;
+    padding: 0.75rem 1.6rem; font-size: 1.3rem; font-weight: bold;
+    border: 2px solid rgba(255,255,255,0.3); border-radius: 10px; cursor: pointer;
     background: rgba(255,255,255,0.12); color: #fff; transition: background 0.15s;
   }
   .btn-matrix:hover { background: rgba(255,255,255,0.28); }
