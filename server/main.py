@@ -24,6 +24,10 @@ def create_app() -> Flask:
         MATRIX_URL="http://localhost:5000",
         AD_OUTPUT_SETTING={},
         RACE_OUTPUT_SETTING={},
+        OUTPUT_SETTINGS={
+            'ad': {},
+            'content': {},
+        },
         SAVE_DIR=Path("frames"),
         INCORRECT_DIR=Path("incorrect_frames"),
         LOAD_EXAMPLES=False,

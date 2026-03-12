@@ -8,12 +8,16 @@ status_bp = Blueprint("status", __name__)
 
 @status_bp.route("/is_ad/status")
 def is_ad_status():
+    output_settings = current_app.config.get('OUTPUT_SETTINGS', {})
+    ad_view_label = output_settings.get('ad', {}).get('label', 'Ad view')
+    race_view_label = output_settings.get('content', {}).get('label', 'Race view')
+
     return jsonify({
         "classification": state.classification,
         "paused": state.paused,
         "auto_switch": state.auto_switch,
-        "ad_input_a": current_app.config.get("AD_OUTPUT_SETTING", {}).get("A", "?"),
-        "race_input_a": current_app.config.get("RACE_OUTPUT_SETTING", {}).get("A", "?"),
+        "ad_view_label": ad_view_label,
+        "race_view_label": race_view_label,
     })
 
 

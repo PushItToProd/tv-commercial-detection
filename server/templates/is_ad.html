@@ -153,10 +153,10 @@ function update() {
       frameEl.src = '/is_ad/last_frame?t=' + Date.now();
       frameEl.style.display = 'block';
       document.getElementById('auto-switch-toggle').checked = data.auto_switch;
-      if (data.ad_input_a !== undefined)
-        document.getElementById('btn-ad-input').textContent = 'Input ' + data.ad_input_a;
-      if (data.race_input_a !== undefined)
-        document.getElementById('btn-race-input').textContent = 'Input ' + data.race_input_a;
+      if (data.ad_view_label !== undefined)
+        document.getElementById('btn-ad-input').textContent = data.ad_view_label;
+      if (data.race_view_label !== undefined)
+        document.getElementById('btn-race-input').textContent = data.race_view_label;
     })
     .catch(() => {});
 }

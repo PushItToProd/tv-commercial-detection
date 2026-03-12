@@ -22,8 +22,8 @@ def apply_matrix_settings(classification: str) -> None:
     """Send HDMI matrix switch commands for the given classification in a background thread."""
     # Capture config values before spawning thread — current_app is not available off-context
     matrix_url = current_app.config["MATRIX_URL"]
-    key = "AD_OUTPUT_SETTING" if classification == "ad" else "RACE_OUTPUT_SETTING"
-    settings: dict = dict(current_app.config.get(key, {}))
+    output_settings = current_app.config.get('OUTPUT_SETTINGS', {})
+    settings: dict = dict(output_settings.get(classification, {}))
     if not settings:
         return
 
