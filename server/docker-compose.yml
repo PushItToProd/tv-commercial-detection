@@ -1,0 +1,11 @@
+services:
+  classifier_server:
+    build: .
+    container_name: classifier_server
+    ports:
+      - "${FLASK_PORT:-11434}:11434"
+    environment:
+      - FLASK_ENV=${FLASK_ENV:-production}
+    volumes:
+      - .:/app
+    restart: unless-stopped

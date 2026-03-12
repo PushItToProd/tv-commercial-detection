@@ -9,3 +9,13 @@ dependencies = [
     "openai>=2.26.0",
     "pillow>=12.1.1",
 ]
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = [
+    "main",
+    "classify",
+]
