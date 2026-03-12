@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 from pathlib import Path
 
@@ -9,6 +10,8 @@ import classify
 from routes.receive import receive_bp
 from routes.review import review_bp
 from routes.status import status_bp
+
+logging.basicConfig(level=logging.INFO)
 
 
 def create_app() -> Flask:

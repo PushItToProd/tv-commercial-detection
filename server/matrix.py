@@ -1,10 +1,15 @@
 import json
+import logging
 import threading
 import urllib.request
 
 from flask import current_app
 
 import prometheus_client
+
+
+logger = logging.getLogger(__name__)
+
 
 SWITCHING_TIME = prometheus_client.Histogram(
     "switching_time_seconds",
@@ -34,8 +39,8 @@ def apply_matrix_settings(classification: str) -> None:
             try:
                 with SWITCHING_TIME.time():
                     with urllib.request.urlopen(req, timeout=5) as resp:
-                        print(f"Matrix: output {output} → input {input_num}  ({resp.status})")
+                        logger.info(f"Matrix: output {output} → input {input_num}  ({resp.status})")
             except Exception as e:
-                print(f"Matrix error (output {output} → input {input_num}): {e}")
+                logger.exception(f"Matrix error (output {output} → input {input_num})")
 
     threading.Thread(target=_send, daemon=True).start()

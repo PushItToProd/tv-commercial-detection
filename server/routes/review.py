@@ -33,6 +33,7 @@ def save():
     try:
         dt = datetime.fromisoformat(raw_ts.replace("Z", "+00:00")) if raw_ts else datetime.now()
     except ValueError:
+        current_app.logger.exception(f"Invalid timestamp format in request: {raw_ts}")
         dt = datetime.now()
 
     filename = dt.strftime("%Y-%m-%d_%H-%M-%S") + ".png"
@@ -40,7 +41,7 @@ def save():
     save_path = save_dir / filename
     image.save(save_path)
 
-    print(f"Saved: {save_path}  |  page: {request.form.get('page_title', '?')}")
+    current_app.logger.info(f"Saved: {save_path}  |  page: {request.form.get('page_title', '?')}")
     return jsonify({"saved": filename}), 200
 
 

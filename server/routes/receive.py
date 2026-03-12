@@ -40,7 +40,7 @@ def receive():
     try:
         result = classify_image(tmp_path)
     except Exception as e:
-        print(f"Classification error: {e}")
+        current_app.logger.exception(f"Classification error")
         result = "unknown"
 
     try:
@@ -49,7 +49,7 @@ def receive():
         recent_frames.append((datetime.now().isoformat(), frame_bytes, ext))
         shutil.copy2(tmp_path, last_image_path)
     except Exception as e:
-        print(f"Error saving recent frame: {e}")
+        current_app.logger.exception("Error saving recent frame")
     finally:
         os.unlink(tmp_path)
 
@@ -59,11 +59,11 @@ def receive():
     # Commit only when the same result appears twice in a row and differs from current state
     if result == pending and result != committed and result in ("ad", "content"):
         state.classification = result
-        print(f"Received image → committed: {result}  |  page: {request.form.get('page_title', '?')}")
+        current_app.logger.info(f"Classification changed: {committed} → {result}  |  page: {request.form.get('page_title', '?')}")
         if state.auto_switch:
             apply_matrix_settings(result)
     else:
-        print(f"Received image → classified as: {result}  |  page: {request.form.get('page_title', '?')}")
+        current_app.logger.info(f"Received image → classified as: {result}  |  page: {request.form.get('page_title', '?')}")
 
     return jsonify({"classification": state.classification, "paused": is_paused}), 200
 
