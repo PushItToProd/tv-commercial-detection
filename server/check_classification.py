@@ -19,7 +19,7 @@ def main():
     # classify.EXAMPLES = classify.load_examples()
     classify.EXAMPLES = []
 
-    image_files = list((Path("frames")).glob("*.png"))
+    image_files = list((Path("frames")).glob("*.png")) + list((Path("frames")).glob("*.jpg"))
     num_incorrect = 0
 
     incorrectly_marked_as_ads = []
