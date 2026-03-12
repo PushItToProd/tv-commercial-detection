@@ -1,3 +1,5 @@
+# To Dos
+
 - [ ] right now I have things hardcoded for just Cup on Fox -- I'll need to add separate prompts other series too
   - [ ] add a dropdown to the UI that lets you pick from multiple prompt presets
     - [ ] eventually: detect which series I'm watching using YTTV and/or live feed data (if a race is live)
@@ -7,6 +9,12 @@
     - [ ] Cup on TNT
     - [ ] Cup on NBC
     - [ ] Trucks
+
+- [ ] show a visual indicator when an ad has been detected and it's about to switch
+  - [ ] provide a way to preempt and tell it it's wrong
+  - [ ] provide a way to confirm and switch right away
+
+- [ ] elegantly handle timeouts from both the llama.cpp server and the HDMI Matrix control server
 
 ## Extension
 
@@ -43,6 +51,7 @@
 ### Classification
 
 - [x] move prompt into text file
+  - [ ] support switching between multiple prompt files
 
 - [x] go through captured screenshots and classify them as "ad" or "content"
   - [ ] for training purposes, record a level of "importance" -- how much do I care about this being classified correctly?
@@ -59,36 +68,14 @@
 - [ ] record metrics about how long classification takes
 
 - [x] prompt the model to specifically look for certain attributes like scoreboard position and emit it all in JSON
-  - example (based on `2026-03-11_16-59-03.png`)
-    ```json
-    {
-      "description": "the image shows a tv broadcast of a nascar cup series race event. a driver, ryan blaney, is being interviewed on the track with a fox sports microphone. the screen displays unofficial race results, his name and team info, and highlights his 2nd career win at phoenix. the setting includes the racetrack, grandstands, and branding from sponsors like creditone bank and fs1.",
-      "features": {
-        "scoreboard": {
-          "position": "left_vertical",
-          "flag_color": "checkered",
-          "info": "unofficial results"
-        },
-        "network_logo": {
-          "present": true,
-          "network": "fs1",
-          "logo": "upper_right"
-        },
-        "broadcaster": "fox",
-        "sponsor_elements": [
-          {"type": "scoreboard-sponsor", "location": "upper-left", "sponsor": "creditone bank"}
-        ],
-        "people": [
-          {"type": "driver", "info": "ryan blaney"}
-        ]
-        // etc.
-      },
-      "inferred_type": "driver-interview"
-    }
-    ```
+- [ ] maybe include the previous reported state in the prompt to see if that helps -- e.g. `You last reported seeing (an ad|racing).`
+  - try including the previous screenshot, too
+  - if I hit "Wrong!", include the corrected value in the prompt instead
+- [ ] prompt the model to include a confidence score -- not sure it'll help but could be useful in the future
 
+- [ ] include the broadcast network, racing series, and race name in the prompt
 
-- [ ] maybe block segments with the guys in the booth, too
+- [ ] maybe it's fine to block segments with the guys in the booth, too
 - [ ] add more categories other than 'ad' and 'race' -- could add 'side-by-side', 'interview', 'booth segment', etc.
   - could try to call out Fox's transitions to and from commercial breaks specifically 
   - possible categories
@@ -110,8 +97,6 @@
 - [x] try using Qwen 0.8B with my improved prompt
   - -> still not very good
 
-
-- [ ] include `incorrect_frames` in the `/review` endpoint so I can classify them
 - [ ] support .jpg in addition to .png files
 
 #### Improvement ideas
@@ -138,3 +123,5 @@
   - [ ] show the latest screenshot on the UI so I can tell what I'm marking as wrong
 
 - [ ] stretch: allow controlling YTTV (pause, rewind, etc.) from the web UI
+
+- [ ] include `incorrect_frames` in the `/review` endpoint so I can classify them
