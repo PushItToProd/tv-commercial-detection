@@ -4,6 +4,14 @@ import urllib.request
 
 from flask import current_app
 
+import prometheus_client
+
+SWITCHING_TIME = prometheus_client.Histogram(
+    "switching_time_seconds",
+    "Time spent switching HDMI matrix after classification",
+    buckets=[0.5, 0.75, 1, 1.5, 2, 3, 4, 5],
+)
+
 
 def apply_matrix_settings(classification: str) -> None:
     """Send HDMI matrix switch commands for the given classification in a background thread."""
@@ -24,8 +32,9 @@ def apply_matrix_settings(classification: str) -> None:
                 method="POST",
             )
             try:
-                with urllib.request.urlopen(req, timeout=5) as resp:
-                    print(f"Matrix: output {output} → input {input_num}  ({resp.status})")
+                with SWITCHING_TIME.time():
+                    with urllib.request.urlopen(req, timeout=5) as resp:
+                        print(f"Matrix: output {output} → input {input_num}  ({resp.status})")
             except Exception as e:
                 print(f"Matrix error (output {output} → input {input_num}): {e}")
 
