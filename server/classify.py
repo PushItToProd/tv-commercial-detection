@@ -30,6 +30,7 @@ PROMPT = (
     "- A brand logo or slogan dominating most of the screen\n"
     # TODO: have to adjust this for other series
     "- Any type of race cars other than NASCAR Cup Series cars (e.g. open-wheel cars, Formula 1, IndyCar, NASCAR Trucks, sports cars, motorcycles)\n"
+    "- Highly cinematic shots of race cars or racing scenes that are more typical of commercials than live sports broadcasts (e.g. extreme closeups and camera angles that aren't typical of live race broadcasts)\n"
     "- Racing-themed imagery (cars, drivers) used to sell a product rather than show live action\n\n"
     "In 100 words or less, describe what you see in the image. "
     "Then end your message with either 'type=ad' or 'type=racing'."
