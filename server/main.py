@@ -15,6 +15,7 @@ app = Flask(__name__)
 _state = {
     "classification": None, # None | "ad" | "content" | "unknown"
     "paused": True,  # Whether the video is currently paused (based on last /receive request)
+    "auto_switch": True,  # Whether to automatically apply matrix settings on classification change
 }
 
 SAVE_DIR = Path(os.environ.get("SAVE_DIR", "frames"))
@@ -308,7 +309,7 @@ def receive():
     previous = _state["classification"]
     _state["classification"] = result
     print(f"Received image → classified as: {result}  |  page: {request.form.get('page_title', '?')}")
-    if result != previous and result in ("ad", "content"):
+    if result != previous and result in ("ad", "content") and _state["auto_switch"]:
         apply_matrix_settings(result)
     return jsonify({"classification": result, "paused": is_paused}), 200
 
@@ -341,9 +342,37 @@ def report_wrong():
     return jsonify({"saved": filename, "correct_label": correct_label}), 200
 
 
+@app.route("/auto_switch", methods=["POST"])
+def set_auto_switch():
+    data = request.get_json()
+    if not data or "enabled" not in data:
+        return jsonify({"error": "Missing enabled"}), 400
+    _state["auto_switch"] = bool(data["enabled"])
+    return jsonify({"auto_switch": _state["auto_switch"]}), 200
+
+
+@app.route("/trigger_matrix", methods=["POST"])
+def trigger_matrix():
+    data = request.get_json()
+    if not data or "classification" not in data:
+        return jsonify({"error": "Missing classification"}), 400
+    classification = data["classification"]
+    if classification not in ("ad", "content"):
+        return jsonify({"error": "classification must be 'ad' or 'content'"}), 400
+    apply_matrix_settings(classification)
+    return jsonify({"triggered": classification}), 200
+
+
 @app.route("/is_ad/status")
 def is_ad_status():
-    return jsonify({"classification": _state["classification"], "paused": _state["paused"]})
+    config = load_config()
+    return jsonify({
+        "classification": _state["classification"],
+        "paused": _state["paused"],
+        "auto_switch": _state["auto_switch"],
+        "ad_input_a": config.get("ad_output_setting", {}).get("A", "?"),
+        "race_input_a": config.get("race_output_setting", {}).get("A", "?"),
+    })
 
 
 @app.route("/is_ad")
@@ -381,9 +410,43 @@ def is_ad():
     transition: background 0.2s;
   }
   .btn-correction:hover { background: rgba(255,255,255,0.38); }
+  #top-controls {
+    position: fixed; top: 0; left: 0; right: 0;
+    display: flex; align-items: center; gap: 1rem; padding: 0.75rem 1.2rem;
+    background: rgba(0,0,0,0.4); z-index: 10; flex-wrap: wrap;
+  }
+  .ctrl-label { font-size: 0.9rem; color: rgba(255,255,255,0.8); white-space: nowrap; }
+  .toggle-wrap { display: flex; align-items: center; gap: 0.5rem; }
+  .toggle { position: relative; display: inline-block; width: 40px; height: 22px; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider {
+    position: absolute; inset: 0; cursor: pointer;
+    background: #555; border-radius: 22px; transition: background 0.2s;
+  }
+  .toggle-slider:before {
+    content: ''; position: absolute;
+    width: 16px; height: 16px; left: 3px; top: 3px;
+    background: #fff; border-radius: 50%; transition: transform 0.2s;
+  }
+  .toggle input:checked + .toggle-slider { background: #0c6; }
+  .toggle input:checked + .toggle-slider:before { transform: translateX(18px); }
+  .btn-matrix {
+    padding: 0.4rem 0.9rem; font-size: 0.85rem; font-weight: bold;
+    border: 2px solid rgba(255,255,255,0.3); border-radius: 6px; cursor: pointer;
+    background: rgba(255,255,255,0.12); color: #fff; transition: background 0.15s;
+  }
+  .btn-matrix:hover { background: rgba(255,255,255,0.28); }
 </style>
 </head>
 <body>
+<div id="top-controls">
+  <div class="toggle-wrap">
+    <label class="toggle"><input type="checkbox" id="auto-switch-toggle" checked><span class="toggle-slider"></span></label>
+    <span class="ctrl-label">Auto-switch</span>
+  </div>
+  <button class="btn-matrix" id="btn-ad-input">Input ?</button>
+  <button class="btn-matrix" id="btn-race-input">Input ?</button>
+</div>
 <div id="label">...</div>
 <div id="paused-indicator"></div>
 <div id="buttons"></div>
@@ -419,6 +482,25 @@ function updateButtons(c) {
   }
 }
 
+function triggerMatrix(classification) {
+  fetch('/trigger_matrix', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({classification})
+  }).catch(() => {});
+}
+
+document.getElementById('auto-switch-toggle').addEventListener('change', function() {
+  fetch('/auto_switch', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({enabled: this.checked})
+  }).catch(() => {});
+});
+
+document.getElementById('btn-ad-input').addEventListener('click', () => triggerMatrix('ad'));
+document.getElementById('btn-race-input').addEventListener('click', () => triggerMatrix('content'));
+
 function update() {
   fetch('/is_ad/status')
     .then(r => r.json())
@@ -439,6 +521,11 @@ function update() {
       }
       pausedEl.textContent = paused ? '⏸ PAUSED' : '';
       updateButtons(c);
+      document.getElementById('auto-switch-toggle').checked = data.auto_switch;
+      if (data.ad_input_a !== undefined)
+        document.getElementById('btn-ad-input').textContent = 'Input ' + data.ad_input_a;
+      if (data.race_input_a !== undefined)
+        document.getElementById('btn-race-input').textContent = 'Input ' + data.race_input_a;
     })
     .catch(() => {});
 }
