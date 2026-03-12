@@ -55,7 +55,9 @@
 
 ### Classification/Receiver
 
-- [ ] support .jpg in addition to .png files so we can compress on the client side
+- [x] support .jpg in addition to .png files so we can compress on the client side
+  - [ ] review jpg support -- some places still assume png
+- [ ] the receiver saves the received image as a file, but then `_classify_image` takes the file path and reads it as base64 -- maybe that can be cut out
 - [ ] factor out an enum of classification labels
 - [ ] keep track of last receive time, if we haven't gotten a new screenshot in a while (depending on the receive frequency), update the state to reflect possible connection loss
 
@@ -88,6 +90,8 @@
   - [ ] maybe if the confidence is high enough, switch without waiting for a second result
 
 - [ ] include the broadcast network, racing series, and race name in the prompt
+
+- [ ] having the Fox/FS1 logo in the corner means it's almost always the main broadcast -- how fast would it be to just ask the model if there's a "Fox" logo in the upper right hand corner? would it be faster on average to start by prompting it to check that and then only doing other checks if there isn't one there?
 
 - [ ] maybe it's fine to block segments with the guys in the booth, too
 - [ ] add more categories other than 'ad' and 'race' -- could add 'side-by-side', 'interview', 'booth segment', etc.
@@ -136,7 +140,7 @@
   - [ ] when I click "Wrong!", automatically swap back and maybe temporarily pause auto-switching
     - [ ] ambitious: when I click "Wrong!", temporarily update the classifier prompt to include the relevant screenshot as an example. 
       - not sure how long it should be updated for - probably just until the classification changes again
-  - [ ] show the latest screenshot on the UI so I can tell what I'm marking as wrong
+  - [x] show the latest screenshot on the UI so I can tell what I'm marking as wrong
 
 - [ ] stretch: allow controlling YTTV (pause, rewind, etc.) from the web UI
 
