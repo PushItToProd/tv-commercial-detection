@@ -9,7 +9,7 @@ from pathlib import Path
 from PIL import Image
 from openai import OpenAI
 
-SERVER_URL = "http://192.168.1.27:3002"
+SERVER_URL = os.environ.get("LLAMA_SERVER_URL", "http://192.168.1.27:3002")
 
 PROMPT_FILE = os.environ.get("PROMPT_FILE", Path(__file__).parent / "prompt" / "prompt.txt")
 PROMPT = Path(PROMPT_FILE).read_text()
