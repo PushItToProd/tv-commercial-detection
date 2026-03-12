@@ -1,7 +1,7 @@
-from flask import Blueprint, current_app, jsonify, render_template, request
+from flask import Blueprint, current_app, jsonify, render_template, request, send_file
 
 from matrix import apply_matrix_settings
-from state import state
+from state import last_image_path, state
 
 status_bp = Blueprint("status", __name__)
 
@@ -20,6 +20,13 @@ def is_ad_status():
 @status_bp.route("/is_ad")
 def is_ad():
     return render_template("is_ad.html")
+
+
+@status_bp.route("/is_ad/last_frame")
+def last_frame():
+    if not last_image_path.exists():
+        return ("", 204)
+    return send_file(last_image_path, mimetype="image/jpeg")
 
 
 @status_bp.route("/auto_switch", methods=["POST"])

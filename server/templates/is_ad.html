@@ -20,6 +20,12 @@
     font-size: 4vw; font-weight: bold; color: rgba(255,255,255,0.65);
     letter-spacing: 0.1em; margin-top: 0.5rem; min-height: 1.2em;
   }
+  #last-frame {
+    position: fixed; bottom: 7rem;
+    max-width: min(480px, 90vw); max-height: 30vh;
+    border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+    display: none;
+  }
   #buttons {
     position: fixed; bottom: 2rem;
     display: flex; gap: 1rem;
@@ -70,6 +76,7 @@
 </div>
 <div id="label">...</div>
 <div id="paused-indicator"></div>
+<img id="last-frame" src="" alt="last frame">
 <div id="buttons"></div>
 <script>
 function reportWrong(correctLabel) {
@@ -142,6 +149,9 @@ function update() {
       }
       pausedEl.textContent = paused ? '⏸ PAUSED' : '';
       updateButtons(c);
+      const frameEl = document.getElementById('last-frame');
+      frameEl.src = '/is_ad/last_frame?t=' + Date.now();
+      frameEl.style.display = 'block';
       document.getElementById('auto-switch-toggle').checked = data.auto_switch;
       if (data.ad_input_a !== undefined)
         document.getElementById('btn-ad-input').textContent = 'Input ' + data.ad_input_a;
