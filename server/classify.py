@@ -69,7 +69,6 @@ def encode_image(image_path):
     return image_data
 
 
-@CLASSIFICATION_TIME.time()
 def _classify_image(image_path: str) -> str:
     image_data = encode_image(image_path)
 
@@ -91,12 +90,13 @@ def _classify_image(image_path: str) -> str:
 
     client = OpenAI(base_url=f"{SERVER_URL}/v1", api_key="none")
 
-    response = client.chat.completions.create(
-        model="local",
-        messages=messages,
-        max_tokens=500,
-        temperature=0.6,
-    )
+    with CLASSIFICATION_TIME.time():
+        response = client.chat.completions.create(
+            model="local",
+            messages=messages,
+            max_tokens=500,
+            temperature=0.6,
+        )
 
     content = response.choices[0].message.content
     if content is None:
