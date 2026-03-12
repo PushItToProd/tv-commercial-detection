@@ -1,6 +1,7 @@
 import argparse
 import base64
 import io
+import json
 import sys
 from pathlib import Path
 from PIL import Image
@@ -10,9 +11,9 @@ SERVER_URL = "http://192.168.1.27:3002"
 
 PROMPT = (
     "You are analyzing a screenshot from a Fox Sports NASCAR Cup Series TV broadcast. "
-    "Determine whether the broadcast has cut to a commercial break (type=ad), "
-    "or whether it is showing actual race content (type=racing).\n\n"
-    "RACE BROADCAST — strong indicators, classify as type=racing:\n"
+    "Determine whether the broadcast has cut to a commercial break, "
+    "or whether it is showing actual race content.\n\n"
+    "RACE BROADCAST — strong indicators:\n"
     "- A vertical scoring strip/leaderboard along the LEFT edge showing driver positions, lap data, or car numbers (may include a sponsor logo in the top left)\n"
     "- Race cars on a track (wide shot, aerial view, or in-car cockpit/dashboard view)\n"
     "- Pit lane or pit road activity\n"
@@ -23,17 +24,29 @@ PROMPT = (
     "these are normal in-broadcast overlays, NOT indicators of an ad\n"
     "- Sponsor banners overlaid on top of racing footage\n"
     "- A brief network promo or lower-third for another event shown over the race broadcast\n\n"
-    "AD BREAK — strong indicators, classify as type=ad:\n"
-    "- 'Fox side-by-side': race footage shrunk to to the LEFT side with a horizontal scoring leaderboard at the TOP of the screen while a product ad fills the right half and a sponsor logo is displayed in the lower left\n"
+    "AD BREAK — strong indicators:\n"
+    "- 'Fox side-by-side': race footage shrunk to the LEFT side with a horizontal scoring leaderboard at the TOP of the screen while a product ad fills the right half\n"
     "- A product (food, vehicle, consumer goods) as the primary visual subject\n"
     "- Lifestyle or non-racing scenarios (people in a home, restaurant, or outdoor setting)\n"
     "- A brand logo or slogan dominating most of the screen\n"
     # TODO: have to adjust this for other series
     "- Any type of race cars other than NASCAR Cup Series cars (e.g. open-wheel cars, Formula 1, IndyCar, NASCAR Trucks, sports cars, motorcycles)\n"
-    "- Highly cinematic shots of race cars or racing scenes that are more typical of commercials than live sports broadcasts (e.g. extreme closeups and camera angles that aren't typical of live race broadcasts)\n"
+    "- Highly cinematic shots of race cars or racing scenes that are more typical of commercials than live sports broadcasts\n"
     "- Racing-themed imagery (cars, drivers) used to sell a product rather than show live action\n\n"
-    "In 100 words or less, describe what you see in the image. "
-    "Then end your message with either 'type=ad' or 'type=racing'."
+    "Respond with a JSON object using this exact schema (description first, classification last):\n"
+    "{\n"
+    '  "description": "<describe what you see in 100 words or less>",\n'
+    '  "scoreboard": {\n'
+    '    "present": <true|false>,\n'
+    '    "position": "<left_vertical|top_horizontal|none>"\n'
+    '  },\n'
+    '  "layout": "<full_screen|side_by_side|picture_in_picture>",\n'
+    '  "primary_subject": "<race_cars_on_track|in_car_camera|pit_lane|people_at_venue|commentators_or_interview|broadcast_graphic|product|lifestyle_scene|brand_logo>",\n'
+    '  "race_cars_present": <true|false>,\n'
+    '  "corner_sponsor_bug": <true|false>,\n'
+    '  "classification": "<racing|ad>"\n'
+    "}\n"
+    "Output only the JSON object, with no additional text."
 )
 
 
@@ -117,12 +130,31 @@ def _classify_image(image_path: str) -> str:
 
 
 def get_classification_from_response(reply: str) -> str:
-    if reply.endswith("type=ad") or "type=ad" in reply:
+    try:
+        data = json.loads(reply)
+        # Deterministic overrides based on strong structural signals
+        scoreboard_pos = data.get("scoreboard", {}).get("position")
+        if scoreboard_pos == "left_vertical":
+            return "content"
+        if data.get("layout") == "side_by_side":
+            return "ad"
+        if data.get("primary_subject") in ("product", "lifestyle_scene", "brand_logo"):
+            return "ad"
+        # Fall back to the model's own classification field
+        classification = data.get("classification")
+        if classification == "racing":
+            return "content"
+        if classification == "ad":
+            return "ad"
+    except (json.JSONDecodeError, AttributeError):
+        pass
+
+    # Text fallback for when JSON parsing fails
+    if "type=ad" in reply:
         return "ad"
-    elif reply.endswith("type=racing") or "type=racing" in reply:
+    if "type=racing" in reply:
         return "content"
-    else:
-        return "unknown"
+    return "unknown"
 
 
 def classify_image(image_path: str) -> str:
