@@ -35,9 +35,14 @@ _RECENT_FRAMES: deque = deque(maxlen=5)
 
 CONFIG_FILE = Path(os.environ.get("CONFIG_FILE", "config.json"))
 
+LOAD_EXAMPLES = False
+
 
 @app.before_request
 def initialize_examples():
+    if not LOAD_EXAMPLES:
+        return
+
     if classify.EXAMPLES:
         return  # already loaded
     classify.EXAMPLES = classify.load_examples()

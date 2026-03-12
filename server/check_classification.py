@@ -4,6 +4,7 @@ import time
 from pathlib import Path
 
 from classify import _classify_image, get_classification_from_response
+import classify
 
 
 # get all images in frames/ and classify them, then print out any that were
@@ -15,6 +16,9 @@ def main():
     with labels_path.open() as f:
         labels = json.load(f)
 
+    # classify.EXAMPLES = classify.load_examples()
+    classify.EXAMPLES = []
+
     image_files = list((Path("frames")).glob("*.png"))
     num_incorrect = 0
 
@@ -24,7 +28,10 @@ def main():
 
     for f in image_files:
         sys.stdout.flush()
-        actual = labels[f.name]
+        actual = labels.get(f.name, None)
+        if actual is None:
+            print(f"{f.name}: no label found, skipping")
+            continue
 
         start_time = time.perf_counter()
         resp = _classify_image(f.as_posix())
