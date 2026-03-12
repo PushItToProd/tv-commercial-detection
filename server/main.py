@@ -5,6 +5,8 @@ import json
 import os
 import shutil
 import tempfile
+import threading
+import urllib.request
 from classify import classify_image
 
 app = Flask(__name__)
@@ -23,6 +25,42 @@ INCORRECT_DIR = Path(os.environ.get("INCORRECT_DIR", "incorrect_frames"))
 INCORRECT_DIR.mkdir(parents=True, exist_ok=True)
 
 _LAST_IMAGE_PATH = Path(tempfile.gettempdir()) / "tv_detector_last_frame.png"
+
+CONFIG_FILE = Path(os.environ.get("CONFIG_FILE", "config.json"))
+
+
+def load_config() -> dict:
+    if CONFIG_FILE.exists():
+        with open(CONFIG_FILE) as f:
+            return json.load(f)
+    return {}
+
+
+def apply_matrix_settings(classification: str) -> None:
+    """Send HDMI matrix switch commands for the given classification in a background thread."""
+    config = load_config()
+    matrix_url = config.get("matrix_url", "http://localhost:5000")
+    key = "ad_output_setting" if classification == "ad" else "race_output_setting"
+    settings: dict = config.get(key, {})
+    if not settings:
+        return
+
+    def _send():
+        for output, input_num in settings.items():
+            payload = json.dumps({"output": output, "input": int(input_num)}).encode()
+            req = urllib.request.Request(
+                f"{matrix_url}/set-output-input",
+                data=payload,
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            try:
+                with urllib.request.urlopen(req, timeout=5) as resp:
+                    print(f"Matrix: output {output} → input {input_num}  ({resp.status})")
+            except Exception as e:
+                print(f"Matrix error (output {output} → input {input_num}): {e}")
+
+    threading.Thread(target=_send, daemon=True).start()
 
 
 def load_labels() -> dict:
@@ -267,8 +305,11 @@ def receive():
     finally:
         os.unlink(tmp_path)
 
+    previous = _state["classification"]
     _state["classification"] = result
     print(f"Received image → classified as: {result}  |  page: {request.form.get('page_title', '?')}")
+    if result != previous and result in ("ad", "content"):
+        apply_matrix_settings(result)
     return jsonify({"classification": result, "paused": is_paused}), 200
 
 
