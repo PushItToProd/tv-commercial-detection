@@ -52,7 +52,10 @@ def initialize_examples():
 def load_config() -> dict:
     if CONFIG_FILE.exists():
         with open(CONFIG_FILE) as f:
-            return json.load(f)
+            config = json.load(f)
+        if os.environ.get("HDMI_MATRIX_URL"):
+            config["matrix_url"] = os.environ["HDMI_MATRIX_URL"]
+        return config
     return {}
 
 
