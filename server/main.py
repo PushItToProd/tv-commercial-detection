@@ -321,10 +321,17 @@ def receive():
 
     try:
         result = classify_image(tmp_path)
+    except Exception as e:
+        print(f"Classification error: {e}")
+        result = "unknown"
+
+    try:
         with open(tmp_path, "rb") as f:
             frame_bytes = f.read()
         _RECENT_FRAMES.append((datetime.now().isoformat(), frame_bytes))
         shutil.copy2(tmp_path, _LAST_IMAGE_PATH)
+    except Exception as e:
+        print(f"Error saving recent frame: {e}")
     finally:
         os.unlink(tmp_path)
 
