@@ -1,3 +1,7 @@
+const DEFAULT_INTERVAL = 4; // seconds
+const DEFAULT_URL = 'http://localhost:11434/receive';
+
+
 const $interval = document.getElementById('interval');
 const $list = document.getElementById('endpoints-list');
 const $btnAdd = document.getElementById('btn-add');
@@ -12,7 +16,7 @@ function addEndpointRow(url = '') {
   const row = document.createElement('div');
   row.className = 'endpoint-row';
   row.innerHTML = `
-    <input type="text" placeholder="http://localhost:11434/save" value="${url}">
+    <input type="text" placeholder="${DEFAULT_URL}" value="${url}">
     <button class="btn-icon" title="Remove">×</button>
   `;
   row.querySelector('.btn-icon').addEventListener('click', () => row.remove());
@@ -51,9 +55,9 @@ function appendLog(msg, type = '') {
 
 async function init() {
   const { config = {} } = await browser.storage.local.get('config');
-  $interval.value = config.interval ?? 10;
+  $interval.value = config.interval ?? DEFAULT_INTERVAL;
   ($list.querySelectorAll('.endpoint-row') || []).forEach(r => r.remove());
-  (config.endpoints ?? ['http://localhost:11434/save']).forEach(addEndpointRow);
+  (config.endpoints ?? [DEFAULT_URL]).forEach(addEndpointRow);
 
   const state = await browser.runtime.sendMessage({ type: 'getState' });
   syncUI(state.running);
@@ -71,7 +75,7 @@ init();
 $btnAdd.addEventListener('click', () => addEndpointRow());
 
 $btnSave.addEventListener('click', async () => {
-  const interval = Math.max(1, parseInt($interval.value) || 10);
+  const interval = Math.max(1, parseInt($interval.value) || DEFAULT_INTERVAL);
   const endpoints = getEndpointInputs();
 
   // validate
@@ -109,7 +113,7 @@ $btnToggle.addEventListener('click', async () => {
     }
     await browser.runtime.sendMessage({ type: 'start' });
     syncUI(true);
-    appendLog(`Capture started (every ${config.interval ?? 10}s → ${endpoints.length} endpoint(s)).`, 'ok');
+    appendLog(`Capture started (every ${config.interval ?? DEFAULT_INTERVAL}s → ${endpoints.length} endpoint(s)).`, 'ok');
   }
 });
 
