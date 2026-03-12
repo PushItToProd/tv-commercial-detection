@@ -25,7 +25,7 @@
   - [x] when you close and reopen the popup, the button still says "start" and clicking it repeatedly doesn't do anything but trigger another capture
 - [x] stop capturing when the tab is closed
 - [x] send a signal when the video is paused
-- [ ] can we grab subtitles?
+- [ ] notify the server when the sender stops or starts
 - [ ] if I'm actively interacting with the video player, avoid switching
 - [ ] allow configuring separate intervals for each endpoint
 - [ ] compress/resize images at capture time -- `browser.tabs.captureTab()` takes an `ImageDetails` as its second arg
@@ -45,10 +45,15 @@
 - [/] make everything configurable via env vars
 - [ ] refactor to use Flask's config support https://flask.palletsprojects.com/en/stable/config/
 - [ ] split flask app into blueprints
-- [ ] save some subset of received images with their responses from the LLM
 - [ ] persist state in a better way than just keeping it in a dict in memory
+- [ ] move outputs out of `server/` directory into a configurable folder someplace else
 
-### Classification
+### Classification/Receiver
+
+- [ ] keep track of last receive time, if we haven't gotten a new screenshot in a while (depending on the receive frequency), update the state to reflect possible connection loss
+
+- [ ] periodically save some subset of received images along with their responses from the LLM, so later I can review them and find ones that I disagree with
+  - [ ] whenever the classification changes for just one iteration (e.g. three consecutive received images get classified as `content`, `ad`, `content` or vice-versa), save all three images and their responses from the LLM
 
 - [x] move prompt into text file
   - [ ] support switching between multiple prompt files
@@ -72,6 +77,7 @@
   - try including the previous screenshot, too
   - if I hit "Wrong!", include the corrected value in the prompt instead
 - [ ] prompt the model to include a confidence score -- not sure it'll help but could be useful in the future
+  - [ ] maybe if the confidence is high enough, switch without waiting for a second result
 
 - [ ] include the broadcast network, racing series, and race name in the prompt
 
@@ -101,14 +107,17 @@
 
 #### Improvement ideas
 
-- [ ] grab closed captions and include them with the screenshot when sending to the LLM
-- [ ] somehow capture the broadcast audio and use whisper or something to check if one of the Fox hosts is talking
+- [ ] grab closed captions/subtitles and include them with the screenshot when sending to the LLM
+  - [ ] can we grab subtitles/captions from the `<video>` tag?
+- [ ] somehow capture the broadcast audio and use whisper or something with speaker diarization to check if one of the Fox hosts is talking
 
 ### Switching
 
 - [x] debounce -- require multiple consecutive classifications as ad or racing before switching
 - [ ] if I manually switch, temporarily pause automatic switching until I enable it again
 - [x] turn off auto-switch when paused
+- [ ] if I send two commands to the switcher back-to-back, will it handle them both without me needing to wait for its response?
+  - not sure, but I was doing something with switching back and forth, after which my NUC seemingly randomly glitched out -- seems like it's maybe not ideal
 
 ### UI
 
@@ -125,3 +134,9 @@
 - [ ] stretch: allow controlling YTTV (pause, rewind, etc.) from the web UI
 
 - [ ] include `incorrect_frames` in the `/review` endpoint so I can classify them
+
+- [ ] if the server stops responding when the UI polls for updates, show that the connection was lost
+
+- [ ] when the classification first changes, even if we don't actually switch the switcher yet, update the UI to show it thinks it's about to change
+
+- [ ] show a counter of the number of seconds since the last image was received
