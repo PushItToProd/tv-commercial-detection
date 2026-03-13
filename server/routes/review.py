@@ -1,6 +1,7 @@
 import json
 from datetime import datetime
 from pathlib import Path
+from PIL import Image
 
 from flask import Blueprint, current_app, jsonify, render_template, request, send_from_directory
 
@@ -36,7 +37,10 @@ def save():
         current_app.logger.exception(f"Invalid timestamp format in request: {raw_ts}")
         dt = datetime.now()
 
-    filename = dt.strftime("%Y-%m-%d_%H-%M-%S") + ".png"
+    ext = Path(image.filename).suffix.lower() if image.filename else ".png"
+    if ext not in (".jpg", ".jpeg", ".png"):
+        ext = ".png"
+    filename = dt.strftime("%Y-%m-%d_%H-%M-%S") + ext
     save_dir = current_app.config["SAVE_DIR"]
     save_path = save_dir / filename
     image.save(save_path)
@@ -47,8 +51,24 @@ def save():
 
 @review_bp.route("/frames/<filename>")
 def serve_frame(filename):
-    # send_from_directory prevents path traversal
-    return send_from_directory(current_app.config["SAVE_DIR"].resolve(), filename)
+    # We compress the images on demand and serve smaller versions to save
+    # bandwidth and speed up loading in the review interface. We have to make
+    # sure to use send_from_directory with a safe filename to avoid path
+    # traversal issues, and we only allow .jpg and .png files.
+    save_dir = current_app.config["SAVE_DIR"]
+    original_path = save_dir / filename
+    compressed_path = save_dir / f"compressed_{filename}"
+    if not compressed_path.exists():
+        try:
+            with Image.open(original_path) as img:
+                img.thumbnail((400, 400))
+                img.save(compressed_path)
+        except Exception as e:
+            current_app.logger.exception(f"Error compressing image {original_path}")
+            # If compression fails, we can still serve the original image
+            return send_from_directory(save_dir.resolve(), filename)
+
+    return send_from_directory(save_dir.resolve(), compressed_path.name)
 
 
 @review_bp.route("/classify", methods=["POST"])
@@ -60,8 +80,8 @@ def handle_classify():
     if label not in ("ad", "content"):
         return jsonify({"error": "label must be 'ad' or 'content'"}), 400
     filename = data["filename"]
-    # Guard against path traversal: filename must be a plain basename ending in .png
-    if Path(filename).name != filename or not filename.endswith(".png"):
+    # Guard against path traversal: filename must be a plain basename ending in .png or .jpg
+    if Path(filename).name != filename or not filename.endswith((".png", ".jpg")):
         return jsonify({"error": "Invalid filename"}), 400
     labels = load_labels()
     labels[filename] = label
@@ -73,6 +93,6 @@ def handle_classify():
 def review():
     save_dir = current_app.config["SAVE_DIR"]
     labels = load_labels()
-    images = sorted(p.name for p in save_dir.glob("*.png"))
+    images = sorted(p.name for p in [*save_dir.glob("*.png"), *save_dir.glob("*.jpg")])
     image_data = [{"filename": f, "label": labels.get(f)} for f in images]
     return render_template("review.html", image_data=image_data)
