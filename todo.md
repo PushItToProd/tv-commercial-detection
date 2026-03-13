@@ -4,16 +4,11 @@
 
 - [ ] auto-save config when you click "start"
 - [ ] notify the server when the sender extension is started or stopped
-- [ ] notify the server as soon as I play/pause/seek/etc.
-- [ ] use the same logic for identifying the `<video>` tag in `track_interactions.js` as in `get_video_bounds.js`
-- [ ] don't switch if I'm actively interacting with the video player (onmouseover?)
+- [ ] ensure we only accept images for classification from one tab/sender at a time -- don't want to accidentally DoS myself if I enable this on multiple tabs
+- [ ] don't switch if I'm actively interacting with the video player tab (onmouseover?)
 - [ ] if I seek multiple times or catch up to live and end up on a commercial after having been on a break, switch after a short delay
   - although maybe this is just how it works as it is
-- [ ] allow configuring separate intervals for each endpoint
-- [ ] use the `rect` property in the `ImageDetails` param of `browser.tabs.captureTab()` instead of `cropImage` to crop the source image
-  - https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/tabs/captureTab
-  - https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/extensionTypes/ImageDetails
-  - potentially resize using canvas https://stackoverflow.com/a/39637827
+- [ ] just get rid of multi-endpoint config and assume it's going to be linked to one control server from now on
 
 - [ ] +if the classifier service returned its result to the extension, the extension could do things like mute and (if possible) skip ahead automatically until it's not on an ad break anymore
 - [ ] package the extension so I can install it permanently in firefox
@@ -23,13 +18,13 @@
   - Get video title from YouTube TV:
 
     ```js
-    doc.querySelectorAll(".ypc-video-title-text")[0].textContent.trim()
+    doc.querySelector(".ypc-video-title-text").textContent.trim()
     ```
 
   - Get network from YouTube TV:
 
     ```js
-    doc.querySelectorAll(".ypc-network-logo")[0].textContent.trim()
+    doc.querySelector(".ypc-network-logo").textContent.trim()
     ```
 
 - [x] only capture screenshots if video is playing
@@ -40,6 +35,12 @@
 - [x] send a signal when the video is paused
 - [x] compress/resize images at capture time so we don't have to do it server side
 - [x] avoid switching if I'm seeking the video player
+- [x] notify the server as soon as I play/pause/seek/etc.
+- [x] use the same logic for identifying the `<video>` tag in `track_interactions.js` as in `get_video_bounds.js`
+- [-] use the `rect` property in the `ImageDetails` param of `browser.tabs.captureTab()` instead of `cropImage` to crop the source image
+  - -> `rect` only works on Firefox - may as well keep it simple
+- [-] potentially resize using canvas https://stackoverflow.com/a/39637827
+- [-] allow configuring separate intervals for each endpoint
 
 ## Web app
 
@@ -155,6 +156,8 @@
 
 ### UI
 
+- [ ] right now, the client requests `/is_ad/last_frame?t=${Date.now}` every time it receives a message from the server, even if there's no new image. this should be updated to avoid a pointless fetch if the image hasn't changed
+
 - [ ] move css out into a single style.css file and unify between the /review and /is_ad endpoints
 - [ ] maybe use a CSS framework
 
@@ -175,8 +178,7 @@
 - [ ] include `incorrect_frames` in the `/review` endpoint so I can classify them
 - [ ] if the server stops responding when the UI polls for updates, show that the connection was lost
 - [ ] show a counter of the number of seconds since the last image was received
-- [ ] add UI toggle to enable/disable debounce
-- [ ] the "Report" button flashes every second on my iPad after I've tapped it (I guess because of the transition effect that's supposed to make updates look smoother)
+- [ ] the "Report" button stays highlighted on my iPad after I've tapped it (I had to turn off the transition effect because it made the button flash every second)
   - I guess the button gets focused and then doesn't unfocus -- try unsetting the focus when I tap on the background and/or automatically after a delay
 
 - [x] move UI templates into html files
@@ -184,3 +186,4 @@
   - [x] add buttons to manually trigger ad/not-ad mode
 - [x] when the classification first changes, even if we don't actually switch the switcher yet, update the UI to show it thinks it's about to change
 - [x] change "Wrong!" to "Report"
+- [x] add UI toggle to enable/disable debounce
