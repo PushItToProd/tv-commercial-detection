@@ -68,6 +68,35 @@ browser.tabs.onRemoved.addListener(tabId => {
 
 // ── core capture ─────────────────────────────────────────────────────────────
 
+async function getTabVideoInfo(tab) {
+  const results = await browser.tabs.executeScript(tab.id, { file: 'content_scripts/get_video_bounds.js' });
+  const info = results[0];
+  return info;
+}
+
+async function screenshotTabAsBlob(tab, videoInfo) {
+  // 2. screenshot (PNG so the crop step has lossless input before JPEG encoding)
+  const dataUrl = await browser.tabs.captureTab(tab.tabId, { format: 'png' });
+
+  // 3. crop to the video rect
+  const finalUrl = await cropImage(dataUrl, videoInfo);
+  blob = dataUrlToBlob(finalUrl);
+  return blob;
+}
+
+function buildFormData(tab, tabState, blob) {
+  const {isPaused, isSeeking, timestamp} = tabState;
+
+  const form = new FormData();
+  if (blob) form.append('image', blob, `frame_${timestamp}.jpg`);
+  form.append('is_paused', isPaused ? 'true' : 'false');
+  form.append('is_seeking', isSeeking ? 'true' : 'false');
+  form.append('timestamp', timestamp);
+  form.append('page_title', tab.title ?? '');
+  form.append('page_url', tab.url ?? '');
+  return form;
+}
+
 async function doCapture() {
   if (!captureState.running) return;
 
@@ -100,36 +129,25 @@ async function doCapture() {
 
   try {
     // 1. get video info from page
-    const results = await browser.tabs.executeScript(tab.id, { file: 'content_scripts/get_video_bounds.js' });
-    const info = results[0];
+    const videoInfo = await getTabVideoInfo(tab);
 
     // skip this tick if there's no video at all
-    if (!info) { bgLog('No video found — skipping.', ''); return; }
+    if (!videoInfo) { bgLog('No video found — skipping.', ''); return; }
 
-    const isPaused = !info.playing;
-    const isSeeking = info.seeking || info.recentlySeeked;
+    const isPaused = !videoInfo.playing;
+    const isSeeking = videoInfo.seeking || videoInfo.recentlySeeked;
     const timestamp = new Date().toISOString();
 
-    let blob = null;
+    let screenshotBlob = null;
     if (!isPaused && !isSeeking) {
-      // 2. screenshot (PNG so the crop step has lossless input before JPEG encoding)
-      const dataUrl = await browser.tabs.captureTab(tab.tabId, { format: 'png' });
-
-      // 3. crop to the video rect
-      const finalUrl = await cropImage(dataUrl, info);
-      blob = dataUrlToBlob(finalUrl);
+      screenshotBlob = await screenshotTabAsBlob(tab, videoInfo);
     }
+
+    const tabState = {isPaused, isSeeking, timestamp};
+    const form = buildFormData(tab, tabState, screenshotBlob);
 
     // 4. POST to each endpoint concurrently
     const posts = endpoints.map(async url => {
-      const form = new FormData();
-      if (blob) form.append('image', blob, `frame_${timestamp}.jpg`);
-      form.append('is_paused', isPaused ? 'true' : 'false');
-      form.append('is_seeking', isSeeking ? 'true' : 'false');
-      form.append('timestamp', timestamp);
-      form.append('page_title', tab.title ?? '');
-      form.append('page_url', tab.url ?? '');
-
       try {
         const res = await fetch(url, { method: 'POST', body: form });
         if (res.ok) {
