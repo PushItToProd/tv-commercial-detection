@@ -54,17 +54,17 @@ function appendLog(msg, type = '') {
 // ── init ───────────────────────────────────────────────────────────────────
 
 const background = {
-  async getState() {
-    return browser.runtime.sendMessage({ type: 'getState' });
+  async getCaptureState() {
+    return browser.runtime.sendMessage({ type: 'getCaptureState' });
   },
   async startCapture() {
-    return browser.runtime.sendMessage({ type: 'start' });
+    return browser.runtime.sendMessage({ type: 'startCapture' });
   },
   async stopCapture() {
-    return browser.runtime.sendMessage({ type: 'stop' });
+    return browser.runtime.sendMessage({ type: 'stopCapture' });
   },
   async restartAlarm(interval) {
-    return browser.runtime.sendMessage({ type: 'restartAlarm', interval });
+    return browser.runtime.sendMessage({ type: 'restartCaptureAlarm', interval });
   }
 }
 
@@ -74,7 +74,7 @@ async function init() {
   ($list.querySelectorAll('.endpoint-row') || []).forEach(r => r.remove());
   (config.endpoints ?? [DEFAULT_URL]).forEach(addEndpointRow);
 
-  const state = await background.getState();
+  const state = await background.getCaptureState();
   syncUI(state.running);
 
   // replay background log into popup
@@ -106,7 +106,7 @@ $btnSave.addEventListener('click', async () => {
   appendLog('Config saved.', 'ok');
 
   // if running, restart the alarm with new interval
-  const state = await background.getState();
+  const state = await background.getCaptureState();
   if (state.running) {
     await background.restartAlarm(interval);
     appendLog(`Interval updated → ${interval}s`, '');
@@ -114,7 +114,7 @@ $btnSave.addEventListener('click', async () => {
 });
 
 $btnToggle.addEventListener('click', async () => {
-  const state = await background.getState();
+  const state = await background.getCaptureState();
   if (state.running) {
     await background.stopCapture();
     syncUI(false);

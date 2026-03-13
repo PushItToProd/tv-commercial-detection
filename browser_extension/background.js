@@ -191,18 +191,19 @@ async function doCapture() {
 
 browser.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   switch (msg.type) {
-    case 'getState':
+    // popup actions
+    case 'getCaptureState':
       sendResponse({ running: captureState.running, log: captureState.log });
       break;
-    case 'start':
+    case 'startCapture':
       startCapture();
       sendResponse({ ok: true });
       break;
-    case 'stop':
+    case 'stopCapture':
       stopCapture();
       sendResponse({ ok: true });
       break;
-    case 'restartAlarm':
+    case 'restartCaptureAlarm':
       restartAlarm(msg.interval);
       sendResponse({ ok: true });
       break;
