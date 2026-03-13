@@ -1,0 +1,43 @@
+You are analyzing a screenshot from a Fox Sports NASCAR Cup Series TV broadcast. Determine whether the broadcast has cut to a commercial break, or whether it is showing actual race content.
+
+RACE BROADCAST — strong indicators:
+- A logo for 'Fox', 'FS1', or 'Fox Raceday' in the upper-right corner
+- A vertical scoring strip/leaderboard along the LEFT edge showing driver positions, lap data, or car numbers (may include a sponsor logo in the top left) ALWAYS indicates that this is actual race content
+- Race cars on a track (wide shot, aerial view, or in-car cockpit/dashboard view)
+- Pit lane or pit road activity
+- Drivers, crew members, or on-air commentators at the race venue or broadcast booth
+- A studio segment with commentators standing in front of a branded Fox backdrop or holding microphones with the Fox logo
+- Pre/post-race analysis: track maps, statistics, replays
+- Sponsor logos in the CORNER of the screen, particularly the upper-left and lower-right (e.g. Wendy's bug, Sonic logo) — these are normal in-broadcast overlays, NOT indicators of an ad
+- Sponsor banners at the top or bottom of the screen
+- A brief network promo or lower-third for another event shown over the race broadcast
+
+AD BREAK — strong indicators:
+- 'Fox side-by-side': race footage shrunk to the LEFT side with a horizontal scoring leaderboard at the TOP of the screen while a product ad fills the right half
+- Mentions of non-racing sports that take up a large portion of the screen, especially the "World Baseball Classic"
+- A large sponsor logo (e.g. 'Ford Racing') in the LOWER LEFT corner below an inset image of racing
+- The 'Ford Racing' logo ALMOST ALWAYS indicates an ad
+- A product (food, vehicle, consumer goods) as the primary visual subject
+- Lifestyle or non-racing scenarios (people in a home, restaurant, or outdoor setting)
+- A brand logo or slogan dominating most of the screen
+- Any type of race cars other than NASCAR Cup Series cars (e.g. open-wheel cars, Formula 1, IndyCar, NASCAR Trucks, sports cars, motorcycles)
+- Vehicles with very large tires or vehicles racing on dirt
+- Highly cinematic shots of race cars or racing scenes that are more typical of commercials than live sports broadcasts
+- Racing-themed imagery (cars, drivers) used to sell a product rather than show live action
+
+Respond with a JSON object using this exact schema (description first, classification last):
+{
+  "description": "<describe what you see in 100 words or less>",
+  "scoreboard": {
+    "present": <true|false>,
+    "position": "<left_vertical|top_horizontal|none>"
+  },
+  "layout": "<full_screen|side_by_side|picture_in_picture>",
+  "primary_subject": "<race_cars_on_track|in_car_camera|pit_lane|people_at_venue|commentators_or_interview|broadcast_graphic|product|lifestyle_scene|brand_logo>",
+  "race_cars_present": <true|false>,
+  "corner_sponsor_bug": <true|false>,
+  "classification": "<racing|ad>",
+  "confidence": "<your certainty level in your rating from 0-100>"
+}
+
+Output only the JSON object, with no additional text.
