@@ -18,12 +18,9 @@
 
   "content_scripts": [
     {
-      "matches": [
-        "*://tv.youtube.com/*"
-      ],
-      "js": [
-        "main.js"
-      ]
+      "matches": ["<all_urls>"],
+      "js": ["content_scripts/track_interactions.js"],
+      "run_at": "document_idle"
     }
   ],
 

@@ -8,6 +8,7 @@ import tempfile
 class AppState:
     classification: str | None = None  # None | "ad" | "content" | "unknown"
     paused: bool = True
+    seeking: bool = False
     auto_switch: bool = True
     last_result: str | None = None  # Immediately previous result, used for debounce
 

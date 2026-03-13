@@ -20,7 +20,9 @@
 - [x] stop capturing when the tab is closed
 - [x] send a signal when the video is paused
 - [ ] notify the server when the sender stops or starts
-- [ ] if I'm actively interacting with the video player, avoid switching
+- [/] if I'm actively interacting with the video player, avoid switching
+  - [x] avoid switching if I'm seeking
+    - [ ] if I seek multiple times and end up on a commercial, switch after a short delay
 - [ ] allow configuring separate intervals for each endpoint
 - [x] compress/resize images at capture time so we don't have to do it server side
   - `browser.tabs.captureTab()` takes an `ImageDetails` as its second arg

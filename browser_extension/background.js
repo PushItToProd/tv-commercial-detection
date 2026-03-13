@@ -107,10 +107,11 @@ async function doCapture() {
     if (!info) { bgLog('No video found — skipping.', ''); return; }
 
     const isPaused = !info.playing;
+    const isSeeking = info.seeking || info.recentlySeeked;
     const timestamp = new Date().toISOString();
 
     let blob = null;
-    if (!isPaused) {
+    if (!isPaused && !isSeeking) {
       // 2. screenshot (PNG so the crop step has lossless input before JPEG encoding)
       const dataUrl = await browser.tabs.captureTab(tab.tabId, { format: 'png' });
 
@@ -124,6 +125,7 @@ async function doCapture() {
       const form = new FormData();
       if (blob) form.append('image', blob, `frame_${timestamp}.jpg`);
       form.append('is_paused', isPaused ? 'true' : 'false');
+      form.append('is_seeking', isSeeking ? 'true' : 'false');
       form.append('timestamp', timestamp);
       form.append('page_title', tab.title ?? '');
       form.append('page_url', tab.url ?? '');
@@ -131,7 +133,8 @@ async function doCapture() {
       try {
         const res = await fetch(url, { method: 'POST', body: form });
         if (res.ok) {
-          bgLog(`POST ${url} → ${res.status}${isPaused ? ' (paused)' : ''}`, 'ok');
+          const note = isPaused ? ' (paused)' : isSeeking ? ' (seeking — skipped)' : '';
+          bgLog(`POST ${url} → ${res.status}${note}`, 'ok');
         } else {
           bgLog(`POST ${url} → ${res.status} ${res.statusText}`, 'err');
         }

@@ -136,6 +136,7 @@ function update() {
     .then(data => {
       const c = data.classification;
       const paused = data.paused;
+      const seeking = data.seeking;
       const el = document.getElementById('label');
       const pausedEl = document.getElementById('paused-indicator');
       if (c === 'ad') {
@@ -149,7 +150,7 @@ function update() {
         el.textContent = c === null ? '...' : '?';
       }
       const pending = data.pending;
-      pausedEl.textContent = paused ? '⏸ PAUSED' : pending ? '⏳ PENDING CHANGE' : '';
+      pausedEl.textContent = paused ? '⏸ PAUSED' : seeking ? '⏳ SEEKING' : pending ? '⏳ PENDING CHANGE' : '';
       updateButtons(c);
       const frameEl = document.getElementById('last-frame');
       frameEl.src = '/is_ad/last_frame?t=' + Date.now();

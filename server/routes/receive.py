@@ -16,10 +16,13 @@ receive_bp = Blueprint("receive", __name__)
 
 @receive_bp.route("/receive", methods=["POST"])
 def receive():
-    is_paused = request.form.get("is_paused", "").lower() in ("true", "1", "yes")
-    state.paused = is_paused
+    state.paused = is_paused = request.form.get("is_paused", "").lower() in ("true", "1", "yes")
+    state.seeking = is_seeking = request.form.get("is_seeking", "").lower() in ("true", "1", "yes")
 
     if "image" not in request.files:
+        if is_seeking:
+            print(f"Seeking (no image)  |  page: {request.form.get('page_title', '?')}")
+            return jsonify({"classification": state.classification, "paused": False, "seeking": True}), 200
         if is_paused:
             print(f"Paused (no image)  |  page: {request.form.get('page_title', '?')}")
             return jsonify({"classification": state.classification, "paused": True}), 200

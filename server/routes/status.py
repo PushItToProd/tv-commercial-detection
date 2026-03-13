@@ -15,6 +15,7 @@ def is_ad_status():
     return jsonify({
         "classification": state.classification,
         "paused": state.paused,
+        "seeking": state.seeking,
         "pending": state.is_pending_change(),
         "auto_switch": state.auto_switch,
         "ad_view_label": ad_view_label,
