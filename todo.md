@@ -4,6 +4,8 @@
 
 - [ ] auto-save config when you click "start"
 - [ ] notify the server when the sender extension is started or stopped
+- [ ] notify the server as soon as I play/pause/seek/etc.
+- [ ] use the same logic for identifying the `<video>` tag in `track_interactions.js` as in `get_video_bounds.js`
 - [ ] don't switch if I'm actively interacting with the video player (onmouseover?)
 - [ ] if I seek multiple times or catch up to live and end up on a commercial after having been on a break, switch after a short delay
   - although maybe this is just how it works as it is
