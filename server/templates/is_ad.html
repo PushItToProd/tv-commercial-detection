@@ -148,43 +148,40 @@ document.getElementById('enable-debounce-toggle').addEventListener('change', fun
 document.getElementById('btn-ad-input').addEventListener('click', () => triggerMatrix('ad'));
 document.getElementById('btn-race-input').addEventListener('click', () => triggerMatrix('content'));
 
-function update() {
-  fetch('/is_ad/status')
-    .then(r => r.json())
-    .then(data => {
-      const c = data.classification;
-      const paused = data.paused;
-      const seeking = data.seeking;
-      const el = document.getElementById('label');
-      const pausedEl = document.getElementById('paused-indicator');
-      if (c === 'ad') {
-        document.body.style.background = '#cc0033';
-        el.textContent = 'AD';
-      } else if (c === 'content') {
-        document.body.style.background = '#00882b';
-        el.textContent = 'RACING';
-      } else {
-        document.body.style.background = '#333';
-        el.textContent = c === null ? '...' : '?';
-      }
-      const pending = data.pending;
-      pausedEl.textContent = paused ? '⏸ PAUSED' : seeking ? '⏳ SEEKING' : pending ? '⏳ PENDING CHANGE' : '';
-      updateButtons(c);
-      const frameEl = document.getElementById('last-frame');
-      frameEl.src = '/is_ad/last_frame?t=' + Date.now();
-      frameEl.style.display = 'block';
-      document.getElementById('auto-switch-toggle').checked = data.auto_switch;
-      document.getElementById('enable-debounce-toggle').checked = data.enable_debounce;
-      if (data.ad_view_label !== undefined)
-        document.getElementById('btn-ad-input').textContent = data.ad_view_label;
-      if (data.race_view_label !== undefined)
-        document.getElementById('btn-race-input').textContent = data.race_view_label;
-    })
-    .catch(() => {});
+function applyData(data) {
+  const c = data.classification;
+  const paused = data.paused;
+  const seeking = data.seeking;
+  const el = document.getElementById('label');
+  const pausedEl = document.getElementById('paused-indicator');
+  if (c === 'ad') {
+    document.body.style.background = '#cc0033';
+    el.textContent = 'AD';
+  } else if (c === 'content') {
+    document.body.style.background = '#00882b';
+    el.textContent = 'RACING';
+  } else {
+    document.body.style.background = '#333';
+    el.textContent = c === null ? '...' : '?';
+  }
+  const pending = data.pending;
+  pausedEl.textContent = paused ? '⏸ PAUSED' : seeking ? '⏳ SEEKING' : pending ? '⏳ PENDING CHANGE' : '';
+  updateButtons(c);
+  const frameEl = document.getElementById('last-frame');
+  frameEl.src = '/is_ad/last_frame?t=' + Date.now();
+  frameEl.style.display = 'block';
+  document.getElementById('auto-switch-toggle').checked = data.auto_switch;
+  document.getElementById('enable-debounce-toggle').checked = data.enable_debounce;
+  if (data.ad_view_label !== undefined)
+    document.getElementById('btn-ad-input').textContent = data.ad_view_label;
+  if (data.race_view_label !== undefined)
+    document.getElementById('btn-race-input').textContent = data.race_view_label;
 }
 
-update();
-setInterval(update, 1000);
+const evtSource = new EventSource('/is_ad/stream');
+evtSource.onmessage = function(event) {
+  applyData(JSON.parse(event.data));
+};
 </script>
 </body>
 </html>

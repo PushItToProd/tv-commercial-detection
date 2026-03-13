@@ -1,3 +1,4 @@
+import asyncio
 from collections import deque
 from dataclasses import dataclass
 from pathlib import Path
@@ -18,6 +19,8 @@ class AppState:
 
 
 state = AppState()
+
+sse_clients: set[asyncio.Queue] = set()
 
 # Rolling buffer of recent frames: each entry is (iso_timestamp: str, png_bytes: bytes)
 recent_frames: deque = deque(maxlen=5)

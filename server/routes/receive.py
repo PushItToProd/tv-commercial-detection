@@ -12,6 +12,7 @@ from pydantic import BaseModel
 from classify import classify_image
 from config import app_config
 from matrix import apply_matrix_settings
+from routes.status import broadcast_status
 from state import last_image_path, recent_frames, state
 
 logger = logging.getLogger(__name__)
@@ -32,9 +33,11 @@ async def receive(
     if image is None:
         if is_seeking_bool:
             print(f"Seeking (no image)  |  page: {page_title}")
+            await broadcast_status()
             return {"classification": state.classification, "paused": False, "seeking": True}
         if is_paused_bool:
             print(f"Paused (no image)  |  page: {page_title}")
+            await broadcast_status()
             return {"classification": state.classification, "paused": True}
         raise HTTPException(status_code=400, detail="No image field in request")
 
@@ -84,6 +87,7 @@ async def receive(
     else:
         logger.info(f"Received image → classified as: {result}  |  page: {page_title}")
 
+    await broadcast_status()
     return {"classification": state.classification, "paused": is_paused_bool}
 
 
