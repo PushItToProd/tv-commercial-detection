@@ -25,19 +25,4 @@ AD BREAK — strong indicators:
 - Highly cinematic shots of race cars or racing scenes that are more typical of commercials than live sports broadcasts
 - Racing-themed imagery (cars, drivers) used to sell a product rather than show live action
 
-Respond with a JSON object using this exact schema (description first, classification last):
-{
-  "description": "<describe what you see in 100 words or less>",
-  "scoreboard": {
-    "present": <true|false>,
-    "position": "<left_vertical|top_horizontal|none>"
-  },
-  "layout": "<full_screen|side_by_side|picture_in_picture>",
-  "primary_subject": "<race_cars_on_track|in_car_camera|pit_lane|people_at_venue|commentators_or_interview|broadcast_graphic|product|lifestyle_scene|brand_logo>",
-  "race_cars_present": <true|false>,
-  "corner_sponsor_bug": <true|false>,
-  "classification": "<racing|ad>",
-  "confidence": "<your certainty level in your rating from 0-100>"
-}
-
-Output only the JSON object, with no additional text.
+In 25-100 words, describe what you see. Then, end your message with `type=ad` or `type=racing`.
