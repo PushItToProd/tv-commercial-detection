@@ -18,7 +18,7 @@ PROMPT_FILE = os.environ.get("PROMPT_FILE", Path(__file__).parent / "prompt" / "
 PROMPT = Path(PROMPT_FILE).read_text()
 
 
-MAX_DIMENSION = 1024
+MAX_DIMENSION = 800
 
 # Each entry is (image_path, expected_assistant_reply).
 # The reply should be a short description followed by the label, e.g.:
