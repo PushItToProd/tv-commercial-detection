@@ -98,7 +98,7 @@
 - [x] prompt the model to specifically look for certain attributes like scoreboard position and emit it all in JSON
 - [ ] maybe include the previous reported state in the prompt to see if that helps -- e.g. `You last reported seeing (an ad|racing).`
   - try including the previous screenshot, too
-  - if I hit "Wrong!", include the corrected value in the prompt instead
+  - if I hit "Report", include the corrected value in the prompt instead
 - [ ] prompt the model to include a confidence score -- not sure it'll help but could be useful in the future
   - [ ] maybe if the confidence is high enough, switch without waiting for a second result
 
@@ -147,21 +147,23 @@
 
 ### UI
 
-- [ ] show a visual indicator when an ad has been detected and it's about to switch
+- [ ] switch to using a single style.css file
+
+- [x] show a visual indicator when an ad has been detected and it's about to switch
   - [ ] provide a way to preempt and tell it it's wrong
   - [ ] provide a way to confirm and switch right away
 
 - [x] move UI templates into html files
 - [x] add a toggle to turn switching on and off
   - [x] add buttons to manually trigger ad/not-ad mode
-- "Wrong!" button
-  - [x] when I click "Wrong!", save the last few images in case I don't manage to hit the button right away
-  - [ ] when I click "Wrong!", it should include a unique ID (timestamp?) of the image reported so there's no race condition from hitting it a split second too late
-  - [ ] when I click "Wrong!", automatically swap back and maybe temporarily pause auto-switching
-    - [ ] ambitious: when I click "Wrong!", temporarily update the classifier prompt to include the relevant screenshot as an example. 
+- "Report" button
+  - [x] when I click "Report", save the last few images in case I don't manage to hit the button right away
+  - [ ] when I click "Report", it should include a unique ID (timestamp?) of the image reported so there's no race condition from hitting it a split second too late
+  - [ ] when I click "Report", automatically swap back and maybe temporarily pause auto-switching
+    - [ ] ambitious: when I click "Report", temporarily update the classifier prompt to include the relevant screenshot as an example.
       - not sure how long it should be updated for - probably just until the classification changes again
   - [x] show the latest screenshot on the UI so I can tell what I'm marking as wrong
-    - [ ] when I tap "Wrong!", show a popup with all the recently captured frames and their classifications. let me pick which ones specifically were classified wrongly and save the whole batch
+    - [ ] when I tap "Report", show a popup with all the recently captured frames and their classifications. let me pick which ones specifically were classified wrongly and save the whole batch
 
 - [ ] stretch: allow controlling YTTV (pause, rewind, etc.) from the web UI
 - [ ] include `incorrect_frames` in the `/review` endpoint so I can classify them
@@ -169,5 +171,6 @@
 - [x] when the classification first changes, even if we don't actually switch the switcher yet, update the UI to show it thinks it's about to change
 - [ ] show a counter of the number of seconds since the last image was received
 - [ ] add UI toggle to enable/disable debounce
-- [ ] the "Wrong!" button flashes every second on my iPad after I've tapped it (I guess because of the transition effect that's supposed to make updates look smoother)
-- [ ] change "Wrong!" to "Report Incorrect"
+- [ ] the "Report" button flashes every second on my iPad after I've tapped it (I guess because of the transition effect that's supposed to make updates look smoother)
+  - I guess the button gets focused and then doesn't unfocus -- try unsetting the focus when I tap on the background and/or automatically after a delay
+- [ ] change "Report" to "Report Incorrect"

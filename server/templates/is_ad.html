@@ -28,14 +28,20 @@
     display: none;
   }
   #buttons {
-    position: fixed; bottom: 20vh;
+    position: fixed; bottom: 18vh;
     display: flex; gap: 1rem;
   }
   .btn-correction {
-    padding: 1rem 2.4rem; font-size: 3rem; font-weight: bold;
+    padding: 1rem 2.4rem; font-size: 10rem; font-weight: bold;
     border: none; border-radius: 12px; cursor: pointer;
     background: rgba(255,255,255,0.2); color: #fff;
-    transition: background 0.2s;
+    /*
+      FIXME: The transition property below is commented out until I can figure
+      out how to un-focus/un-hover the button on iPadOS. As it is, leaving this
+      uncommented causes the button to flash every second when update() is
+      called, which is very annoying.
+    */
+    /* transition: background 0.2s; */
   }
   .btn-correction:hover { background: rgba(255,255,255,0.38); }
   #bottom-controls {
@@ -97,10 +103,10 @@ function updateButtons(c) {
   if (c === 'ad' || c === 'content') {
     const btn = document.createElement('button');
     btn.className = 'btn-correction';
-    btn.textContent = 'Wrong!';
+    btn.textContent = 'Report';
     btn.onclick = () => reportWrong(c === 'ad' ? 'content' : 'ad');
     div.appendChild(btn);
-  } else if (c !== null && c !== undefined) {
+  } else if (c !== null && c !== undefined) {  // FIXME: 'unknown' seemingly gets mapped to null/undefined so this doesn't work how we want
     [['ad', 'Ad'], ['content', 'Racing']].forEach(([lbl, display]) => {
       const btn = document.createElement('button');
       btn.className = 'btn-correction';
