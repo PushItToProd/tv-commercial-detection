@@ -83,7 +83,7 @@ async def receive(
         state.classification = result
         logger.info(f"Classification changed: {classification} → {result}  |  page: {page_title}")
         if state.auto_switch:
-            apply_matrix_settings(result)
+            await apply_matrix_settings(result)
     else:
         logger.info(f"Received image → classified as: {result}  |  page: {page_title}")
 
