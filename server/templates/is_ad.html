@@ -122,11 +122,23 @@ function updateButtons(c) {
 }
 
 function triggerMatrix(classification) {
+  const btns = [
+    document.getElementById('btn-ad-input'),
+    document.getElementById('btn-race-input'),
+  ];
+  btns.forEach(b => { b.disabled = true; b.style.opacity = '0.4'; });
   fetch('/trigger_matrix', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({classification})
-  }).catch(() => {});
+  })
+  .catch((e) => {
+    /* TODO: show an error if we get one */
+    console.error('Failed to trigger matrix', e);
+  })
+  .finally(() => {
+    btns.forEach(b => { b.disabled = false; b.style.opacity = ''; });
+  });
 }
 
 document.getElementById('auto-switch-toggle').addEventListener('change', function() {

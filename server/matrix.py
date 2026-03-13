@@ -1,6 +1,6 @@
+import asyncio
 import json
 import logging
-import threading
 import urllib.request
 
 from config import app_config
@@ -17,8 +17,8 @@ SWITCHING_TIME = prometheus_client.Histogram(
 )
 
 
-def apply_matrix_settings(classification: str) -> None:
-    """Send HDMI matrix switch commands for the given classification in a background thread."""
+async def apply_matrix_settings(classification: str) -> None:
+    """Send HDMI matrix switch commands for the given classification, awaiting completion."""
     matrix_url = app_config.matrix_url
     output_settings = app_config.output_settings
     settings: dict = dict(output_settings.get(classification, {}))
@@ -41,4 +41,4 @@ def apply_matrix_settings(classification: str) -> None:
             except Exception as e:
                 logger.exception(f"Matrix error (output {output} → input {input_num})")
 
-    threading.Thread(target=_send, daemon=True).start()
+    await asyncio.to_thread(_send)

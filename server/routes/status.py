@@ -108,6 +108,6 @@ async def trigger_matrix(data: TriggerMatrixRequest):
     classification = data.classification
     if classification not in ("ad", "content"):
         raise HTTPException(status_code=400, detail="classification must be 'ad' or 'content'")
-    apply_matrix_settings(classification)
+    await apply_matrix_settings(classification)
     await broadcast_status()
     return {"triggered": classification}
