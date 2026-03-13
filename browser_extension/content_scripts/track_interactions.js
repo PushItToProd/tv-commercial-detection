@@ -23,12 +23,14 @@
   }
 
   const state = (window.__videoInteractionState = {
-    videoElement: getLargestVideo(),
+    videoElement: null,
     isSeeking: false,
     lastSeekMs: 0,   // epoch ms of the most recent seeking/seeked event
   });
 
   function initTracking(video) {
+    window.__videoInteractionState.videoElement = video;
+
     video.addEventListener('seeking', () => {
       console.debug('Video seeking started');
       state.isSeeking = true;
@@ -62,7 +64,7 @@
     });
   }
 
-  function attachTo(video) {
+  function checkNewVideoElement(video) {
     // check if the video is larger than the currently tracked one
     if (state.videoElement) {
       const r = video.getBoundingClientRect();
@@ -78,16 +80,18 @@
   }
 
   // Attach to any video elements already in the DOM.
-  document.querySelectorAll('video').forEach(attachTo);
+  // document.querySelectorAll('video').forEach(attachTo);
+
+  initTracking(getLargestVideo());
 
   // Watch for videos added dynamically (SPAs, deferred loads, etc.).
   const observer = new MutationObserver(mutations => {
     for (const mut of mutations) {
       for (const node of mut.addedNodes) {
         if (node.nodeName === 'VIDEO') {
-          attachTo(node);
+          checkNewVideoElement(node);
         } else if (node.querySelectorAll) {
-          node.querySelectorAll('video').forEach(attachTo);
+          node.querySelectorAll('video').forEach(checkNewVideoElement);
         }
       }
     }
