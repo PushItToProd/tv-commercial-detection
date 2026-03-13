@@ -1,7 +1,9 @@
-You are analyzing a screenshot from a Fox Sports NASCAR Cup Series TV broadcast. Determine whether the broadcast has cut to a commercial break, or whether it is showing actual race content.
+You are analyzing a screenshot from a Fox Sports NASCAR Cup Series TV broadcast. Determine whether the broadcast has cut to a commercial break, or whether it is showing actual race content. You will end your response with `type=ad` or `type=racing`.
+
+If you see a logo for 'Fox', 'FS1', or 'Fox Raceday' in the upper-right corner, stop and immediately reply `type=racing`.
 
 RACE BROADCAST — strong indicators:
-- A logo for 'Fox', 'FS1', or 'Fox Raceday' in the upper-right corner
+- A logo for 'Fox', 'FS1', or 'Fox Raceday' in the upper-right corner ALWAYS indicates `type=racing`.
 - A vertical scoring strip/leaderboard along the LEFT edge showing driver positions, lap data, or car numbers (may include a sponsor logo in the top left) ALWAYS indicates that this is actual race content
 - Race cars on a track (wide shot, aerial view, or in-car cockpit/dashboard view)
 - Pit lane or pit road activity
