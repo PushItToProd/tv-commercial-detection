@@ -53,13 +53,28 @@ function appendLog(msg, type = '') {
 
 // ── init ───────────────────────────────────────────────────────────────────
 
+const background = {
+  async getState() {
+    return browser.runtime.sendMessage({ type: 'getState' });
+  },
+  async startCapture() {
+    return browser.runtime.sendMessage({ type: 'start' });
+  },
+  async stopCapture() {
+    return browser.runtime.sendMessage({ type: 'stop' });
+  },
+  async restartAlarm(interval) {
+    return browser.runtime.sendMessage({ type: 'restartAlarm', interval });
+  }
+}
+
 async function init() {
   const { config = {} } = await browser.storage.local.get('config');
   $interval.value = config.interval ?? DEFAULT_INTERVAL;
   ($list.querySelectorAll('.endpoint-row') || []).forEach(r => r.remove());
   (config.endpoints ?? [DEFAULT_URL]).forEach(addEndpointRow);
 
-  const state = await browser.runtime.sendMessage({ type: 'getState' });
+  const state = await background.getState();
   syncUI(state.running);
 
   // replay background log into popup
@@ -91,17 +106,17 @@ $btnSave.addEventListener('click', async () => {
   appendLog('Config saved.', 'ok');
 
   // if running, restart the alarm with new interval
-  const state = await browser.runtime.sendMessage({ type: 'getState' });
+  const state = await background.getState();
   if (state.running) {
-    await browser.runtime.sendMessage({ type: 'restartAlarm', interval });
+    await background.restartAlarm(interval);
     appendLog(`Interval updated → ${interval}s`, '');
   }
 });
 
 $btnToggle.addEventListener('click', async () => {
-  const state = await browser.runtime.sendMessage({ type: 'getState' });
+  const state = await background.getState();
   if (state.running) {
-    await browser.runtime.sendMessage({ type: 'stop' });
+    await background.stopCapture();
     syncUI(false);
     appendLog('Capture stopped.', '');
   } else {
@@ -111,7 +126,7 @@ $btnToggle.addEventListener('click', async () => {
       appendLog('Add at least one endpoint first.', 'err');
       return;
     }
-    await browser.runtime.sendMessage({ type: 'start' });
+    await background.startCapture();
     syncUI(true);
     appendLog(`Capture started (every ${config.interval ?? DEFAULT_INTERVAL}s → ${endpoints.length} endpoint(s)).`, 'ok');
   }
