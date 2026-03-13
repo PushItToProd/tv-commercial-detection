@@ -27,6 +27,7 @@ def _get_status_data() -> dict:
         "pending": state.is_pending_change(),
         "auto_switch": state.auto_switch,
         "enable_debounce": state.enable_debounce,
+        "matrix_switching": state.matrix_switching,
         "ad_view_label": ad_view_label,
         "race_view_label": race_view_label,
     }
@@ -108,6 +109,11 @@ async def trigger_matrix(data: TriggerMatrixRequest):
     classification = data.classification
     if classification not in ("ad", "content"):
         raise HTTPException(status_code=400, detail="classification must be 'ad' or 'content'")
-    await apply_matrix_settings(classification)
+    state.matrix_switching = True
     await broadcast_status()
+    try:
+        await apply_matrix_settings(classification)
+    finally:
+        state.matrix_switching = False
+        await broadcast_status()
     return {"triggered": classification}

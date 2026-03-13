@@ -122,11 +122,6 @@ function updateButtons(c) {
 }
 
 function triggerMatrix(classification) {
-  const btns = [
-    document.getElementById('btn-ad-input'),
-    document.getElementById('btn-race-input'),
-  ];
-  btns.forEach(b => { b.disabled = true; b.style.opacity = '0.4'; });
   fetch('/trigger_matrix', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
@@ -135,9 +130,6 @@ function triggerMatrix(classification) {
   .catch((e) => {
     /* TODO: show an error if we get one */
     console.error('Failed to trigger matrix', e);
-  })
-  .finally(() => {
-    btns.forEach(b => { b.disabled = false; b.style.opacity = ''; });
   });
 }
 
@@ -188,6 +180,12 @@ function applyData(data) {
     document.getElementById('btn-ad-input').textContent = data.ad_view_label;
   if (data.race_view_label !== undefined)
     document.getElementById('btn-race-input').textContent = data.race_view_label;
+  const switching = !!data.matrix_switching;
+  ['btn-ad-input', 'btn-race-input'].forEach(id => {
+    const b = document.getElementById(id);
+    b.disabled = switching;
+    b.style.opacity = switching ? '0.4' : '';
+  });
 }
 
 const evtSource = new EventSource('/is_ad/stream');

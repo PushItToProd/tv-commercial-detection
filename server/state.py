@@ -13,6 +13,7 @@ class AppState:
     auto_switch: bool = True
     enable_debounce: bool = False
     last_result: str | None = None  # Immediately previous result, used for debounce
+    matrix_switching: bool = False
 
     def is_pending_change(self) -> bool:
         return self.last_result is not None and self.last_result != self.classification
