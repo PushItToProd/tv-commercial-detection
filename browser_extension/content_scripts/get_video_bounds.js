@@ -11,7 +11,7 @@
   const clamp0 = n => Math.max(0, n);
 
   // How long after a seek completes to still consider the user "interacting".
-  const RECENT_SEEK_WINDOW_MS = 5000;
+  const RECENT_SEEK_WINDOW_MS = 3000;
 
   const videos = Array.from(document.querySelectorAll('video')).filter(
     v => v.videoWidth > 0 && v.videoHeight > 0
