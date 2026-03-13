@@ -1,0 +1,48 @@
+# Usage: rename example.env to .env and edit the values as needed.
+services:
+  llama:
+    image: ghcr.io/ggml-org/llama.cpp:full-cuda
+    restart: unless-stopped
+    command: >
+      --server
+      --host 0.0.0.0
+      --port 8080
+      --jinja
+      --mmproj /models/${MMPROJ_FILE}
+      --model /models/${MODEL_FILE}
+    ports:
+      - "${LLAMA_PORT:?}:8080"
+    volumes:
+      - ${MODELS_HOST_DIR}:/models
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  hdmi-matrix-control:
+    build: ${HDMI_MATRIX_CONTROL_DIR:?}
+    restart: unless-stopped
+    ports:
+      - "${HDMI_MATRIX_CONTROL_PORT:?}:5000"
+    devices:
+      - ${HDMI_MATRIX_SERIAL_PORT:?}:/dev/ttyACM0
+    environment:
+      - FLASK_ENV=${FLASK_ENV:-production}
+    volumes:
+      - ${HDMI_MATRIX_CONTROL_DIR:?}:/app
+
+  receiver:
+    build: ${RECEIVER_DIR:?}
+    restart: unless-stopped
+    ports:
+      - "${RECEIVER_PORT:-11434}:11434"
+    environment:
+      - LLAMA_SERVER_URL=http://llama:8080
+      - HDMI_MATRIX_URL=http://hdmi-matrix-control:5000
+      - FLASK_ENV=${FLASK_ENV:-production}
+      - FLASK_DEBOUNCE=${RECEIVER_ENABLE_DEBOUNCE:-}
+    volumes:
+      - ${RECEIVER_DIR:?}:/app
