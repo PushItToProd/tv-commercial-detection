@@ -161,6 +161,7 @@
     - [ ] ambitious: when I click "Wrong!", temporarily update the classifier prompt to include the relevant screenshot as an example. 
       - not sure how long it should be updated for - probably just until the classification changes again
   - [x] show the latest screenshot on the UI so I can tell what I'm marking as wrong
+    - [ ] when I tap "Wrong!", show a popup with all the recently captured frames and their classifications. let me pick which ones specifically were classified wrongly and save the whole batch
 
 - [ ] stretch: allow controlling YTTV (pause, rewind, etc.) from the web UI
 - [ ] include `incorrect_frames` in the `/review` endpoint so I can classify them
