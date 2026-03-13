@@ -55,7 +55,7 @@ def load_examples() -> list[tuple[str, str]]:
 def _resize_image(image_path: str) -> bytes:
     """Resize image so its longest side is at most MAX_DIMENSION, then return JPEG bytes."""
     with Image.open(image_path) as img:
-        img.thumbnail((MAX_DIMENSION, MAX_DIMENSION), Image.LANCZOS)
+        img.thumbnail((MAX_DIMENSION, MAX_DIMENSION), Image.LANCZOS) # pyright: ignore[reportAttributeAccessIssue]
         if img.mode != "RGB":
             img = img.convert("RGB")
         buf = io.BytesIO()
