@@ -74,6 +74,25 @@ async function getTabVideoInfo(tab) {
   return info;
 }
 
+function cropImage(dataUrl, rect) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = rect.width;
+      canvas.height = rect.height;
+      canvas.getContext('2d').drawImage(
+        img,
+        rect.x, rect.y, rect.width, rect.height,
+        0, 0, rect.width, rect.height
+      );
+      resolve(canvas.toDataURL('image/jpeg', 0.6));
+    };
+    img.onerror = reject;
+    img.src = dataUrl;
+  });
+}
+
 async function screenshotTabAsBlob(tab, videoInfo) {
   // 2. screenshot (PNG so the crop step has lossless input before JPEG encoding)
   const dataUrl = await browser.tabs.captureTab(tab.tabId, { format: 'png' });
@@ -166,27 +185,6 @@ async function doCapture() {
   } catch (err) {
     bgLog('Capture error: ' + err.message, 'err');
   }
-}
-
-// ── image utilities ──────────────────────────────────────────────────────────
-
-function cropImage(dataUrl, rect) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = rect.width;
-      canvas.height = rect.height;
-      canvas.getContext('2d').drawImage(
-        img,
-        rect.x, rect.y, rect.width, rect.height,
-        0, 0, rect.width, rect.height
-      );
-      resolve(canvas.toDataURL('image/jpeg', 0.6));
-    };
-    img.onerror = reject;
-    img.src = dataUrl;
-  });
 }
 
 // ── message handler (used by popup) ─────────────────────────────────────────
