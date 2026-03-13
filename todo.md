@@ -36,6 +36,21 @@
 - [ ] +if the classifier service returned its result to the extension, the extension could do things like mute and (if possible) skip ahead automatically until it's not on an ad break anymore
 - [ ] package the extension so I can install it permanently in firefox
 
+- [ ] capture the race name and network name and send with the request
+
+  - Get video title from YouTube TV:
+
+    ```js
+    doc.querySelectorAll(".ypc-video-title-text")[0].textContent.trim()
+    ```
+
+  - Get network from YouTube TV:
+
+    ```js
+    doc.querySelectorAll(".ypc-network-logo")[0].textContent.trim()
+    ```
+
+
 ## Web app
 
 - [x] deploy everything in docker
@@ -152,3 +167,6 @@
 - [ ] if the server stops responding when the UI polls for updates, show that the connection was lost
 - [x] when the classification first changes, even if we don't actually switch the switcher yet, update the UI to show it thinks it's about to change
 - [ ] show a counter of the number of seconds since the last image was received
+- [ ] add UI toggle to enable/disable debounce
+- [ ] the "Wrong!" button flashes every second on my iPad after I've tapped it (I guess because of the transition effect that's supposed to make updates look smoother)
+- [ ] change "Wrong!" to "Report Incorrect"
