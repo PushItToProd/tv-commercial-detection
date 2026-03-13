@@ -59,6 +59,8 @@ def _resize_image(image_path: str) -> bytes:
         if img.mode != "RGB":
             img = img.convert("RGB")
         buf = io.BytesIO()
+        # I tried lowering this below 50 but it doesn't seem to have any effect
+        # on classification speed.
         img.save(buf, format="JPEG", quality=50)
         return buf.getvalue()
 
