@@ -146,13 +146,15 @@
 - [-] if I send two commands to the switcher back-to-back, will it handle them both without me needing to wait for its response?
   - not sure, but I was doing something with switching back and forth, after which my NUC seemingly randomly glitched out -- seems like it's maybe not ideal
   - [ ] try to avoid sending multiple parallel/back-to-back requests to change inputs
+- [ ] when I hit on one of the matrix control buttons in the UI, if the request is accepted, the buttons should be temporarily grayed out and an indicator that the request is processing should be shown. when the matrix is done, the UI should be updated again
 
 - [x] debounce -- require multiple consecutive classifications as ad or racing before switching
 - [x] turn off auto-switch when paused
 
 ### UI
 
-- [ ] switch to using a single style.css file
+- [ ] move css out into a single style.css file and unify between the /review and /is_ad endpoints
+- [ ] maybe use a CSS framework
 
 - [x] show a visual indicator when an ad has been detected and it's about to switch
   - [ ] provide a way to preempt and tell it it's wrong
