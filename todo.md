@@ -52,7 +52,7 @@
   - I suppose a rudimentary way to do it would be to make all the request processing on the `/receive` endpoint synchronous, so it only sends a response after classification is finished and the switcher has switched (if needed). Of course, the extension's scheduled screenshot sending would need to be tweaked so it could tell if it had gotten a response from the server for its last request yet and skip sending a new screenshot if it hasn't.
 
 - [x] support .jpg in addition to .png files so we can compress on the client side
-  - [ ] review jpg support -- some places still assume png
+  - [/] review jpg support -- some places still assume png
 - [ ] the receiver saves the received image as a file, but then `_classify_image` takes the file path and reads it as base64 -- maybe that can be cut out
 - [ ] factor out an enum of classification labels
 - [ ] keep track of last receive time, if we haven't gotten a new screenshot in a while (depending on the receive frequency), update the state to reflect possible connection loss
@@ -148,5 +148,5 @@
 - [ ] stretch: allow controlling YTTV (pause, rewind, etc.) from the web UI
 - [ ] include `incorrect_frames` in the `/review` endpoint so I can classify them
 - [ ] if the server stops responding when the UI polls for updates, show that the connection was lost
-- [ ] when the classification first changes, even if we don't actually switch the switcher yet, update the UI to show it thinks it's about to change
+- [x] when the classification first changes, even if we don't actually switch the switcher yet, update the UI to show it thinks it's about to change
 - [ ] show a counter of the number of seconds since the last image was received
