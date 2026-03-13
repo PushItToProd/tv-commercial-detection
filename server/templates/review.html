@@ -129,7 +129,7 @@ function buildGrid() {
 
     const actions = document.createElement('div');
     actions.className = 'actions';
-    ['ad', 'content'].forEach(lbl => {
+    ['ad', 'content', 'ignore'].forEach(lbl => {
       const btn = document.createElement('button');
       btn.className = 'btn btn-' + lbl;
       btn.textContent = lbl.charAt(0).toUpperCase() + lbl.slice(1);

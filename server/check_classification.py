@@ -32,7 +32,7 @@ def main():
     for f in image_files:
         sys.stdout.flush()
         actual = labels.get(f.name, None)
-        if actual is None:
+        if actual is None or actual == "ignore":
             print(f"{f.name}: no label found, skipping")
             continue
 

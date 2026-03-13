@@ -57,6 +57,9 @@ def serve_frame(filename):
     # traversal issues, and we only allow .jpg and .png files.
     save_dir = current_app.config["SAVE_DIR"]
     original_path = save_dir / filename
+
+    if filename.startswith("compressed_"):
+        return send_from_directory(save_dir.resolve(), filename)
     compressed_path = save_dir / f"compressed_{filename}"
     if not compressed_path.exists():
         try:
@@ -77,8 +80,9 @@ def handle_classify():
     if not data or "filename" not in data or "label" not in data:
         return jsonify({"error": "Missing filename or label"}), 400
     label = data["label"]
-    if label not in ("ad", "content"):
-        return jsonify({"error": "label must be 'ad' or 'content'"}), 400
+    if label not in ("ad", "content", "ignore"):
+        return jsonify({"error": "label must be 'ad', 'content', or 'ignore'"}), 400
+
     filename = data["filename"]
     # Guard against path traversal: filename must be a plain basename ending in .png or .jpg
     if Path(filename).name != filename or not filename.endswith((".png", ".jpg")):
@@ -93,6 +97,10 @@ def handle_classify():
 def review():
     save_dir = current_app.config["SAVE_DIR"]
     labels = load_labels()
-    images = sorted(p.name for p in [*save_dir.glob("*.png"), *save_dir.glob("*.jpg")])
+    images = sorted(
+        p.name
+        for p in [*save_dir.glob("*.png"), *save_dir.glob("*.jpg")]
+        if not p.name.startswith("compressed_")
+    )
     image_data = [{"filename": f, "label": labels.get(f)} for f in images]
     return render_template("review.html", image_data=image_data)
