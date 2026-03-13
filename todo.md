@@ -1,15 +1,5 @@
 # To Dos
 
-- [ ] right now I have things hardcoded for just Cup on Fox -- I'll need to add separate prompts other series too
-  - [ ] add a dropdown to the UI that lets you pick from multiple prompt presets
-    - [ ] eventually: detect which series I'm watching using YTTV and/or live feed data (if a race is live)
-  - series/networks to handle:
-    - [ ] Xfinity on CW
-    - [ ] Cup on Amazon Prime
-    - [ ] Cup on TNT
-    - [ ] Cup on NBC
-    - [ ] Trucks
-
 ## Extension
 
 - [x] only capture screenshots if video is playing
@@ -62,6 +52,16 @@
 - [ ] move outputs out of `server/` directory into a configurable folder someplace else
 
 ### Classification/Receiver
+
+- [ ] right now I have my prompt hardcoded for just Cup on Fox -- I'll need to add separate prompts other series too
+  - [ ] add a dropdown to the UI that lets you pick from multiple prompt presets
+    - [ ] eventually: detect which series I'm watching using YTTV and/or live feed data (if a race is live)
+  - series/networks to handle:
+    - [ ] Xfinity on CW
+    - [ ] Cup on Amazon Prime
+    - [ ] Cup on TNT
+    - [ ] Cup on NBC
+    - [ ] Trucks
 
 - [ ] elegantly handle timeouts from both the llama.cpp server and the HDMI Matrix control server
 - [ ] handle latency and backpressure -- right now I have two external components that can have high-ish response times, but right now I have no way to handle that. 
