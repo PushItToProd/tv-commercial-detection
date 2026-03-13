@@ -20,11 +20,14 @@ def main():
     classify.EXAMPLES = []
 
     image_files = list((Path("frames")).glob("*.png")) + list((Path("frames")).glob("*.jpg"))
+    image_files = sorted(image_files, key=lambda p: p.name)
+    image_files = [f for f in image_files if not f.name.startswith("compressed_")]
     num_incorrect = 0
 
     incorrectly_marked_as_ads = []
     incorrectly_marked_as_content = []
     incorrectly_unknown = []
+    times_taken = []
 
     for f in image_files:
         sys.stdout.flush()
@@ -36,6 +39,7 @@ def main():
         start_time = time.perf_counter()
         resp = _classify_image(f.as_posix())
         elapsed_time = time.perf_counter() - start_time
+        times_taken.append(elapsed_time)
 
         classification = get_classification_from_response(resp)
 
@@ -63,6 +67,7 @@ def main():
     print(f"  Incorrectly marked as content: {', '.join(incorrectly_marked_as_content)}")
     print(f"Num. classified as unknown: {len(incorrectly_unknown)}")
     print(f"  Classified as unknown: {', '.join(incorrectly_unknown)}")
+    print(f"Average classification time: {sum(times_taken)/len(times_taken):.2f}s")
 
 
 if __name__ == '__main__':
