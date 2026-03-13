@@ -10,6 +10,7 @@ import classify
 from routes.receive import receive_bp
 from routes.review import review_bp
 from routes.status import status_bp
+from state import state
 
 logging.basicConfig(level=logging.INFO)
 
@@ -50,6 +51,8 @@ def create_app() -> Flask:
 
     if app.config["LOAD_EXAMPLES"]:
         classify.EXAMPLES = classify.load_examples()
+
+    state.enable_debounce = app.config.get("ENABLE_DEBOUNCE", False)
 
     app.register_blueprint(receive_bp)
     app.register_blueprint(review_bp)

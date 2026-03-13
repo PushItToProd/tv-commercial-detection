@@ -78,6 +78,10 @@
     <label class="toggle"><input type="checkbox" id="auto-switch-toggle" checked><span class="toggle-slider"></span></label>
     <span class="ctrl-label">Auto-switch</span>
   </div>
+  <div class="toggle-wrap">
+    <label class="toggle"><input type="checkbox" id="enable-debounce-toggle" checked><span class="toggle-slider"></span></label>
+    <span class="ctrl-label">Enable Debounce</span>
+  </div>
   <button class="btn-matrix" id="btn-ad-input">Input ?</button>
   <button class="btn-matrix" id="btn-race-input">Input ?</button>
 </div>
@@ -133,6 +137,14 @@ document.getElementById('auto-switch-toggle').addEventListener('change', functio
   }).catch(() => {});
 });
 
+document.getElementById('enable-debounce-toggle').addEventListener('change', function() {
+  fetch('/enable_debounce', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({enabled: this.checked})
+  }).catch(() => {});
+});
+
 document.getElementById('btn-ad-input').addEventListener('click', () => triggerMatrix('ad'));
 document.getElementById('btn-race-input').addEventListener('click', () => triggerMatrix('content'));
 
@@ -162,6 +174,7 @@ function update() {
       frameEl.src = '/is_ad/last_frame?t=' + Date.now();
       frameEl.style.display = 'block';
       document.getElementById('auto-switch-toggle').checked = data.auto_switch;
+      document.getElementById('enable-debounce-toggle').checked = data.enable_debounce;
       if (data.ad_view_label !== undefined)
         document.getElementById('btn-ad-input').textContent = data.ad_view_label;
       if (data.race_view_label !== undefined)

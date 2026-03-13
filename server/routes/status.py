@@ -18,6 +18,7 @@ def is_ad_status():
         "seeking": state.seeking,
         "pending": state.is_pending_change(),
         "auto_switch": state.auto_switch,
+        "enable_debounce": state.enable_debounce,
         "ad_view_label": ad_view_label,
         "race_view_label": race_view_label,
     })
@@ -42,6 +43,15 @@ def set_auto_switch():
         return jsonify({"error": "Missing enabled"}), 400
     state.auto_switch = bool(data["enabled"])
     return jsonify({"auto_switch": state.auto_switch}), 200
+
+
+@status_bp.route("/enable_debounce", methods=["POST"])
+def set_enable_debounce():
+    data = request.get_json()
+    if not data or "enabled" not in data:
+        return jsonify({"error": "Missing enabled"}), 400
+    state.enable_debounce = bool(data["enabled"])
+    return jsonify({"enable_debounce": state.enable_debounce}), 200
 
 
 @status_bp.route("/trigger_matrix", methods=["POST"])

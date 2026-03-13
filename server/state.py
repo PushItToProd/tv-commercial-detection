@@ -10,6 +10,7 @@ class AppState:
     paused: bool = True
     seeking: bool = False
     auto_switch: bool = True
+    enable_debounce: bool = False
     last_result: str | None = None  # Immediately previous result, used for debounce
 
     def is_pending_change(self) -> bool:

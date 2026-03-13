@@ -67,11 +67,8 @@ def receive():
     if result != "unknown":
         state.last_result = result
 
-    # get config
-    debounce = current_app.config.get('DEBOUNCE')
-
     # Commit only when the same result appears twice in a row and differs from current state
-    if (result == prev or not debounce) and result != classification and result in ("ad", "content"):
+    if (result == prev or not state.enable_debounce) and result != classification and result in ("ad", "content"):
         state.classification = result
         current_app.logger.info(f"Classification changed: {classification} → {result}  |  page: {request.form.get('page_title', '?')}")
         if state.auto_switch:
