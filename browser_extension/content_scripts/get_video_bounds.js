@@ -13,21 +13,11 @@
   // How long after a seek completes to still consider the user "interacting".
   const RECENT_SEEK_WINDOW_MS = 3000;
 
-  const videos = Array.from(document.querySelectorAll('video')).filter(
-    v => v.videoWidth > 0 && v.videoHeight > 0
-  );
-
-  if (videos.length === 0) return null;
-
-  // Pick the largest video by rendered area
-  const video = videos.reduce((best, v) => {
-    const r = v.getBoundingClientRect();
-    const bestR = best.getBoundingClientRect();
-    return r.width * r.height > bestR.width * bestR.height ? v : best;
-  });
+  const iState = window.__videoInteractionState;
+  const video = iState?.videoElement;
+  if (!video) return null;
 
   // Read shared interaction state (maintained by track_interactions.js).
-  const iState = window.__videoInteractionState;
   const seeking = iState?.isSeeking || video.seeking;
   const recentlySeeked =
     !seeking &&
