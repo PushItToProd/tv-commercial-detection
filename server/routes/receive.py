@@ -78,16 +78,22 @@ async def receive(
     if result != "unknown":
         state.last_result = result
 
+    apply_new_settings = False
+
     # Commit only when the same result appears twice in a row and differs from current state
     if (result == prev or not state.enable_debounce) and result != classification and result in ("ad", "content"):
         state.classification = result
         logger.info(f"Classification changed: {classification} → {result}  |  page: {page_title}")
-        if state.auto_switch:
-            await apply_matrix_settings(result)
+        # Don't actually apply the new settings yet. We want to update the UI
+        # first.
+        apply_new_settings = state.auto_switch
     else:
         logger.info(f"Received image → classified as: {result}  |  page: {page_title}")
 
     await broadcast_status()
+    if apply_new_settings:
+        await apply_matrix_settings(result)
+
     return {"classification": state.classification, "paused": is_paused_bool}
 
 
