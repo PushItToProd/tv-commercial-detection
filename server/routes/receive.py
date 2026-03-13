@@ -53,21 +53,24 @@ def receive():
     finally:
         os.unlink(tmp_path)
 
-    committed = state.classification
+    classification = state.classification
 
     # We ignore "unknown" here -- e.g. if we get `content -> unknown ->
     # content`, treat that like two consecutive `content` results and switch to
     # content. Right now any "unknown" in the middle of two identical results
     # will prevent switching, which is not ideal since "unknown" is often just a
     # momentary uncertainty.
-    pending = state.last_result
+    prev = state.last_result
     if result != "unknown":
         state.last_result = result
 
+    # get config
+    debounce = current_app.config.get('DEBOUNCE')
+
     # Commit only when the same result appears twice in a row and differs from current state
-    if result == pending and result != committed and result in ("ad", "content"):
+    if (result == prev or not debounce) and result != classification and result in ("ad", "content"):
         state.classification = result
-        current_app.logger.info(f"Classification changed: {committed} → {result}  |  page: {request.form.get('page_title', '?')}")
+        current_app.logger.info(f"Classification changed: {classification} → {result}  |  page: {request.form.get('page_title', '?')}")
         if state.auto_switch:
             apply_matrix_settings(result)
     else:
