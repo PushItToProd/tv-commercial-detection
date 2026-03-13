@@ -95,6 +95,23 @@ class ReportWrongRequest(BaseModel):
     correct_label: str
 
 
+@router.post("/video-state")
+async def video_state(
+    is_paused: str = Form(default=""),
+    is_seeking: str = Form(default=""),
+    page_title: str = Form(default="?"),
+    page_url: str = Form(default=""),
+):
+    state.paused = is_paused_bool = is_paused.lower() in ("true", "1", "yes")
+    state.seeking = is_seeking_bool = is_seeking.lower() in ("true", "1", "yes")
+
+    status = "paused" if is_paused_bool else "seeking" if is_seeking_bool else "resumed"
+    print(f"Video state: {status}  |  page: {page_title}")
+
+    await broadcast_status()
+    return {"classification": state.classification, "paused": is_paused_bool, "seeking": is_seeking_bool}
+
+
 @router.post("/report_wrong")
 async def report_wrong(data: ReportWrongRequest):
     correct_label = data.correct_label

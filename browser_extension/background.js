@@ -116,6 +116,61 @@ function buildFormData(tab, tabState, blob) {
   return form;
 }
 
+// ── immediate video-state POST ─────────────────────────────────────────────
+
+function videoStateUrl(endpointUrl) {
+  const u = new URL(endpointUrl);
+  const parts = u.pathname.split('/');
+  parts[parts.length - 1] = 'video-state';
+  u.pathname = parts.join('/');
+  return u.toString();
+}
+
+async function postVideoState(isPaused, isSeeking) {
+  // if (!captureState.running) return;
+
+  let config = {};
+  try {
+    ({ config = {} } = await browser.storage.local.get('config'));
+  } catch (e) {
+    bgLog('Could not read config for state update: ' + e.message, 'err');
+    return;
+  }
+
+  const endpoints = config.endpoints ?? [];
+  if (endpoints.length === 0) return;
+
+  let tab;
+  try {
+    tab = await browser.tabs.get(captureState.tabId);
+  } catch (e) {
+    return;
+  }
+
+  const form = new FormData();
+  form.append('is_paused', isPaused ? 'true' : 'false');
+  form.append('is_seeking', isSeeking ? 'true' : 'false');
+  form.append('page_title', tab.title ?? '');
+  form.append('page_url', tab.url ?? '');
+
+  bgLog('video state change → ' + JSON.stringify({ isPaused, isSeeking }), 'debug');
+
+  await Promise.all(endpoints.map(async url => {
+    const stateUrl = videoStateUrl(url);
+    try {
+      const res = await fetch(stateUrl, { method: 'POST', body: form });
+      const note = isPaused ? 'paused' : isSeeking ? 'seeking' : 'resumed';
+      if (res.ok) {
+        bgLog(`State → ${stateUrl} ${res.status} (${note})`, 'ok');
+      } else {
+        bgLog(`State → ${stateUrl} ${res.status} ${res.statusText}`, 'err');
+      }
+    } catch (e) {
+      bgLog(`State POST ${stateUrl} failed: ${e.message}`, 'err');
+    }
+  }));
+}
+
 async function doCapture() {
   if (!captureState.running) return;
 
@@ -205,6 +260,10 @@ browser.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       break;
     case 'restartCaptureAlarm':
       restartAlarm(msg.interval);
+      sendResponse({ ok: true });
+      break;
+    case 'videoStateChange':
+      postVideoState(msg.isPaused, msg.isSeeking);
       sendResponse({ ok: true });
       break;
   }

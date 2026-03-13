@@ -33,12 +33,24 @@
       console.debug('Video seeking started');
       state.isSeeking = true;
       state.lastSeekMs = Date.now();
+      browser.runtime.sendMessage({ type: 'videoStateChange', isPaused: video.paused, isSeeking: true });
     });
 
     video.addEventListener('seeked', () => {
       console.debug('Video seeking ended');
       state.isSeeking = false;
       state.lastSeekMs = Date.now();
+      browser.runtime.sendMessage({ type: 'videoStateChange', isPaused: video.paused, isSeeking: false });
+    });
+
+    video.addEventListener('pause', () => {
+      console.debug('Video paused');
+      browser.runtime.sendMessage({ type: 'videoStateChange', isPaused: true, isSeeking: state.isSeeking });
+    });
+
+    video.addEventListener('play', () => {
+      console.debug('Video resumed');
+      browser.runtime.sendMessage({ type: 'videoStateChange', isPaused: false, isSeeking: state.isSeeking });
     });
 
     video.addEventListener('unload', () => {
