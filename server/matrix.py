@@ -3,8 +3,7 @@ import logging
 import threading
 import urllib.request
 
-from flask import current_app
-
+from config import app_config
 import prometheus_client
 
 
@@ -20,9 +19,8 @@ SWITCHING_TIME = prometheus_client.Histogram(
 
 def apply_matrix_settings(classification: str) -> None:
     """Send HDMI matrix switch commands for the given classification in a background thread."""
-    # Capture config values before spawning thread — current_app is not available off-context
-    matrix_url = current_app.config["MATRIX_URL"]
-    output_settings = current_app.config.get('OUTPUT_SETTINGS', {})
+    matrix_url = app_config.matrix_url
+    output_settings = app_config.output_settings
     settings: dict = dict(output_settings.get(classification, {}))
     if not settings:
         return

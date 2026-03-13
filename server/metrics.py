@@ -1,3 +1,3 @@
-from prometheus_flask_exporter import PrometheusMetrics
+from prometheus_fastapi_instrumentator import Instrumentator
 
-metrics = PrometheusMetrics.for_app_factory()
+instrumentator = Instrumentator()

@@ -1,15 +1,24 @@
 import json
 from datetime import datetime
 from pathlib import Path
+import logging
 from PIL import Image
 
-from flask import Blueprint, current_app, jsonify, render_template, request, send_from_directory
+from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
+from fastapi.responses import FileResponse
+from fastapi.templating import Jinja2Templates
+from pydantic import BaseModel
 
-review_bp = Blueprint("review", __name__)
+from config import app_config
+
+logger = logging.getLogger(__name__)
+router = APIRouter()
+
+templates = Jinja2Templates(directory=Path(__file__).resolve().parent.parent / "templates")
 
 
 def load_labels() -> dict:
-    labels_file = current_app.config["SAVE_DIR"] / "labels.json"
+    labels_file = app_config.save_dir / "labels.json"
     if labels_file.exists():
         with open(labels_file) as f:
             return json.load(f)
@@ -17,85 +26,89 @@ def load_labels() -> dict:
 
 
 def save_labels(labels: dict) -> None:
-    labels_file = current_app.config["SAVE_DIR"] / "labels.json"
+    labels_file = app_config.save_dir / "labels.json"
     with open(labels_file, "w") as f:
         json.dump(labels, f, indent=2)
 
 
-@review_bp.route("/save", methods=["POST"])
-def save():
-    if "image" not in request.files:
-        return jsonify({"error": "No image field in request"}), 400
-
-    image = request.files["image"]
-
+@router.post("/save")
+async def save(
+    image: UploadFile = File(...),
+    timestamp: str = Form(default=""),
+    page_title: str = Form(default="?"),
+):
     # Use the extension's timestamp if provided, otherwise use server time
-    raw_ts = request.form.get("timestamp")
     try:
-        dt = datetime.fromisoformat(raw_ts.replace("Z", "+00:00")) if raw_ts else datetime.now()
+        dt = datetime.fromisoformat(timestamp.replace("Z", "+00:00")) if timestamp else datetime.now()
     except ValueError:
-        current_app.logger.exception(f"Invalid timestamp format in request: {raw_ts}")
         dt = datetime.now()
 
     ext = Path(image.filename).suffix.lower() if image.filename else ".png"
     if ext not in (".jpg", ".jpeg", ".png"):
         ext = ".png"
     filename = dt.strftime("%Y-%m-%d_%H-%M-%S") + ext
-    save_dir = current_app.config["SAVE_DIR"]
+    save_dir = app_config.save_dir
     save_path = save_dir / filename
-    image.save(save_path)
+    save_path.write_bytes(await image.read())
 
-    current_app.logger.info(f"Saved: {save_path}  |  page: {request.form.get('page_title', '?')}")
-    return jsonify({"saved": filename}), 200
+    logger.info(f"Saved: {save_path}  |  page: {page_title}")
+    return {"saved": filename}
 
 
-@review_bp.route("/frames/<filename>")
-def serve_frame(filename):
-    # We compress the images on demand and serve smaller versions to save
-    # bandwidth and speed up loading in the review interface. We have to make
-    # sure to use send_from_directory with a safe filename to avoid path
-    # traversal issues, and we only allow .jpg and .png files.
-    save_dir = current_app.config["SAVE_DIR"]
-    original_path = save_dir / filename
+@router.get("/frames/{filename}")
+def serve_frame(filename: str):
+    # Guard against path traversal: filename must be a plain basename ending in .jpg or .png
+    if Path(filename).name != filename or not filename.endswith((".jpg", ".jpeg", ".png")):
+        raise HTTPException(status_code=400, detail="Invalid filename")
+
+    save_dir = app_config.save_dir
 
     if filename.startswith("compressed_"):
-        return send_from_directory(save_dir.resolve(), filename)
+        path = save_dir / filename
+        if not path.exists():
+            raise HTTPException(status_code=404, detail="File not found")
+        return FileResponse(path)
+
+    original_path = save_dir / filename
     compressed_path = save_dir / f"compressed_{filename}"
     if not compressed_path.exists():
         try:
             with Image.open(original_path) as img:
                 img.thumbnail((400, 400))
                 img.save(compressed_path)
-        except Exception as e:
-            current_app.logger.exception(f"Error compressing image {original_path}")
-            # If compression fails, we can still serve the original image
-            return send_from_directory(save_dir.resolve(), filename)
+        except Exception:
+            logger.exception(f"Error compressing image {original_path}")
+            if not original_path.exists():
+                raise HTTPException(status_code=404, detail="File not found")
+            return FileResponse(original_path)
 
-    return send_from_directory(save_dir.resolve(), compressed_path.name)
+    return FileResponse(compressed_path)
 
 
-@review_bp.route("/classify", methods=["POST"])
-def handle_classify():
-    data = request.get_json()
-    if not data or "filename" not in data or "label" not in data:
-        return jsonify({"error": "Missing filename or label"}), 400
-    label = data["label"]
+class ClassifyRequest(BaseModel):
+    filename: str
+    label: str
+
+
+@router.post("/classify")
+def handle_classify(data: ClassifyRequest):
+    label = data.label
     if label not in ("ad", "content", "ignore"):
-        return jsonify({"error": "label must be 'ad', 'content', or 'ignore'"}), 400
+        raise HTTPException(status_code=400, detail="label must be 'ad', 'content', or 'ignore'")
 
-    filename = data["filename"]
+    filename = data.filename
     # Guard against path traversal: filename must be a plain basename ending in .png or .jpg
     if Path(filename).name != filename or not filename.endswith((".png", ".jpg")):
-        return jsonify({"error": "Invalid filename"}), 400
+        raise HTTPException(status_code=400, detail="Invalid filename")
     labels = load_labels()
     labels[filename] = label
     save_labels(labels)
-    return jsonify({"classified": filename, "label": label}), 200
+    return {"classified": filename, "label": label}
 
 
-@review_bp.route("/review")
-def review():
-    save_dir = current_app.config["SAVE_DIR"]
+@router.get("/review")
+def review(request: Request):
+    save_dir = app_config.save_dir
     labels = load_labels()
     images = sorted(
         p.name
@@ -103,4 +116,5 @@ def review():
         if not p.name.startswith("compressed_")
     )
     image_data = [{"filename": f, "label": labels.get(f)} for f in images]
-    return render_template("review.html", image_data=image_data)
+    return templates.TemplateResponse(request, "review.html", {"image_data": image_data})
+

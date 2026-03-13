@@ -1,58 +1,66 @@
 import json
+import logging
 import os
 import shutil
 import tempfile
 from datetime import datetime
 from pathlib import Path
 
-from flask import Blueprint, current_app, jsonify, request
+from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from pydantic import BaseModel
 
 from classify import classify_image
+from config import app_config
 from matrix import apply_matrix_settings
 from state import last_image_path, recent_frames, state
 
-receive_bp = Blueprint("receive", __name__)
+logger = logging.getLogger(__name__)
+
+router = APIRouter()
 
 
-@receive_bp.route("/receive", methods=["POST"])
-def receive():
-    state.paused = is_paused = request.form.get("is_paused", "").lower() in ("true", "1", "yes")
-    state.seeking = is_seeking = request.form.get("is_seeking", "").lower() in ("true", "1", "yes")
+@router.post("/receive")
+async def receive(
+    image: UploadFile | None = File(default=None),
+    is_paused: str = Form(default=""),
+    is_seeking: str = Form(default=""),
+    page_title: str = Form(default="?"),
+):
+    state.paused = is_paused_bool = is_paused.lower() in ("true", "1", "yes")
+    state.seeking = is_seeking_bool = is_seeking.lower() in ("true", "1", "yes")
 
-    if "image" not in request.files:
-        if is_seeking:
-            print(f"Seeking (no image)  |  page: {request.form.get('page_title', '?')}")
-            return jsonify({"classification": state.classification, "paused": False, "seeking": True}), 200
-        if is_paused:
-            print(f"Paused (no image)  |  page: {request.form.get('page_title', '?')}")
-            return jsonify({"classification": state.classification, "paused": True}), 200
-        return jsonify({"error": "No image field in request"}), 400
-
-    image = request.files["image"]
+    if image is None:
+        if is_seeking_bool:
+            print(f"Seeking (no image)  |  page: {page_title}")
+            return {"classification": state.classification, "paused": False, "seeking": True}
+        if is_paused_bool:
+            print(f"Paused (no image)  |  page: {page_title}")
+            return {"classification": state.classification, "paused": True}
+        raise HTTPException(status_code=400, detail="No image field in request")
 
     # Preserve the uploaded extension (.jpg or .png) so PIL detects the format correctly
     ext = Path(image.filename).suffix.lower() if image.filename else ".jpg"
     if ext not in (".jpg", ".jpeg", ".png"):
         ext = ".jpg"
 
+    frame_bytes = await image.read()
+
     # Write to a temp file so classify_image (which expects a path) can read it
     with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as tmp:
-        image.save(tmp.name)
+        tmp.write(frame_bytes)
         tmp_path = tmp.name
 
     try:
         result = classify_image(tmp_path)
-    except Exception as e:
-        current_app.logger.exception(f"Classification error")
+    except Exception:
+        logger.exception("Classification error")
         result = "unknown"
 
     try:
-        with open(tmp_path, "rb") as f:
-            frame_bytes = f.read()
         recent_frames.append((datetime.now().isoformat(), frame_bytes, ext))
         shutil.copy2(tmp_path, last_image_path)
-    except Exception as e:
-        current_app.logger.exception("Error saving recent frame")
+    except Exception:
+        logger.exception("Error saving recent frame")
     finally:
         os.unlink(tmp_path)
 
@@ -70,27 +78,28 @@ def receive():
     # Commit only when the same result appears twice in a row and differs from current state
     if (result == prev or not state.enable_debounce) and result != classification and result in ("ad", "content"):
         state.classification = result
-        current_app.logger.info(f"Classification changed: {classification} → {result}  |  page: {request.form.get('page_title', '?')}")
+        logger.info(f"Classification changed: {classification} → {result}  |  page: {page_title}")
         if state.auto_switch:
             apply_matrix_settings(result)
     else:
-        current_app.logger.info(f"Received image → classified as: {result}  |  page: {request.form.get('page_title', '?')}")
+        logger.info(f"Received image → classified as: {result}  |  page: {page_title}")
 
-    return jsonify({"classification": state.classification, "paused": is_paused}), 200
+    return {"classification": state.classification, "paused": is_paused_bool}
 
 
-@receive_bp.route("/report_wrong", methods=["POST"])
-def report_wrong():
-    data = request.get_json()
-    if not data or "correct_label" not in data:
-        return jsonify({"error": "Missing correct_label"}), 400
-    correct_label = data["correct_label"]
+class ReportWrongRequest(BaseModel):
+    correct_label: str
+
+
+@router.post("/report_wrong")
+async def report_wrong(data: ReportWrongRequest):
+    correct_label = data.correct_label
     if correct_label not in ("ad", "content"):
-        return jsonify({"error": "correct_label must be 'ad' or 'content'"}), 400
+        raise HTTPException(status_code=400, detail="correct_label must be 'ad' or 'content'")
     if not recent_frames:
-        return jsonify({"error": "No image available"}), 400
+        raise HTTPException(status_code=400, detail="No image available")
 
-    incorrect_dir = current_app.config["INCORRECT_DIR"]
+    incorrect_dir = app_config.incorrect_dir
     labels_file = incorrect_dir / "labels.json"
     labels = {}
     if labels_file.exists():
@@ -110,4 +119,4 @@ def report_wrong():
         json.dump(labels, f, indent=2)
 
     print(f"Correction saved: {len(saved)} frame(s) to {incorrect_dir}  |  classified as: {state.classification}, correct: {correct_label}")
-    return jsonify({"saved": saved, "correct_label": correct_label}), 200
+    return {"saved": saved, "correct_label": correct_label}
