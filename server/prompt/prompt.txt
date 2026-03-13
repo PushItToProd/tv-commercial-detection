@@ -14,6 +14,7 @@ RACE BROADCAST — strong indicators:
 
 AD BREAK — strong indicators:
 - 'Fox side-by-side': race footage shrunk to the LEFT side with a horizontal scoring leaderboard at the TOP of the screen while a product ad fills the right half
+- Mentions of non-racing sports that take up a large portion of the screen, especially the "World Baseball Classic"
 - A large sponsor logo (e.g. 'Ford Racing') in the LOWER LEFT corner below an inset image of racing
 - The 'Ford Racing' logo ALMOST ALWAYS indicates an ad
 - A product (food, vehicle, consumer goods) as the primary visual subject
