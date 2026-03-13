@@ -130,7 +130,7 @@ function triggerMatrix(classification) {
 }
 
 document.getElementById('auto-switch-toggle').addEventListener('change', function() {
-  fetch('/auto_switch', {
+  fetch('/settings/auto_switch', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({enabled: this.checked})
@@ -138,7 +138,7 @@ document.getElementById('auto-switch-toggle').addEventListener('change', functio
 });
 
 document.getElementById('enable-debounce-toggle').addEventListener('change', function() {
-  fetch('/enable_debounce', {
+  fetch('/settings/enable_debounce', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({enabled: this.checked})

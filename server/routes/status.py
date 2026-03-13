@@ -47,13 +47,13 @@ class EnabledRequest(BaseModel):
     enabled: bool
 
 
-@router.post("/auto_switch")
+@router.post("/settings/auto_switch")
 def set_auto_switch(data: EnabledRequest):
     state.auto_switch = data.enabled
     return {"auto_switch": state.auto_switch}
 
 
-@router.post("/enable_debounce")
+@router.post("/settings/enable_debounce")
 def set_enable_debounce(data: EnabledRequest):
     state.enable_debounce = data.enabled
     return {"enable_debounce": state.enable_debounce}
@@ -70,4 +70,3 @@ def trigger_matrix(data: TriggerMatrixRequest):
         raise HTTPException(status_code=400, detail="classification must be 'ad' or 'content'")
     apply_matrix_settings(classification)
     return {"triggered": classification}
-
