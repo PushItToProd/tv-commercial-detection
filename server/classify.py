@@ -300,6 +300,8 @@ def classify_image(image_path: str) -> dict:
         return dict(type="content", reason="network_logo")
 
     # If it contains a vertical scoreboard on the left, it's racing content.
+    # FIXME: the stupid LLM seems to treat the appearance of a car as a
+    # scoreboard sometimes.
     if _contains_vertical_scoreboard(image_path):
         return dict(type="content", reason="vertical_scoreboard")
 

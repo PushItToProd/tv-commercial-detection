@@ -121,6 +121,10 @@
       - `commentators-talk-to-camera`
       - `reporter-talks-to-camera`
       - `pre-race-ceremonies`
+  - simpler categories: `content-0`, `content-25`, `content-50`, `content-75`, `content-100` -- capture a spectrum from 0% content (full-screen ads) to 100% content (racing action on-screen)
+  - this could be interesting: `On a scale from 0-100%, rate how much NASCAR racing content this image contains, where 100% is a full-screen image of NASCAR cars racing on track and 0% is nothing to do with NASCAR racing at all. Reply with just the percentage.`
+  - maybe even better: `What percentage of this image contains NASCAR racing content? Reply with just the percentage.`
+    - -> ask it to grade each image and then react based on the percentages (moving average?) of the last several images. If we go (100, 90, 100, 30), maybe don't switch right away, but if we go (100, 75, 75, 30), then maybe do switch right away.
 
 - [ ] could I just give Claude or some agent access to my `check_classification.py` script and prompt it to iterate on the prompt until we end up with an optimal one?
 
