@@ -83,7 +83,7 @@ def _resize_image(image_path: str) -> bytes:
         return buf.getvalue()
 
 
-def _classify_by_logo(image_path: str) -> str:
+def _contains_network_logo(image_path: str) -> bool:
     """Send the FS1 reference logo and the cropped upper-right region to the LLM.
 
     Returns the raw reply from the model ('yes' or 'no').
@@ -122,8 +122,8 @@ def _classify_by_logo(image_path: str) -> str:
 
     content = response.choices[0].message.content
     if content is None:
-        return "no"
-    return content.strip().lower()
+        return False
+    return "yes" in content.strip().lower()
 
 
 def _contains_horizontal_scoreboard(image_path: str) -> bool:
@@ -164,7 +164,7 @@ def _contains_horizontal_scoreboard(image_path: str) -> bool:
 
     content = response.choices[0].message.content
     if content is None:
-        return "no"
+        return False
     return "yes" in content.strip().lower()
 
 
@@ -250,12 +250,13 @@ def _classify_image(image_path: str) -> str:
     Returns the raw LLM reply suitable for get_classification_from_response.
     """
     # If it contains the network logo in the upper right, it's racing content.
-    logo_reply = _classify_by_logo(image_path)
-    if logo_reply.startswith("yes") or "yes" in logo_reply:
+    logo_reply = _contains_network_logo(image_path)
+    if logo_reply:
         return "content"
 
     # If it contains a horizontal scoreboard in the top 20%, it's a side-by-side
     # ad break.
+    # FIXME: this actually reduced accuracy compared to just checking the logo.
     if _contains_horizontal_scoreboard(image_path):
         return "ad"
 
