@@ -64,10 +64,7 @@ def serve_frame(filename: str):
     save_dir = app_config.save_dir
 
     if filename.startswith("compressed_"):
-        path = save_dir / filename
-        if not path.exists():
-            raise HTTPException(status_code=404, detail="File not found")
-        return FileResponse(path)
+        raise HTTPException(status_code=404, detail="File not found")
 
     original_path = save_dir / filename
     compressed_path = save_dir / f"compressed_{filename}"
