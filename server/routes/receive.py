@@ -11,7 +11,8 @@ from pydantic import BaseModel
 
 from classify import classify_image
 from config import app_config
-from routes.status import broadcast_status, apply_matrix_settings
+from routes.status import broadcast_status
+from routes.trigger_matrix import apply_matrix_settings
 from state import last_image_path, recent_frames, state
 
 logger = logging.getLogger(__name__)

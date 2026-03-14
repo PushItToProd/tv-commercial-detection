@@ -12,6 +12,7 @@ from metrics import instrumentator
 from routes.receive import router as receive_router
 from routes.review import router as review_router
 from routes.status import router as status_router
+from routes.trigger_matrix import router as matrix_router
 from state import state
 
 logging.basicConfig(level=logging.INFO)
@@ -62,6 +63,7 @@ def create_app() -> FastAPI:
     app.include_router(receive_router)
     app.include_router(review_router)
     app.include_router(status_router)
+    app.include_router(matrix_router)
 
     return app
 

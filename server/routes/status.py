@@ -1,13 +1,12 @@
 import asyncio
 import json
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Request
 from fastapi.responses import FileResponse, Response, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from pathlib import Path
 from pydantic import BaseModel
 
-import matrix
 from config import app_config
 from state import last_image_path, sse_clients, state
 
@@ -31,19 +30,6 @@ def _get_status_data() -> dict:
         "ad_view_label": ad_view_label,
         "race_view_label": race_view_label,
     }
-
-
-# FIXME: this function doesn't belong here, but I'm putting here for now to
-# avoid a circular import issue.
-async def apply_matrix_settings(classification: str) -> None:
-    state.matrix_switching = True
-    await broadcast_status()
-
-    try:
-        await matrix.apply_matrix_settings(classification)
-    finally:
-        state.matrix_switching = False
-        await broadcast_status()
 
 
 async def broadcast_status() -> None:
@@ -111,16 +97,3 @@ async def set_enable_debounce(data: EnabledRequest):
     state.enable_debounce = data.enabled
     await broadcast_status()
     return {"enable_debounce": state.enable_debounce}
-
-
-class TriggerMatrixRequest(BaseModel):
-    classification: str
-
-
-@router.post("/trigger_matrix")
-async def trigger_matrix(data: TriggerMatrixRequest):
-    classification = data.classification
-    if classification not in ("ad", "content"):
-        raise HTTPException(status_code=400, detail="classification must be 'ad' or 'content'")
-    await apply_matrix_settings(classification)
-    return {"triggered": classification}
