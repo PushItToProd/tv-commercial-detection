@@ -26,6 +26,8 @@ async def receive(
     is_paused: str = Form(default=""),
     is_seeking: str = Form(default=""),
     page_title: str = Form(default="?"),
+    video_title: str = Form(default=""),
+    network_name: str = Form(default=""),
 ):
     state.paused = is_paused_bool = is_paused.lower() in ("true", "1", "yes")
     state.seeking = is_seeking_bool = is_seeking.lower() in ("true", "1", "yes")
@@ -108,6 +110,8 @@ async def video_state(
     is_seeking: str = Form(default=""),
     page_title: str = Form(default="?"),
     page_url: str = Form(default=""),
+    video_title: str = Form(default=""),
+    network_name: str = Form(default=""),
 ):
     state.paused = is_paused_bool = is_paused.lower() in ("true", "1", "yes")
     state.seeking = is_seeking_bool = is_seeking.lower() in ("true", "1", "yes")

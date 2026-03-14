@@ -62,6 +62,8 @@ async def save(
     image: UploadFile = File(...),
     timestamp: str = Form(default=""),
     page_title: str = Form(default="?"),
+    video_title: str = Form(default=""),
+    network_name: str = Form(default=""),
 ):
     # Use the extension's timestamp if provided, otherwise use server time
     try:

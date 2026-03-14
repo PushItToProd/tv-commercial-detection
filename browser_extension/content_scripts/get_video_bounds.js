@@ -40,5 +40,7 @@
     y:      Math.round(clamp0(rect.top    * dpr)),
     width:  Math.round(clamp0(rect.width  * dpr)),
     height: Math.round(clamp0(rect.height * dpr)),
+    videoTitle:  document.querySelector('.ypc-video-title-text')?.textContent ?? null,
+    networkName: document.querySelector('.ypc-network-logo')?.textContent.trim() ?? null,
   };
 })();
