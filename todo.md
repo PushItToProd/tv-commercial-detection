@@ -2,7 +2,7 @@
 
 ## Extension
 
-- [ ] auto-save config when you click "start"
+- [ ] auto-save config when you click "start" (currently, it reports an error even though there's placeholder config pre-populated)
 - [ ] notify the server when the sender extension is started or stopped
 - [ ] ensure we only accept images for classification from one tab/sender at a time -- don't want to accidentally DoS myself if I enable this on multiple tabs
 - [ ] don't switch if I'm actively interacting with the video player tab (onmouseover?)
