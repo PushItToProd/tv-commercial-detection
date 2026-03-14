@@ -7,8 +7,8 @@ from fastapi.templating import Jinja2Templates
 from pathlib import Path
 from pydantic import BaseModel
 
+import matrix
 from config import app_config
-from matrix import apply_matrix_settings
 from state import last_image_path, sse_clients, state
 
 router = APIRouter()
@@ -31,6 +31,19 @@ def _get_status_data() -> dict:
         "ad_view_label": ad_view_label,
         "race_view_label": race_view_label,
     }
+
+
+# FIXME: this function doesn't belong here, but I'm putting here for now to
+# avoid a circular import issue.
+async def apply_matrix_settings(classification: str) -> None:
+    state.matrix_switching = True
+    await broadcast_status()
+
+    try:
+        await matrix.apply_matrix_settings(classification)
+    finally:
+        state.matrix_switching = False
+        await broadcast_status()
 
 
 async def broadcast_status() -> None:
@@ -109,11 +122,5 @@ async def trigger_matrix(data: TriggerMatrixRequest):
     classification = data.classification
     if classification not in ("ad", "content"):
         raise HTTPException(status_code=400, detail="classification must be 'ad' or 'content'")
-    state.matrix_switching = True
-    await broadcast_status()
-    try:
-        await apply_matrix_settings(classification)
-    finally:
-        state.matrix_switching = False
-        await broadcast_status()
+    await apply_matrix_settings(classification)
     return {"triggered": classification}
