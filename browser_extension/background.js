@@ -220,7 +220,6 @@ async function doCapture() {
     }
 
     const tabState = {isPaused, isSeeking, timestamp, videoTitle: videoInfo.videoTitle ?? null, networkName: videoInfo.networkName ?? null};
-    console.log('Tab state:', tabState);
     const form = buildFormData(tab, tabState, screenshotBlob);
 
     // 4. POST to each endpoint concurrently

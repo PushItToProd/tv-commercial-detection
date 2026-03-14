@@ -17,6 +17,9 @@
   const video = iState?.videoElement;
   if (!video) return null;
 
+  const videoTitle = document.querySelector('.ypc-video-title-text')?.textContent ?? null;
+  const networkName = document.querySelector('.ypc-network-logo')?.textContent.trim() ?? null;
+
   // Read shared interaction state (maintained by track_interactions.js).
   const seeking = iState?.isSeeking || video.seeking;
   const recentlySeeked =
@@ -26,7 +29,7 @@
 
   // Check if the video is paused or ended
   if (video.paused || video.ended) {
-    return { playing: false, seeking, recentlySeeked };
+    return { playing: false, seeking, recentlySeeked, videoTitle, networkName };
   }
 
   const rect = video.getBoundingClientRect();
@@ -40,7 +43,7 @@
     y:      Math.round(clamp0(rect.top    * dpr)),
     width:  Math.round(clamp0(rect.width  * dpr)),
     height: Math.round(clamp0(rect.height * dpr)),
-    videoTitle:  document.querySelector('.ypc-video-title-text')?.textContent ?? null,
-    networkName: document.querySelector('.ypc-network-logo')?.textContent.trim() ?? null,
+    videoTitle,
+    networkName,
   };
 })();
