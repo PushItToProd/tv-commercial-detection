@@ -157,6 +157,9 @@
 
 ### UI
 
+- [ ] seems like the `/is_ad` SSE channel gets disconnected if the server is down for too long (more than a few seconds) -- would be nice to have it auto-reconnect
+- [ ] kinda wish I had hot reload on the frontend when I make UI changes
+
 - [ ] right now, the client requests `/is_ad/last_frame?t=${Date.now}` every time it receives a message from the server, even if there's no new image. this should be updated to avoid a pointless fetch if the image hasn't changed
 
 - [ ] move css out into a single style.css file and unify between the /review and /is_ad endpoints
