@@ -146,4 +146,19 @@ async def report_wrong(data: ReportWrongRequest):
         json.dump(labels, f, indent=2)
 
     print(f"Correction saved: {len(saved)} frame(s) to {incorrect_dir}  |  classified as: {state.classification}, correct: {correct_label}")
+
+    # Update the classification (so we won't immediately switch back if debounce
+    # is enabled and we get another wrong classification).
+    state.classification = correct_label
+    state.last_result = correct_label
+
+    # Immediately switch to the correct output mode.
+    state.matrix_switching = True
+    await broadcast_status()
+    try:
+        await apply_matrix_settings(correct_label)
+    finally:
+        state.matrix_switching = False
+        await broadcast_status()
+
     return {"saved": saved, "correct_label": correct_label}

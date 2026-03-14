@@ -168,7 +168,8 @@
 - "Report" button
   - [x] when I click "Report", save the last few images in case I don't manage to hit the button right away
   - [ ] when I click "Report", it should include a unique ID (timestamp?) of the image reported so there's no race condition from hitting it a split second too late
-  - [ ] when I click "Report", automatically swap back and maybe temporarily pause auto-switching
+  - [x] when I click "Report", automatically swap back
+    - [ ] and maybe temporarily pause auto-switching
     - [ ] ambitious: when I click "Report", temporarily update the classifier prompt to include the relevant screenshot as an example.
       - not sure how long it should be updated for - probably just until the classification changes again
   - [x] show the latest screenshot on the UI so I can tell what I'm marking as wrong
