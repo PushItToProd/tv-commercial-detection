@@ -27,7 +27,11 @@ async def apply_matrix_settings(classification: str) -> None:
 
     def _send():
         for output, input_num in settings.items():
-            payload = json.dumps({"output": output, "input": int(input_num)}).encode()
+            payload = json.dumps({
+                "output": output,
+                "input": int(input_num),
+                "quick": True,
+            }).encode()
             req = urllib.request.Request(
                 f"{matrix_url}/set-output-input",
                 data=payload,
