@@ -54,7 +54,8 @@ async def receive(
         tmp_path = tmp.name
 
     try:
-        result = classify_image(tmp_path)
+        reply = classify_image(tmp_path)
+        result = reply['type']
     except Exception:
         logger.exception("Classification error")
         result = "unknown"

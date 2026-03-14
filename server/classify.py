@@ -168,7 +168,7 @@ def _contains_horizontal_scoreboard(image_path: str) -> bool:
     return "yes" in content.strip().lower()
 
 
-def _classify_by_prompt(image_path: str) -> str:
+def _classify_by_prompt(image_path: str) -> dict:
     """Classify using the full prompt in prompt.txt. Returns the raw LLM reply."""
     image_data = base64.b64encode(_resize_image(image_path)).decode("utf-8")
 
@@ -200,8 +200,9 @@ def _classify_by_prompt(image_path: str) -> str:
 
     content = response.choices[0].message.content
     if content is None:
-        return "unknown"
-    return content.strip().lower()
+        return dict(type="unknown", reason="empty_response")
+    reply = content.strip().lower()
+    return _get_classification_from_response(reply)
 
 
 AD_MATCH_REGEX = re.compile(r'\btype=ad\b|\"classification\"\s*:\s*\"ad\"')
@@ -220,31 +221,30 @@ def _extract_json(reply: str) -> dict | None:
     return None
 
 
-def get_classification_from_response(reply: str) -> str:
+def _get_classification_from_response(reply: str) -> dict:
     """Interpret a raw LLM reply from either pass.
 
     A logo-detection 'yes' maps to 'content'. A prompt-based reply is parsed
     via JSON then regex fallback.
     """
-    if reply in ("content", "ad"):
-        return reply
+
+    if AD_MATCH_REGEX.search(reply):
+        return dict(type="ad", reason=reply)
+    if RACING_MATCH_REGEX.search(reply):
+        return dict(type="content", reason=reply)
 
     data = _extract_json(reply)
     if data is not None:
         classification = data.get("classification")
         if classification == "racing":
-            return "content"
+            return dict(type="content", reason=reply)
         if classification == "ad":
-            return "ad"
+            return dict(type="ad", reason=reply)
 
-    if AD_MATCH_REGEX.search(reply):
-        return "ad"
-    if RACING_MATCH_REGEX.search(reply):
-        return "content"
-    return "unknown"
+    return dict(type="unknown", reason=reply)
 
 
-def _classify_image(image_path: str) -> str:
+def classify_image(image_path: str) -> dict:
     """Three-pass classification: logo detection, scoreboard detection, then prompt-based fallback.
 
     Returns the raw LLM reply suitable for get_classification_from_response.
@@ -252,20 +252,15 @@ def _classify_image(image_path: str) -> str:
     # If it contains the network logo in the upper right, it's racing content.
     logo_reply = _contains_network_logo(image_path)
     if logo_reply:
-        return "content"
+        return dict(type="content", reason="network_logo")
 
     # If it contains a horizontal scoreboard in the top 20%, it's a side-by-side
     # ad break.
     # FIXME: this actually reduced accuracy compared to just checking the logo.
     if _contains_horizontal_scoreboard(image_path):
-        return "ad"
+        return dict(type="ad", reason="side_by_side")
 
     return _classify_by_prompt(image_path)
-
-
-def classify_image(image_path: str) -> str:
-    reply = _classify_image(image_path)
-    return get_classification_from_response(reply)
 
 
 def get_parser():
@@ -279,13 +274,11 @@ def get_parser():
 def main():
     args = get_parser().parse_args()
 
-    if args.include_reply:
-        reply = _classify_image(args.image_path)
-        print(reply)
-        return
-
     result = classify_image(args.image_path)
-    print(result)
+    print(result['type'])
+
+    if args.include_reply:
+        print(result['reason'])
 
 
 if __name__ == "__main__":

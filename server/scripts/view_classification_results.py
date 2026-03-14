@@ -286,7 +286,11 @@ function buildGrid() {
     if (frame.model_reply) {
       const reply = document.createElement('div');
       reply.className = 'model-reply';
-      reply.textContent = frame.model_reply;
+      if (typeof frame.model_reply === 'object') {
+        reply.textContent = `type=${frame.model_reply.type} (${frame.model_reply.reason})`;
+      } else {
+        reply.textContent = JSON.stringify(frame.model_reply);
+      }
       card.appendChild(reply);
     }
 

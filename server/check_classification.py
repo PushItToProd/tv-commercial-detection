@@ -3,7 +3,7 @@ import sys
 import time
 from pathlib import Path
 
-from classify import _classify_image, get_classification_from_response
+from classify import classify_image
 import classify
 
 
@@ -44,14 +44,15 @@ def main():
             continue
 
         start_time = time.perf_counter()
-        resp = _classify_image(f.as_posix())
+        resp = classify_image(f.as_posix())
         elapsed_time = time.perf_counter() - start_time
         times_taken.append(elapsed_time)
 
-        classification = get_classification_from_response(resp)
+        classification = resp['type']
+        reason = resp['reason']
 
         if classification == actual:
-            print(json.dumps({"file": f.name, "status": "correct", "expected": actual, "classified": classification, "elapsed": round(elapsed_time, 2)}))
+            print(json.dumps({"file": f.name, "status": "correct", "expected": actual, "classified": classification, "elapsed": round(elapsed_time, 2), "model_reply": resp}))
             continue
 
         num_incorrect += 1
