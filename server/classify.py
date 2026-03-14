@@ -14,8 +14,8 @@ SERVER_URL = os.environ.get("LLAMA_SERVER_URL", "http://192.168.1.27:3002")
 
 REFERENCE_LOGO_PATH = Path(__file__).parent / "prompt" / "fs1_logo.png"
 
-CROP_WIDTH = 200
-CROP_HEIGHT = 140
+CROP_WIDTH_PCT = 0.12
+CROP_HEIGHT_PCT = 0.15
 
 # Kept for backwards compatibility with main.py and check_classification.py.
 EXAMPLES: list[tuple[str, str]] = []
@@ -47,14 +47,12 @@ def _load_reference_logo() -> str:
 
 
 def _crop_upper_right(image_path: str) -> str:
-    """Crop the upper-right CROP_WIDTH x CROP_HEIGHT pixels and return base64 JPEG."""
+    """Crop the upper-right region (CROP_WIDTH_PCT x CROP_HEIGHT_PCT) and return base64 JPEG."""
     with Image.open(image_path) as img:
         w, h = img.size
-        left = max(0, w - CROP_WIDTH)
-        upper = 0
-        right = w
-        lower = min(h, CROP_HEIGHT)
-        cropped = img.crop((left, upper, right, lower))
+        crop_w = round(w * CROP_WIDTH_PCT)
+        crop_h = round(h * CROP_HEIGHT_PCT)
+        cropped = img.crop((w - crop_w, 0, w, crop_h))
         return _to_jpeg_b64(cropped)
 
 
