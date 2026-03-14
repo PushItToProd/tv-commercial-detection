@@ -13,7 +13,7 @@
 - [ ] +if the classifier service returned its result to the extension, the extension could do things like mute and (if possible) skip ahead automatically until it's not on an ad break anymore
 - [ ] package the extension so I can install it permanently in firefox
 
-- [ ] capture the race name and network name and send with the request
+- [x] capture the race name and network name and send with the request
 
   - Get video title from YouTube TV:
 
