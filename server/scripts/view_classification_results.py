@@ -287,7 +287,7 @@ function buildGrid() {
       const reply = document.createElement('div');
       reply.className = 'model-reply';
       if (typeof frame.model_reply === 'object') {
-        reply.textContent = `type=${frame.model_reply.type} (${frame.model_reply.reason})`;
+        reply.textContent = `type=${frame.model_reply.type} (${frame.model_reply.reason})` + (!frame.model_reply.reply ? '' : ` -- ${frame.model_reply.reply}`);
       } else {
         reply.textContent = JSON.stringify(frame.model_reply);
       }

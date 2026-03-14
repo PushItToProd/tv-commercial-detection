@@ -49,6 +49,8 @@ def main():
         times_taken.append(elapsed_time)
 
         classification = resp['type']
+        reason = resp['reason']
+        model_reply = resp.get('reply')
 
         if classification == actual:
             print(json.dumps({"file": f.name, "status": "correct", "expected": actual, "classified": classification, "elapsed": round(elapsed_time, 2), "model_reply": resp}))

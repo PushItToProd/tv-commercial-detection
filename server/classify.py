@@ -271,20 +271,22 @@ def _get_classification_from_response(reply: str) -> dict:
     via JSON then regex fallback.
     """
 
+    result = dict(reason="model-match", reply=reply)
+
     if AD_MATCH_REGEX.search(reply):
-        return dict(type="ad", reason=reply)
+        return dict(type="ad", **result)
     if RACING_MATCH_REGEX.search(reply):
-        return dict(type="content", reason=reply)
+        return dict(type="content", **result)
 
     data = _extract_json(reply)
     if data is not None:
         classification = data.get("classification")
         if classification == "racing":
-            return dict(type="content", reason=reply)
+            return dict(type="content", **result)
         if classification == "ad":
-            return dict(type="ad", reason=reply)
+            return dict(type="ad", **result)
 
-    return dict(type="unknown", reason=reply)
+    return dict(type="unknown", **result)
 
 
 def classify_image(image_path: str) -> dict:
