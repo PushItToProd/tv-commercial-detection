@@ -28,17 +28,20 @@ async def receive(
     page_title: str = Form(default="?"),
     video_title: str = Form(default=""),
     network_name: str = Form(default=""),
+    video_offset: str = Form(default=""),
 ):
     state.paused = is_paused_bool = is_paused.lower() in ("true", "1", "yes")
     state.seeking = is_seeking_bool = is_seeking.lower() in ("true", "1", "yes")
+    offset_secs: float | None = float(video_offset) if video_offset else None
+    offset_str = f"{offset_secs:.1f}s" if offset_secs is not None else "?"
 
     if image is None:
         if is_seeking_bool:
-            print(f"Seeking (no image)  |  page: {page_title}")
+            print(f"Seeking (no image)  |  offset: {offset_str}  |  page: {page_title}")
             await broadcast_status()
             return {"classification": state.classification, "paused": False, "seeking": True}
         if is_paused_bool:
-            print(f"Paused (no image)  |  page: {page_title}")
+            print(f"Paused (no image)  |  offset: {offset_str}  |  page: {page_title}")
             await broadcast_status()
             return {"classification": state.classification, "paused": True}
         raise HTTPException(status_code=400, detail="No image field in request")
@@ -86,12 +89,12 @@ async def receive(
     # Commit only when the same result appears twice in a row and differs from current state
     if (result == prev or not state.enable_debounce) and result != classification and result in ("ad", "content"):
         state.classification = result
-        logger.info(f"Classification changed: {classification} → {result}  |  page: {page_title}")
+        logger.info(f"Classification changed: {classification} → {result}  |  offset: {offset_str}  |  page: {page_title}")
         # Don't actually apply the new settings yet. We want to update the UI
         # first.
         apply_new_settings = state.auto_switch
     else:
-        logger.info(f"Received image → classified as: {result}  |  page: {page_title}")
+        logger.info(f"Received image → classified as: {result}  |  offset: {offset_str}  |  page: {page_title}")
 
     await broadcast_status()
     if apply_new_settings:

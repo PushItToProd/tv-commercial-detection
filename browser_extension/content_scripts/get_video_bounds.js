@@ -29,7 +29,7 @@
 
   // Check if the video is paused or ended
   if (video.paused || video.ended) {
-    return { playing: false, seeking, recentlySeeked, videoTitle, networkName };
+    return { playing: false, seeking, recentlySeeked, videoTitle, networkName, currentTime: video.currentTime };
   }
 
   const rect = video.getBoundingClientRect();
@@ -45,5 +45,6 @@
     height: Math.round(clamp0(rect.height * dpr)),
     videoTitle,
     networkName,
+    currentTime: video.currentTime,
   };
 })();

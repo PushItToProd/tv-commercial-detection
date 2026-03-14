@@ -104,7 +104,7 @@ async function screenshotTabAsBlob(tab, videoInfo) {
 }
 
 function buildFormData(tab, tabState, blob) {
-  const {isPaused, isSeeking, timestamp, videoTitle, networkName} = tabState;
+  const {isPaused, isSeeking, timestamp, videoTitle, networkName, videoOffset} = tabState;
 
   const form = new FormData();
   if (blob) form.append('image', blob, `frame_${timestamp}.jpg`);
@@ -115,6 +115,7 @@ function buildFormData(tab, tabState, blob) {
   form.append('page_url', tab.url ?? '');
   if (videoTitle)  form.append('video_title',  videoTitle);
   if (networkName) form.append('network_name', networkName);
+  if (videoOffset != null) form.append('video_offset', videoOffset.toString());
   return form;
 }
 
@@ -219,7 +220,7 @@ async function doCapture() {
       screenshotBlob = await screenshotTabAsBlob(tab, videoInfo);
     }
 
-    const tabState = {isPaused, isSeeking, timestamp, videoTitle: videoInfo.videoTitle ?? null, networkName: videoInfo.networkName ?? null};
+    const tabState = {isPaused, isSeeking, timestamp, videoTitle: videoInfo.videoTitle ?? null, networkName: videoInfo.networkName ?? null, videoOffset: videoInfo.currentTime ?? null};
     const form = buildFormData(tab, tabState, screenshotBlob);
 
     // 4. POST to each endpoint concurrently
