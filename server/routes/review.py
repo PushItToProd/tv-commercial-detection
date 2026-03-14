@@ -32,7 +32,7 @@ def save_labels(labels: dict) -> None:
 
 
 # must be kept in sync with featFields in review.html
-VALID_NETWORK_LOGOS = frozenset({"Fox", "FS1", "FS2", "NBC", "CW", "USA", "other"})
+VALID_NETWORK_LOGOS = frozenset({"Fox", "FS1", "FS2", "NBC", "CW", "USA", "other", "none"})
 VALID_LOGO_POSITIONS = frozenset({"upper_left", "upper_right", "lower_left", "lower_right", "not_visible", "unknown"})
 VALID_SCOREBOARD_POSITIONS = frozenset({"top", "bottom", "left", "right", "none", "unknown"})
 

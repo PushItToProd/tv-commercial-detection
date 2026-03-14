@@ -99,6 +99,13 @@
 </div>
 
 <script>
+// must be kept in sync with VALID_* sets in review.py
+const FEAT_FIELDS = [
+  {field: 'network_logo',        label: 'Logo',       options: ['Fox','FS1','FS2','NBC','CW','USA','other', 'none']},
+  {field: 'logo_position',       label: 'Logo pos',   options: ['upper_left','upper_right','lower_left','lower_right','not_visible','unknown']},
+  {field: 'scoreboard_position', label: 'Scoreboard', options: ['top','bottom','left','right','none','unknown']},
+];
+
 const IMAGES = {{ image_data | tojson }};
 
 function updateCounter() {
@@ -191,15 +198,9 @@ function buildGrid() {
       actions.appendChild(btn);
     });
 
-    // must be kept in sync with VALID_* sets in review.py
-    const featFields = [
-      {field: 'network_logo',        label: 'Logo',       options: ['Fox','FS1','FS2','NBC','CW','USA','other']},
-      {field: 'logo_position',       label: 'Logo pos',   options: ['upper_left','upper_right','lower_left','lower_right','not_visible','unknown']},
-      {field: 'scoreboard_position', label: 'Scoreboard', options: ['top','bottom','left','right','none','unknown']},
-    ];
     const featDiv = document.createElement('div');
     featDiv.className = 'features';
-    featFields.forEach(({field, label: flabel, options}) => {
+    FEAT_FIELDS.forEach(({field, label: flabel, options}) => {
       const row = document.createElement('label');
       row.textContent = flabel + ': ';
       const sel = document.createElement('select');
@@ -241,12 +242,6 @@ document.getElementById('hideClassified').addEventListener('change', applyFilter
 buildGrid();
 
 // ── Step View ────────────────────────────────────────────────────────────────
-// must be kept in sync with VALID_* sets in review.py
-const FEAT_FIELDS = [
-  {field: 'network_logo',        label: 'Logo',       options: ['Fox','FS1','FS2','NBC','CW','USA','other']},
-  {field: 'logo_position',       label: 'Logo pos',   options: ['upper_left','upper_right','lower_left','lower_right','not_visible','unknown']},
-  {field: 'scoreboard_position', label: 'Scoreboard', options: ['top','bottom','left','right','none','unknown']},
-];
 
 let stepIndex = 0;
 let inStepView = false;
