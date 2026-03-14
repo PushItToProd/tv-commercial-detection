@@ -27,4 +27,11 @@ AD BREAK — strong indicators:
 - Highly cinematic shots of race cars or racing scenes that are more typical of commercials than live sports broadcasts
 - Racing-themed imagery (cars, drivers) used to sell a product rather than show live action
 
-In 25-100 words, describe what you see. Then, end your message with `type=ad` or `type=racing`.
+TRANSITION — short interstitial content that bridges race broadcasts and commercial breaks:
+- Network bumpers branded with Fox/FS1 ("NASCAR on Fox will be right back", "We're back")
+- Animated or CGI sequences (spinning helmets, stylized car effects, motion graphics)
+- Dramatically lit or posed shots of drivers/crew that are clearly produced bumper content rather than live action
+- "Driver of the day" or similar quick feature vignettes
+- Countdown timers or graphic overlays announcing the broadcast is returning
+
+In 25-100 words, describe what you see. Then, end your message with `type=ad`, `type=racing`, or `type=transition`.

@@ -164,6 +164,9 @@ function applyData(data) {
   } else if (c === 'content') {
     document.body.style.background = '#00882b';
     el.textContent = 'RACING';
+  } else if (c === 'transition') {
+    document.body.style.background = '#884400';
+    el.textContent = 'TRANSITION';
   } else {
     document.body.style.background = '#333';
     el.textContent = c === null ? '...' : '?';

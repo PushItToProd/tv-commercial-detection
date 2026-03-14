@@ -75,7 +75,7 @@ async def receive(
     # will prevent switching, which is not ideal since "unknown" is often just a
     # momentary uncertainty.
     prev = state.last_result
-    if result != "unknown":
+    if result not in ("unknown", "transition"):
         state.last_result = result
 
     apply_new_settings = False

@@ -90,8 +90,8 @@ class ClassifyRequest(BaseModel):
 @router.post("/classify")
 def handle_classify(data: ClassifyRequest):
     label = data.label
-    if label not in ("ad", "content", "ignore"):
-        raise HTTPException(status_code=400, detail="label must be 'ad', 'content', or 'ignore'")
+    if label not in ("ad", "content", "transition", "ignore"):
+        raise HTTPException(status_code=400, detail="label must be 'ad', 'content', 'transition', or 'ignore'")
 
     filename = data.filename
     # Guard against path traversal: filename must be a plain basename ending in .png or .jpg

@@ -112,6 +112,7 @@ def _classify_image(image_path: str) -> str:
 
 AD_MATCH_REGEX = re.compile(r'\btype=ad\b|\"classification\"\s*:\s*\"ad\"')
 RACING_MATCH_REGEX = re.compile(r'\btype=racing\b|\"classification\"\s*:\s*\"racing\"')
+TRANSITION_MATCH_REGEX = re.compile(r'\btype=transition\b|\"classification\"\s*:\s*\"transition\"')
 
 
 def _extract_json(reply: str) -> dict | None:
@@ -144,12 +145,16 @@ def get_classification_from_response(reply: str) -> str:
             return "content"
         if classification == "ad":
             return "ad"
+        if classification == "transition":
+            return "transition"
 
     # Text fallback for when JSON parsing fails
     if AD_MATCH_REGEX.search(reply):
         return "ad"
     if RACING_MATCH_REGEX.search(reply):
         return "content"
+    if TRANSITION_MATCH_REGEX.search(reply):
+        return "transition"
     return "unknown"
 
 

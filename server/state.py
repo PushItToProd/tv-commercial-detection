@@ -7,7 +7,7 @@ import tempfile
 
 @dataclass
 class AppState:
-    classification: str | None = None  # None | "ad" | "content" | "unknown"
+    classification: str | None = None  # None | "ad" | "content" | "transition" | "unknown"
     paused: bool = True
     seeking: bool = False
     auto_switch: bool = True

@@ -28,6 +28,7 @@ def main():
 
     incorrectly_marked_as_ads = []
     incorrectly_marked_as_content = []
+    incorrectly_marked_as_transition = []
     incorrectly_unknown = []
     times_taken = []
 
@@ -62,6 +63,8 @@ def main():
             incorrectly_marked_as_ads.append(f.name)
         elif classification == "content":
             incorrectly_marked_as_content.append(f.name)
+        elif classification == "transition":
+            incorrectly_marked_as_transition.append(f.name)
         else:
             incorrectly_unknown.append(f.name)
 
@@ -77,6 +80,8 @@ def main():
     print(f"  Incorrectly marked as ads: {', '.join(incorrectly_marked_as_ads)}")
     print(f"Num. incorrectly marked as content: {len(incorrectly_marked_as_content)} ({len(incorrectly_marked_as_content)/actual_num_classified:.2%})")
     print(f"  Incorrectly marked as content: {', '.join(incorrectly_marked_as_content)}")
+    print(f"Num. incorrectly marked as transition: {len(incorrectly_marked_as_transition)} ({len(incorrectly_marked_as_transition)/actual_num_classified:.2%})")
+    print(f"  Incorrectly marked as transition: {', '.join(incorrectly_marked_as_transition)}")
     print(f"Num. classified as unknown: {len(incorrectly_unknown)} ({len(incorrectly_unknown)/actual_num_classified:.2%})")
     print(f"  Classified as unknown: {', '.join(incorrectly_unknown)}")
     print()
