@@ -40,7 +40,17 @@
   #step-nav { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.6rem; flex-wrap: wrap; }
   #step-counter { font-size: 0.9rem; opacity: 0.7; min-width: 6rem; text-align: center; }
   #step-filename { font-size: 0.78rem; opacity: 0.55; margin-bottom: 0.5rem; word-break: break-all; }
-  #step-img { display: block; max-width: 100%; max-height: 62vh; width: auto; height: auto; margin: 0 auto 1rem; border-radius: 6px; cursor: zoom-in; background: #111; }
+  #step-img-wrap { position: relative; min-height: 4rem; margin-bottom: 1rem; display: flex; align-items: center; justify-content: center; }
+  #step-img { display: block; max-width: 100%; max-height: 62vh; width: auto; height: auto; border-radius: 6px; cursor: zoom-in; background: #111; }
+  #step-spinner {
+    display: none; position: absolute;
+    width: 48px; height: 48px;
+    border: 5px solid #444; border-top-color: #aaa;
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #step-img.loading { opacity: 0.15; }
   .step-controls { display: flex; flex-direction: column; gap: 0.55rem; }
   .step-row { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
   .step-row-label { font-size: 0.78rem; color: #888; min-width: 90px; flex-shrink: 0; }
@@ -89,7 +99,10 @@
     <label style="font-size:0.85rem"><input type="checkbox" id="step-auto-advance"> Auto-advance on label</label>
   </div>
   <div id="step-filename"></div>
-  <img id="step-img" src="" alt="">
+  <div id="step-img-wrap">
+    <div id="step-spinner"></div>
+    <img id="step-img" src="" alt="">
+  </div>
   <div class="step-controls" id="step-controls"></div>
 </div>
 
@@ -348,9 +361,22 @@ function updateStepButtons() {
   document.getElementById('step-next-incomplete').disabled = findIncomplete(1) === -1;
 }
 
+function showSpinner() {
+  const img = document.getElementById('step-img');
+  img.classList.add('loading');
+  document.getElementById('step-spinner').style.display = '';
+}
+
+function hideSpinner() {
+  const img = document.getElementById('step-img');
+  img.classList.remove('loading');
+  document.getElementById('step-spinner').style.display = 'none';
+}
+
 function renderStep(index) {
   stepIndex = index;
   const item = IMAGES[index];
+  showSpinner();
   document.getElementById('step-img').src = '/frames/full/' + encodeURIComponent(item.filename);
   document.getElementById('step-filename').textContent = item.filename;
   document.getElementById('step-counter').textContent = `${index + 1} / ${IMAGES.length}`;
@@ -390,7 +416,10 @@ document.getElementById('step-next').addEventListener('click', () => navigateSte
 document.getElementById('step-prev-incomplete').addEventListener('click', () => { const i = findIncomplete(-1); if (i !== -1) renderStep(i); });
 document.getElementById('step-next-incomplete').addEventListener('click', () => { const i = findIncomplete(1);  if (i !== -1) renderStep(i); });
 
-document.getElementById('step-img').addEventListener('click', () => {
+const stepImgEl = document.getElementById('step-img');
+stepImgEl.addEventListener('load',  hideSpinner);
+stepImgEl.addEventListener('error', hideSpinner);
+stepImgEl.addEventListener('click', () => {
   openLightbox('/frames/full/' + encodeURIComponent(IMAGES[stepIndex].filename));
 });
 
