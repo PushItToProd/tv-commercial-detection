@@ -99,7 +99,8 @@
 </div>
 
 <script>
-// must be kept in sync with VALID_* sets in review.py
+// must be kept in sync with VALID_* sets in review.py.
+// TODO: load these from an API endpoint to avoid duplication and potential drift.
 const FEAT_FIELDS = [
   {field: 'network_logo',        label: 'Logo',       options: ['Fox','FS1','FS2','NBC','CW','USA','other', 'none']},
   {field: 'logo_position',       label: 'Logo pos',   options: ['upper_left','upper_right','lower_left','lower_right','not_visible','unknown']},
