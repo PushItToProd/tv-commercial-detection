@@ -114,10 +114,10 @@ function buildGrid() {
     const imgSrc = '/frames/' + encodeURIComponent(filename);
 
     const img = document.createElement('img');
-    img.src = imgSrc;
-    img.loading = 'lazy';
+    img.dataset.src = imgSrc;
     img.title = 'Click to enlarge';
     img.addEventListener('click', () => openLightbox(imgSrc));
+    lazyObserver.observe(img);
 
     const info = document.createElement('div');
     info.className = 'info';
@@ -142,6 +142,16 @@ function buildGrid() {
   });
   updateCounter();
 }
+
+const lazyObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      const img = entry.target;
+      img.src = img.dataset.src;
+      lazyObserver.unobserve(img);
+    }
+  });
+}, { rootMargin: '400px' });
 
 document.getElementById('hideClassified').addEventListener('change', applyFilter);
 buildGrid();
