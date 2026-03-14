@@ -84,6 +84,8 @@
     <button class="nav-btn" id="step-prev">&#8592; Prev</button>
     <span id="step-counter"></span>
     <button class="nav-btn" id="step-next">Next &#8594;</button>
+    <button class="nav-btn" id="step-prev-incomplete" title="Previous image missing a label or features">&#8592; Prev incomplete</button>
+    <button class="nav-btn" id="step-next-incomplete" title="Next image missing a label or features">Next incomplete &#8594;</button>
     <label style="font-size:0.85rem"><input type="checkbox" id="step-auto-advance"> Auto-advance on label</label>
   </div>
   <div id="step-filename"></div>
@@ -346,6 +348,8 @@ function updateStepButtons() {
     const current = btn.dataset.group === 'label' ? item.label : feats[btn.dataset.group];
     btn.classList.toggle('active', current === btn.dataset.value);
   });
+  document.getElementById('step-prev-incomplete').disabled = findIncomplete(-1) === -1;
+  document.getElementById('step-next-incomplete').disabled = findIncomplete(1) === -1;
 }
 
 function renderStep(index) {
@@ -356,7 +360,28 @@ function renderStep(index) {
   document.getElementById('step-counter').textContent = `${index + 1} / ${IMAGES.length}`;
   document.getElementById('step-prev').disabled = index === 0;
   document.getElementById('step-next').disabled = index === IMAGES.length - 1;
+  document.getElementById('step-prev-incomplete').disabled = findIncomplete(-1) === -1;
+  document.getElementById('step-next-incomplete').disabled = findIncomplete(1) === -1;
   updateStepButtons();
+}
+
+function isIncomplete(item) {
+  const feats = item.features || {};
+  return !item.label
+    || !feats.network_logo
+    || !feats.logo_position
+    || !feats.scoreboard_position;
+}
+
+// Returns the index of the nearest incomplete image in direction (+1 or -1),
+// or -1 if none exists.
+function findIncomplete(dir) {
+  let i = stepIndex + dir;
+  while (i >= 0 && i < IMAGES.length) {
+    if (isIncomplete(IMAGES[i])) return i;
+    i += dir;
+  }
+  return -1;
 }
 
 function navigateStep(delta) {
@@ -366,6 +391,8 @@ function navigateStep(delta) {
 
 document.getElementById('step-prev').addEventListener('click', () => navigateStep(-1));
 document.getElementById('step-next').addEventListener('click', () => navigateStep(1));
+document.getElementById('step-prev-incomplete').addEventListener('click', () => { const i = findIncomplete(-1); if (i !== -1) renderStep(i); });
+document.getElementById('step-next-incomplete').addEventListener('click', () => { const i = findIncomplete(1);  if (i !== -1) renderStep(i); });
 
 document.getElementById('step-img').addEventListener('click', () => {
   openLightbox('/frames/full/' + encodeURIComponent(IMAGES[stepIndex].filename));
