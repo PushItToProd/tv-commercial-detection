@@ -31,6 +31,32 @@ def save_labels(labels: dict) -> None:
         json.dump(labels, f, indent=2)
 
 
+# must be kept in sync with featFields in review.html
+VALID_NETWORK_LOGOS = frozenset({"Fox", "FS1", "FS2", "NBC", "CW", "USA", "other"})
+VALID_LOGO_POSITIONS = frozenset({"upper_left", "upper_right", "lower_left", "lower_right", "not_visible", "unknown"})
+VALID_SCOREBOARD_POSITIONS = frozenset({"top", "bottom", "left", "right", "none", "unknown"})
+
+
+def load_features() -> dict:
+    features_file = app_config.save_dir / "features.jsonl"
+    result: dict = {}
+    if features_file.exists():
+        with open(features_file) as f:
+            for line in f:
+                line = line.strip()
+                if line:
+                    record = json.loads(line)
+                    result[record["filename"]] = record
+    return result
+
+
+def save_features(features: dict) -> None:
+    features_file = app_config.save_dir / "features.jsonl"
+    with open(features_file, "w") as f:
+        for record in features.values():
+            f.write(json.dumps(record) + "\n")
+
+
 @router.post("/save")
 async def save(
     image: UploadFile = File(...),
@@ -87,6 +113,13 @@ class ClassifyRequest(BaseModel):
     label: str
 
 
+class FeaturesRequest(BaseModel):
+    filename: str
+    network_logo: str | None = None
+    logo_position: str | None = None
+    scoreboard_position: str | None = None
+
+
 @router.post("/classify")
 def handle_classify(data: ClassifyRequest):
     label = data.label
@@ -103,14 +136,40 @@ def handle_classify(data: ClassifyRequest):
     return {"classified": filename, "label": label}
 
 
+@router.post("/features")
+def handle_features(data: FeaturesRequest):
+    if data.network_logo is not None and data.network_logo not in VALID_NETWORK_LOGOS:
+        raise HTTPException(status_code=400, detail="Invalid network_logo value")
+    if data.logo_position is not None and data.logo_position not in VALID_LOGO_POSITIONS:
+        raise HTTPException(status_code=400, detail="Invalid logo_position value")
+    if data.scoreboard_position is not None and data.scoreboard_position not in VALID_SCOREBOARD_POSITIONS:
+        raise HTTPException(status_code=400, detail="Invalid scoreboard_position value")
+
+    filename = data.filename
+    if Path(filename).name != filename or not filename.endswith((".png", ".jpg", ".jpeg")):
+        raise HTTPException(status_code=400, detail="Invalid filename")
+
+    features = load_features()
+    record = features.get(filename, {"filename": filename})
+    record.update({
+        "network_logo": data.network_logo,
+        "logo_position": data.logo_position,
+        "scoreboard_position": data.scoreboard_position,
+    })
+    features[filename] = record
+    save_features(features)
+    return {"saved": filename}
+
+
 @router.get("/review")
 def review(request: Request):
     save_dir = app_config.save_dir
     labels = load_labels()
+    features = load_features()
     images = sorted(
         p.name
         for p in [*save_dir.glob("*.png"), *save_dir.glob("*.jpg")]
         if not p.name.startswith("compressed_")
     )
-    image_data = [{"filename": f, "label": labels.get(f)} for f in images]
+    image_data = [{"filename": f, "label": labels.get(f), "features": features.get(f, {})} for f in images]
     return templates.TemplateResponse(request, "review.html", {"image_data": image_data})

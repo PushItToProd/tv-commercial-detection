@@ -32,6 +32,9 @@
   .btn:hover { opacity: 0.75; }
   .btn-ad      { background: #e05; color: #fff; }
   .btn-content { background: #0a5; color: #fff; }
+  .features { padding: 0.4rem 0.5rem 0.5rem; display: flex; flex-direction: column; gap: 0.25rem; border-top: 1px solid #3a3a3a; }
+  .features label { font-size: 0.72rem; display: flex; align-items: center; gap: 0.4rem; color: #bbb; }
+  .features select { flex: 1; background: #333; color: #eee; border: 1px solid #555; border-radius: 3px; padding: 0.1rem 0.2rem; font-size: 0.72rem; }
   /* Lightbox */
   #lightbox {
     display: none; position: fixed; inset: 0; background: rgba(0,0,0,.85);
@@ -104,9 +107,22 @@ document.getElementById('lightbox').addEventListener('click', e => {
     e.currentTarget.classList.remove('open');
 });
 
+function saveFeatures(filename, card) {
+  const payload = {filename};
+  card.querySelectorAll('.feat-select').forEach(sel => {
+    payload[sel.dataset.field] = sel.value || null;
+  });
+  fetch('/features', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(payload)
+  });
+}
+
 function buildGrid() {
   const grid = document.getElementById('grid');
-  IMAGES.forEach(({filename, label}) => {
+  IMAGES.forEach(({filename, label, features}) => {
+    const feats = features || {};
     const card = document.createElement('div');
     card.className = 'card' + (label ? ' ' + label : '');
     card.dataset.label = label;
@@ -137,7 +153,37 @@ function buildGrid() {
       actions.appendChild(btn);
     });
 
-    card.append(img, info, badge, actions);
+    // must be kept in sync with VALID_* sets in review.py
+    const featFields = [
+      {field: 'network_logo',        label: 'Logo',       options: ['Fox','FS1','FS2','NBC','CW','USA','other']},
+      {field: 'logo_position',       label: 'Logo pos',   options: ['upper_left','upper_right','lower_left','lower_right','not_visible','unknown']},
+      {field: 'scoreboard_position', label: 'Scoreboard', options: ['top','bottom','left','right','none','unknown']},
+    ];
+    const featDiv = document.createElement('div');
+    featDiv.className = 'features';
+    featFields.forEach(({field, label: flabel, options}) => {
+      const row = document.createElement('label');
+      row.textContent = flabel + ': ';
+      const sel = document.createElement('select');
+      sel.className = 'feat-select';
+      sel.dataset.field = field;
+      const blank = document.createElement('option');
+      blank.value = '';
+      blank.textContent = '\u2014';  // em dash = not set
+      sel.appendChild(blank);
+      options.forEach(opt => {
+        const o = document.createElement('option');
+        o.value = opt;
+        o.textContent = opt.replace(/_/g, ' ');
+        if (feats[field] === opt) o.selected = true;
+        sel.appendChild(o);
+      });
+      sel.addEventListener('change', () => saveFeatures(filename, card));
+      row.appendChild(sel);
+      featDiv.appendChild(row);
+    });
+
+    card.append(img, info, badge, actions, featDiv);
     grid.appendChild(card);
   });
   updateCounter();
