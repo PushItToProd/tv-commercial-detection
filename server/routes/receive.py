@@ -127,7 +127,7 @@ async def report_wrong(data: ReportWrongRequest):
         raise HTTPException(status_code=400, detail="No image available")
 
     incorrect_dir = app_config.incorrect_dir
-    labels_file = incorrect_dir / "labels.json"
+    labels_file = incorrect_dir / "incorrect_labels.json"
     labels = {}
     if labels_file.exists():
         with open(labels_file) as f:
