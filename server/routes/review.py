@@ -108,6 +108,19 @@ def serve_frame(filename: str):
     return FileResponse(compressed_path)
 
 
+@router.get("/frames/full/{filename}")
+def serve_frame_full(filename: str):
+    """Serve the original (uncompressed) frame, used by the step-through review view."""
+    if Path(filename).name != filename or not filename.endswith((".jpg", ".jpeg", ".png")):
+        raise HTTPException(status_code=400, detail="Invalid filename")
+    if filename.startswith("compressed_"):
+        raise HTTPException(status_code=404, detail="File not found")
+    path = app_config.save_dir / filename
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="File not found")
+    return FileResponse(path)
+
+
 class ClassifyRequest(BaseModel):
     filename: str
     label: str
