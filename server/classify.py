@@ -126,6 +126,49 @@ def _contains_network_logo(image_path: str) -> bool:
     return "yes" in content.strip().lower()
 
 
+def _contains_vertical_scoreboard(image_path: str) -> bool:
+    """
+    Crop the lower-left 20%x80% of the image and ask the LLM if it contains a
+    vertical NASCAR/racing scoreboard.
+
+    Returns True if the model replies 'yes'.
+    """
+    with Image.open(image_path) as img:
+        w, h = img.size
+        crop_w = round(w * 0.20)
+        crop_top = round(h * 0.20)
+        cropped = img.crop((0, crop_top, crop_w, h))
+        crop_data = _to_jpeg_b64(cropped)
+
+    messages = [
+        {
+            "role": "user",
+            "content": [
+                {
+                    "type": "text",
+                    "text": "Does this image contain a NASCAR/racing scoreboard? Reply with only 'yes' or 'no'.",
+                },
+                {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{crop_data}"}},
+            ],
+        }
+    ]
+
+    client = OpenAI(base_url=f"{SERVER_URL}/v1", api_key="none")
+
+    with CLASSIFICATION_TIME.time():
+        response = client.chat.completions.create(
+            model="local",
+            messages=messages,
+            max_tokens=10,
+            temperature=0.0,
+        )
+
+    content = response.choices[0].message.content
+    if content is None:
+        return False
+    return "yes" in content.strip().lower()
+
+
 def _contains_horizontal_scoreboard(image_path: str) -> bool:
     """
     Crop the top 20% of the image and ask the LLM if it contains a horizontal
@@ -253,6 +296,10 @@ def classify_image(image_path: str) -> dict:
     logo_reply = _contains_network_logo(image_path)
     if logo_reply:
         return dict(type="content", reason="network_logo")
+
+    # If it contains a vertical scoreboard on the left, it's racing content.
+    if _contains_vertical_scoreboard(image_path):
+        return dict(type="content", reason="vertical_scoreboard")
 
     # If it contains a horizontal scoreboard in the top 20%, it's a side-by-side
     # ad break.
