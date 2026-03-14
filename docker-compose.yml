@@ -41,8 +41,7 @@ services:
       - "${RECEIVER_PORT:-11434}:11434"
     environment:
       - LLAMA_SERVER_URL=http://llama:8080
-      - HDMI_MATRIX_URL=http://hdmi-matrix-control:5000
-      - FLASK_ENV=${FLASK_ENV:-production}
-      - FLASK_DEBOUNCE=${RECEIVER_ENABLE_DEBOUNCE:-}
+      - DETECTOR_MATRIX_URL=http://hdmi-matrix-control:5000
+      - DETECTOR_ENABLE_DEBOUNCE=${RECEIVER_ENABLE_DEBOUNCE:-}
     volumes:
       - ${RECEIVER_DIR:?}:/app
