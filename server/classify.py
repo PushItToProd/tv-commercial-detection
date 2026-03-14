@@ -4,6 +4,7 @@ import io
 import json
 import os
 import re
+from dataclasses import dataclass
 from pathlib import Path
 
 from PIL import Image
@@ -28,6 +29,13 @@ MAX_DIMENSION = 800
 
 # Each entry is (image_path, expected_assistant_reply).
 EXAMPLES: list[tuple[str, str]] = []
+
+
+@dataclass
+class ClassificationResult:
+    type: str  # "ad", "content", or "unknown"
+    reason: str
+    reply: str | None = None
 
 
 CLASSIFICATION_TIME = prometheus_client.Histogram(
@@ -211,7 +219,7 @@ def _contains_horizontal_scoreboard(image_path: str) -> bool:
     return "yes" in content.strip().lower()
 
 
-def _classify_by_prompt(image_path: str) -> dict:
+def _classify_by_prompt(image_path: str) -> ClassificationResult:
     """Classify using the full prompt in prompt.txt. Returns the raw LLM reply."""
     image_data = base64.b64encode(_resize_image(image_path)).decode("utf-8")
 
@@ -243,7 +251,7 @@ def _classify_by_prompt(image_path: str) -> dict:
 
     content = response.choices[0].message.content
     if content is None:
-        return dict(type="unknown", reason="empty_response")
+        return ClassificationResult(type="unknown", reason="empty_response")
     reply = content.strip().lower()
     return _get_classification_from_response(reply)
 
@@ -264,52 +272,47 @@ def _extract_json(reply: str) -> dict | None:
     return None
 
 
-def _get_classification_from_response(reply: str) -> dict:
+def _get_classification_from_response(reply: str) -> ClassificationResult:
     """Interpret a raw LLM reply from either pass.
 
     A logo-detection 'yes' maps to 'content'. A prompt-based reply is parsed
     via JSON then regex fallback.
     """
 
-    result = dict(reason="model-match", reply=reply)
-
     if AD_MATCH_REGEX.search(reply):
-        return dict(type="ad", **result)
+        return ClassificationResult(type="ad", reason="model-match", reply=reply)
     if RACING_MATCH_REGEX.search(reply):
-        return dict(type="content", **result)
+        return ClassificationResult(type="content", reason="model-match", reply=reply)
 
     data = _extract_json(reply)
     if data is not None:
         classification = data.get("classification")
         if classification == "racing":
-            return dict(type="content", **result)
+            return ClassificationResult(type="content", reason="model-match", reply=reply)
         if classification == "ad":
-            return dict(type="ad", **result)
+            return ClassificationResult(type="ad", reason="model-match", reply=reply)
 
-    return dict(type="unknown", **result)
+    return ClassificationResult(type="unknown", reason="model-match", reply=reply)
 
 
-def classify_image(image_path: str) -> dict:
-    """Three-pass classification: logo detection, scoreboard detection, then prompt-based fallback.
-
-    Returns the raw LLM reply suitable for get_classification_from_response.
-    """
+def classify_image(image_path: str) -> ClassificationResult:
+    """Three-pass classification: logo detection, scoreboard detection, then prompt-based fallback."""
     # If it contains the network logo in the upper right, it's racing content.
     logo_reply = _contains_network_logo(image_path)
     if logo_reply:
-        return dict(type="content", reason="network_logo")
+        return ClassificationResult(type="content", reason="network_logo")
 
     # If it contains a vertical scoreboard on the left, it's racing content.
     # FIXME: the stupid LLM seems to treat the appearance of a car as a
     # scoreboard sometimes.
     if _contains_vertical_scoreboard(image_path):
-        return dict(type="content", reason="vertical_scoreboard")
+        return ClassificationResult(type="content", reason="vertical_scoreboard")
 
     # If it contains a horizontal scoreboard in the top 20%, it's a side-by-side
     # ad break.
     # FIXME: this actually reduced accuracy compared to just checking the logo.
     if _contains_horizontal_scoreboard(image_path):
-        return dict(type="ad", reason="side_by_side")
+        return ClassificationResult(type="ad", reason="side_by_side")
 
     return _classify_by_prompt(image_path)
 
@@ -326,10 +329,10 @@ def main():
     args = get_parser().parse_args()
 
     result = classify_image(args.image_path)
-    print(result['type'])
+    print(result.type)
 
     if args.include_reply:
-        print(result['reason'])
+        print(result.reason)
 
 
 if __name__ == "__main__":
