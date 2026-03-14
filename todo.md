@@ -47,6 +47,7 @@
 - [ ] take a path to a single folder to use for all outputs and data saved by the server
 - [ ] persist state in a better way (SQLite? Redis?) than just keeping it in a dataclass in memory
 - [ ] document expected values for `output_settings` in `AppConfig` (`config.py`)
+- [ ] use `pydantic-settings` for settings -- https://docs.pydantic.dev/latest/concepts/pydantic_settings/
 
 - [x] deploy everything in docker
   - [x] move the per-app docker-compose config into `~/Code/docker/tv-commercial-detector/docker-compose.yml`
