@@ -71,6 +71,10 @@
 - [ ] factor out an enum of classification labels to support more consistent typing
 - [ ] keep track of last receive time -- if we haven't gotten a new screenshot in a while (depending on the receive frequency), update the state to reflect possible connection loss and show that in the UI as well
 
+- [x] `/review` can't handle the amount of image on the page (probably overwhelming the dev server) -- paginate
+- [x] update `/review` to let me categorize images based on additional features
+- [ ] record the broadcast name, network, page URL, and seek time with each image
+
 #### Accuracy
 
 - [ ] periodically save some subset of received images along with their responses from the LLM, so later I can review them and find ones that I disagree with
@@ -166,7 +170,7 @@
 
 ### UI
 
-- [ ] seems like the `/is_ad` SSE channel gets disconnected if the server is down for too long (more than a few seconds) -- would be nice to have it auto-reconnect
+- [ ] seems like the `/is_ad` SSE channel gets disconnected if the server is down for too long (more than a few seconds) or if I SIGTERM it -- the page should detect if the connection is closed, show a "connection lost" message, and fall back on polling
 - [ ] kinda wish I had hot reload on the frontend when I make UI changes
 
 - [ ] right now, the client requests `/is_ad/last_frame?t=${Date.now}` every time it receives a message from the server, even if there's no new image. this should be updated to avoid a pointless fetch if the image hasn't changed
@@ -179,6 +183,7 @@
   - [ ] provide a way to confirm and switch right away
 
 - "Report" button
+  - [ ] !!! add second button to report without switching
   - [x] when I click "Report", save the last few images in case I don't manage to hit the button right away
   - [ ] when I click "Report", it should include a unique ID (timestamp?) of the image reported so there's no race condition from hitting it a split second too late
   - [x] when I click "Report", automatically swap back
