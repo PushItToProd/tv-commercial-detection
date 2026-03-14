@@ -11,7 +11,7 @@ class AppState:
     paused: bool = True
     seeking: bool = False
     auto_switch: bool = True
-    enable_debounce: bool = False
+    enable_debounce: bool = True
     last_result: str | None = None  # Immediately previous result, used for debounce
     matrix_switching: bool = False
 
