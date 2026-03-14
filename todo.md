@@ -46,13 +46,14 @@
 
 - [ ] take a path to a single folder to use for all outputs and data saved by the server
 - [ ] persist state in a better way (SQLite? Redis?) than just keeping it in a dataclass in memory
-- [ ] would websockets be more useful?
+- [ ] document expected values for `output_settings` in `AppConfig` (`config.py`)
 
 - [x] deploy everything in docker
   - [x] move the per-app docker-compose config into `~/Code/docker/tv-commercial-detector/docker-compose.yml`
 - [x] make everything configurable via env vars
 - [x] split flask app into blueprints
 - [x] refactor to use Flask's config support https://flask.palletsprojects.com/en/stable/config/
+- [-] would websockets be more useful? -> no. SSE instead
 
 ### Classification/Receiver
 
@@ -74,6 +75,9 @@
 - [ ] periodically save some subset of received images along with their responses from the LLM, so later I can review them and find ones that I disagree with
   - [ ] whenever the classification changes for just one iteration (e.g. three consecutive received images get classified as `content`, `ad`, `content` or vice-versa), save all three images and their responses from the LLM
   - [ ] when saving images, associate them with the active prompt
+
+- [ ] improve the data model of how inaccurate frames are saved. dumping them all in a folder with a .json file feels gross
+- [ ] increase the number of recent images we retain when reporting an error
 
 #### Prompt
 
@@ -149,11 +153,11 @@
 - [-] if I send two commands to the switcher back-to-back, will it handle them both without me needing to wait for its response?
   - not sure, but I was doing something with switching back and forth, after which my NUC seemingly randomly glitched out -- seems like it's maybe not ideal
   - [ ] try to avoid sending multiple parallel/back-to-back requests to change inputs
-- [ ] move `state.matrix_switching` updates into `apply_matrix_settings()`
 
 - [x] debounce -- require multiple consecutive classifications as ad or racing before switching
 - [x] turn off auto-switch when paused
 - [x] when I hit on one of the matrix control buttons in the UI, if the request is accepted, the buttons should be temporarily grayed out and an indicator that the request is processing should be shown. when the matrix is done, the UI should be updated again
+- [x] move `state.matrix_switching` updates into `apply_matrix_settings()`
 
 ### UI
 
