@@ -114,4 +114,3 @@ def review(request: Request):
     )
     image_data = [{"filename": f, "label": labels.get(f)} for f in images]
     return templates.TemplateResponse(request, "review.html", {"image_data": image_data})
-
