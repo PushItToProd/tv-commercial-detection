@@ -35,11 +35,11 @@ def main():
         sys.stdout.flush()
         actual = labels.get(f.name, None)
         if actual is None:
-            print(f"{f.name}: no label found, skipping")
+            print(json.dumps({"file": f.name, "status": "unlabeled"}))
             num_unlabeled += 1
             continue
         elif actual == "ignore":
-            print(f"{f.name}: label is 'ignore', skipping")
+            print(json.dumps({"file": f.name, "status": "ignored"}))
             num_ignored += 1
             continue
 
@@ -51,10 +51,8 @@ def main():
         classification = get_classification_from_response(resp)
 
         if classification == actual:
-            print(f"{f.name}: correct ({classification}) - {elapsed_time:.2f}s")
+            print(json.dumps({"file": f.name, "status": "correct", "expected": actual, "classified": classification, "elapsed": round(elapsed_time, 2)}))
             continue
-
-        print(f"{f.name}: incorrect (classified as {classification}, expected {actual}) - {elapsed_time:.2f}s")
 
         num_incorrect += 1
 
@@ -65,27 +63,33 @@ def main():
         else:
             incorrectly_unknown.append(f.name)
 
-        print(f"  Model reply for incorrect classification: {resp}")
+        print(json.dumps({"file": f.name, "status": "incorrect", "expected": actual, "classified": classification, "elapsed": round(elapsed_time, 2), "model_reply": resp}))
 
     num_images = len(image_files)
     num_skipped = num_unlabeled + num_ignored
     actual_num_classified = num_images - num_skipped
-    print(f"Processed {actual_num_classified} images, {num_incorrect} incorrect classifications ({num_incorrect/actual_num_classified:.2%}).")
-    print(f"{num_unlabeled} unlabeled, {num_ignored} marked 'ignore'.")
-    print()
-    print(f"Num. incorrectly marked as ads: {len(incorrectly_marked_as_ads)} ({len(incorrectly_marked_as_ads)/actual_num_classified:.2%})")
-    print(f"  Incorrectly marked as ads: {', '.join(incorrectly_marked_as_ads)}")
-    print(f"Num. incorrectly marked as content: {len(incorrectly_marked_as_content)} ({len(incorrectly_marked_as_content)/actual_num_classified:.2%})")
-    print(f"  Incorrectly marked as content: {', '.join(incorrectly_marked_as_content)}")
-    print(f"Num. classified as unknown: {len(incorrectly_unknown)} ({len(incorrectly_unknown)/actual_num_classified:.2%})")
-    print(f"  Classified as unknown: {', '.join(incorrectly_unknown)}")
-    print()
-    print(f"Average classification time: {sum(times_taken)/len(times_taken):.2f}s")
-    print(f"Median classification time: {sorted(times_taken)[len(times_taken)//2]:.2f}s")
-    print(f"Min classification time: {min(times_taken):.2f}s")
-    print(f"Max classification time: {max(times_taken):.2f}s")
-    total_time_secs = sum(times_taken)
-    print(f"Total classification time: {total_time_secs:.2f}s")
+
+    summary: dict = {
+        "status": "summary",
+        "total": actual_num_classified,
+        "incorrect": num_incorrect,
+        "incorrect_pct": round(num_incorrect / actual_num_classified, 4) if actual_num_classified else 0,
+        "unlabeled": num_unlabeled,
+        "ignored": num_ignored,
+        "incorrectly_marked_as_ads": incorrectly_marked_as_ads,
+        "incorrectly_marked_as_content": incorrectly_marked_as_content,
+        "incorrectly_unknown": incorrectly_unknown,
+    }
+    if times_taken:
+        sorted_times = sorted(times_taken)
+        summary.update({
+            "avg_elapsed": round(sum(times_taken) / len(times_taken), 2),
+            "median_elapsed": round(sorted_times[len(sorted_times) // 2], 2),
+            "min_elapsed": round(min(times_taken), 2),
+            "max_elapsed": round(max(times_taken), 2),
+            "total_elapsed": round(sum(times_taken), 2),
+        })
+    print(json.dumps(summary, indent=2))
 
 
 if __name__ == '__main__':
