@@ -1,8 +1,23 @@
 import asyncio
 from collections import deque
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
+from typing import Any
 import tempfile
+
+
+@dataclass
+class FrameEntry:
+    timestamp: str              # ISO 8601, from datetime.now().isoformat()
+    frame_bytes: bytes
+    ext: str                    # ".jpg" or ".png"
+    result: Any                 # ClassificationResult | None
+    page_title: str
+    video_title: str
+    network_name: str
+    video_offset: float | None
+    state_classification: str | None  # state.classification at time of receipt
 
 
 @dataclass
@@ -14,6 +29,7 @@ class AppState:
     enable_debounce: bool = True
     last_result: str | None = None  # Immediately previous result, used for debounce
     matrix_switching: bool = False
+    last_periodic_save: datetime | None = None
 
     def is_pending_change(self) -> bool:
         return self.last_result is not None and self.last_result != self.classification
@@ -23,7 +39,7 @@ state = AppState()
 
 sse_clients: set[asyncio.Queue] = set()
 
-# Rolling buffer of recent frames: each entry is (iso_timestamp: str, png_bytes: bytes)
-recent_frames: deque = deque(maxlen=5)
+# Rolling buffer of recent frames
+recent_frames: deque[FrameEntry] = deque(maxlen=5)
 
 last_image_path = Path(tempfile.gettempdir()) / "tv_detector_last_frame.png"

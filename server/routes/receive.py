@@ -1,4 +1,3 @@
-import json
 import logging
 import os
 import shutil
@@ -11,9 +10,10 @@ from pydantic import BaseModel
 
 from classify import classify_image
 from config import app_config
+from frame_saver import save_frames_batch
 from routes.status import broadcast_status
 from routes.trigger_matrix import apply_matrix_settings
-from state import last_image_path, recent_frames, state
+from state import FrameEntry, last_image_path, recent_frames, state
 
 logger = logging.getLogger(__name__)
 
@@ -58,6 +58,7 @@ async def receive(
         tmp.write(frame_bytes)
         tmp_path = tmp.name
 
+    reply = None
     try:
         reply = classify_image(tmp_path)
         result = reply.type
@@ -65,15 +66,25 @@ async def receive(
         logger.exception("Classification error")
         result = "unknown"
 
+    classification = state.classification
+
     try:
-        recent_frames.append((datetime.now().isoformat(), frame_bytes, ext))
+        recent_frames.append(FrameEntry(
+            timestamp=datetime.now().isoformat(),
+            frame_bytes=frame_bytes,
+            ext=ext,
+            result=reply,
+            page_title=page_title,
+            video_title=video_title,
+            network_name=network_name,
+            video_offset=offset_secs,
+            state_classification=classification,
+        ))
         shutil.copy2(tmp_path, last_image_path)
     except Exception:
         logger.exception("Error saving recent frame")
     finally:
         os.unlink(tmp_path)
-
-    classification = state.classification
 
     # We ignore "unknown" here -- e.g. if we get `content -> unknown ->
     # content`, treat that like two consecutive `content` results and switch to
@@ -83,6 +94,12 @@ async def receive(
     prev = state.last_result
     if result != "unknown":
         state.last_result = result
+
+    # Save frames when debounce would block a real classification change — the
+    # two consecutive checks failed, suggesting the model may have got it wrong.
+    if result in ("ad", "content") and prev is not None and result != prev and result != classification:
+        save_frames_batch(list(recent_frames), "suspicious_debounce")
+        logger.info(f"Suspicious debounce save: prev={prev}, result={result}, state={classification}")
 
     apply_new_settings = False
 
@@ -134,26 +151,12 @@ async def report_wrong(data: ReportWrongRequest):
     if not recent_frames:
         raise HTTPException(status_code=400, detail="No image available")
 
-    incorrect_dir = app_config.incorrect_dir
-    labels_file = incorrect_dir / "incorrect_labels.json"
-    labels = {}
-    if labels_file.exists():
-        with open(labels_file) as f:
-            labels = json.load(f)
-
-    saved = []
-    for i, (ts, frame_bytes, ext) in enumerate(recent_frames):
-        safe_ts = ts.replace(":", "-").replace(".", "-")
-        filename = f"{safe_ts}_{i}{ext}"
-        dest = incorrect_dir / filename
-        dest.write_bytes(frame_bytes)
-        labels[filename] = {"correct_label": correct_label, "classified_as": state.classification}
-        saved.append(filename)
-
-    with open(labels_file, "w") as f:
-        json.dump(labels, f, indent=2)
-
-    print(f"Correction saved: {len(saved)} frame(s) to {incorrect_dir}  |  classified as: {state.classification}, correct: {correct_label}")
+    saved = save_frames_batch(
+        list(recent_frames),
+        "manual_report",
+        extra={"correct_label": correct_label, "classified_as": state.classification},
+    )
+    print(f"Correction saved: {len(saved)} frame(s) to {app_config.save_dir}  |  classified as: {state.classification}, correct: {correct_label}")
 
     # Update the classification (so we won't immediately switch back if debounce
     # is enabled and we get another wrong classification).

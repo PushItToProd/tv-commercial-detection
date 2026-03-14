@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 import os
@@ -8,6 +9,7 @@ from fastapi import FastAPI
 
 import classify
 from config import app_config
+from frame_saver import periodic_frame_saver
 from metrics import instrumentator
 from routes.receive import router as receive_router
 from routes.review import router as review_router
@@ -32,7 +34,6 @@ async def lifespan(app: FastAPI):
     env_map = {
         "DETECTOR_MATRIX_URL": "matrix_url",
         "DETECTOR_SAVE_DIR": "save_dir",
-        "DETECTOR_INCORRECT_DIR": "incorrect_dir",
         "DETECTOR_LOAD_EXAMPLES": "load_examples",
         "DETECTOR_ENABLE_DEBOUNCE": "enable_debounce",
     }
@@ -41,18 +42,22 @@ async def lifespan(app: FastAPI):
         if val is not None:
             setattr(app_config, attr, val)
 
-    # Ensure path types and create directories
+    # Ensure path type and create directory
     app_config.save_dir = Path(app_config.save_dir)
-    app_config.incorrect_dir = Path(app_config.incorrect_dir)
     app_config.save_dir.mkdir(parents=True, exist_ok=True)
-    app_config.incorrect_dir.mkdir(parents=True, exist_ok=True)
 
     if app_config.load_examples:
         classify.EXAMPLES = classify.load_examples()
 
     state.enable_debounce = app_config.enable_debounce
 
+    saver_task = asyncio.create_task(periodic_frame_saver())
     yield
+    saver_task.cancel()
+    try:
+        await saver_task
+    except asyncio.CancelledError:
+        pass
 
 
 def create_app() -> FastAPI:
