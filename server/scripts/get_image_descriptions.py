@@ -50,6 +50,10 @@ def get_image_description(image_path: str, server_url: str = classify.SERVER_URL
 
 def main():
     image_files = check_classification.get_images()
+
+    with check_classification.LABELS_PATH.open() as f:
+        labels = json.load(f)
+
     for f in image_files:
         sys.stdout.flush()
 
@@ -60,7 +64,8 @@ def main():
         print(json.dumps({
             "file": f.name,
             "description": description,
-            "elapsed": round(elapsed_time, 2)
+            "elapsed": round(elapsed_time, 2),
+            "correct_classification": labels.get(f.name),
         }))
 
 
