@@ -93,6 +93,46 @@ def _resize_image(image_path: str) -> bytes:
         return buf.getvalue()
 
 
+def _report_racing_related_percentage(image_path: str) -> int:
+    """
+    Just ask the LLM 'What percentage of this image contains content related to
+    car racing? Reply with only a number between 0 and 100.'
+    """
+    with Image.open(image_path) as img:
+        crop_data = _to_jpeg_b64(img)
+
+    messages = [
+        {
+            "role": "user",
+            "content": [
+                {
+                    "type": "text",
+                    "text": "What percentage of this image contains content related to car racing? Reply with only a number between 0 and 100.",
+                },
+                {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{crop_data}"}},
+            ],
+        }
+    ]
+
+    client = OpenAI(base_url=f"{SERVER_URL}/v1", api_key="none")
+
+    with CLASSIFICATION_TIME.time():
+        response = client.chat.completions.create(
+            model="local",
+            messages=messages,
+            max_tokens=10,
+            temperature=0.0,
+        )
+
+    content = response.choices[0].message.content
+    if content is None:
+        return 0
+    match = re.search(r'(\d{1,3})', content)
+    if match:
+        return int(match.group(1))
+    return 0
+
+
 def _contains_network_logo(image_path: str) -> bool:
     """Send the FS1 reference logo and the cropped upper-right region to the LLM.
 
@@ -309,6 +349,10 @@ def classify_image(image_path: str) -> ClassificationResult:
     matched_rect = rectangle_match.image_has_known_ad_rectangle(image_path)
     if matched_rect is not None:
         return ClassificationResult(type="ad", reason="matched_rectangle", reply=matched_rect)
+
+    racing_related_pct = _report_racing_related_percentage(image_path)
+    if racing_related_pct <= 10:
+        return ClassificationResult(type="ad", reason="low_racing_related_percentage", reply=f"{racing_related_pct}% racing-related")
 
     # # If it contains the network logo in the upper right, it's racing content.
     # logo_reply = _contains_network_logo(image_path)
