@@ -8,21 +8,34 @@ from classify import classify_image
 import classify
 
 
+IMAGES_DIR = Path(__file__).parent / "frames"
+LABELS_PATH = IMAGES_DIR / "labels.json"
+
+
+def get_images(base_dir: str | Path = IMAGES_DIR) -> list[Path]:
+    base_dir = Path(base_dir)
+    image_files = list(base_dir.glob("*.png")) + list(base_dir.glob("*.jpg"))
+    image_files = sorted(image_files, key=lambda p: p.name)
+    image_files = [f for f in image_files if not f.name.startswith("compressed_")]
+    return image_files
+
+
 # get all images in frames/ and classify them, then print out any that were
 # classified incorrectly, including the full reply
 
 def main():
     # read json from frames/labels.json to get the expected labels
-    labels_path = Path("frames/labels.json")
+    labels_path = LABELS_PATH
+    images_dir = IMAGES_DIR
+
     with labels_path.open() as f:
         labels = json.load(f)
 
     # classify.EXAMPLES = classify.load_examples()
     classify.EXAMPLES = []
 
-    image_files = list((Path("frames")).glob("*.png")) + list((Path("frames")).glob("*.jpg"))
-    image_files = sorted(image_files, key=lambda p: p.name)
-    image_files = [f for f in image_files if not f.name.startswith("compressed_")]
+    image_files = get_images(images_dir)
+
     num_incorrect = 0
     num_unlabeled = 0
     num_ignored = 0
