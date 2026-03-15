@@ -12,7 +12,7 @@ from openai import OpenAI
 
 import prometheus_client
 
-from classification.logo_match import has_logo
+from classification import logo_match, rectangle_match
 
 
 SERVER_URL = os.environ.get("LLAMA_SERVER_URL", "http://192.168.1.27:3002")
@@ -299,9 +299,17 @@ def _get_classification_from_response(reply: str) -> ClassificationResult:
 
 def classify_image(image_path: str) -> ClassificationResult:
     """Three-pass classification: logo detection, scoreboard detection, then prompt-based fallback."""
-    logo_reply = has_logo(image_path)
+    # FIXME: don't pass the image as a path to every function here. Load it once
+    # and pass the image object or bytes to each function.
+
+    logo_reply = logo_match.has_logo(image_path)
     if logo_reply:
         return ClassificationResult(type="content", reason="network_logo", reply="(opencv)")
+
+    matched_rect = rectangle_match.image_has_known_ad_rectangle(image_path)
+    if matched_rect is not None:
+        return ClassificationResult(type="ad", reason="matched_rectangle", reply=matched_rect)
+
 
     # If it contains the network logo in the upper right, it's racing content.
     logo_reply = _contains_network_logo(image_path)
