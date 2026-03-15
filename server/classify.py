@@ -310,23 +310,22 @@ def classify_image(image_path: str) -> ClassificationResult:
     if matched_rect is not None:
         return ClassificationResult(type="ad", reason="matched_rectangle", reply=matched_rect)
 
+    # # If it contains the network logo in the upper right, it's racing content.
+    # logo_reply = _contains_network_logo(image_path)
+    # if logo_reply:
+    #     return ClassificationResult(type="content", reason="network_logo", reply="(llm)")
 
-    # If it contains the network logo in the upper right, it's racing content.
-    logo_reply = _contains_network_logo(image_path)
-    if logo_reply:
-        return ClassificationResult(type="content", reason="network_logo", reply="(llm)")
+    # # If it contains a vertical scoreboard on the left, it's racing content.
+    # # FIXME: the stupid LLM seems to treat the appearance of a car as a
+    # # scoreboard sometimes.
+    # if _contains_vertical_scoreboard(image_path):
+    #     return ClassificationResult(type="content", reason="vertical_scoreboard")
 
-    # If it contains a vertical scoreboard on the left, it's racing content.
-    # FIXME: the stupid LLM seems to treat the appearance of a car as a
-    # scoreboard sometimes.
-    if _contains_vertical_scoreboard(image_path):
-        return ClassificationResult(type="content", reason="vertical_scoreboard")
-
-    # If it contains a horizontal scoreboard in the top 20%, it's a side-by-side
-    # ad break.
-    # FIXME: this actually reduced accuracy compared to just checking the logo.
-    if _contains_horizontal_scoreboard(image_path):
-        return ClassificationResult(type="ad", reason="side_by_side")
+    # # If it contains a horizontal scoreboard in the top 20%, it's a side-by-side
+    # # ad break.
+    # # FIXME: this actually reduced accuracy compared to just checking the logo.
+    # if _contains_horizontal_scoreboard(image_path):
+    #     return ClassificationResult(type="ad", reason="side_by_side")
 
     return _classify_by_prompt(image_path)
 
