@@ -5,10 +5,11 @@ from pathlib import Path
 import time
 
 
-# FIXME: load the logo from config
 MATCH_METHOD = cv2.TM_CCOEFF_NORMED
+
+# FIXME: load the logo from config
 LOGO_PATH = Path(__file__).parent.parent / "prompt" / "logos" / "fs1_logo_crop.png"
-LOGO_PATH = Path(__file__).parent.parent / "prompt" / "logos" / "fox_logo_crop.png"
+# LOGO_PATH = Path(__file__).parent.parent / "prompt" / "logos" / "fox_logo_crop.png"
 
 
 class MatchResult(NamedTuple):

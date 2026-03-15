@@ -133,6 +133,43 @@ def _report_racing_related_percentage(image_path: str) -> int:
     return 0
 
 
+def _report_racing_related(image_path: str) -> bool:
+    """
+    Just ask the LLM "Does this image contain anything related to NASCAR racing?
+    Answer 'Yes' or 'No'".
+    """
+    with Image.open(image_path) as img:
+        crop_data = _to_jpeg_b64(img)
+
+    messages = [
+        {
+            "role": "user",
+            "content": [
+                {
+                    "type": "text",
+                    "text": "Does this image contain anything related to NASCAR racing? Reply with only 'yes' or 'no'.",
+                },
+                {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{crop_data}"}},
+            ],
+        }
+    ]
+
+    client = OpenAI(base_url=f"{SERVER_URL}/v1", api_key="none")
+
+    with CLASSIFICATION_TIME.time():
+        response = client.chat.completions.create(
+            model="local",
+            messages=messages,
+            max_tokens=10,
+            temperature=0.5,
+        )
+
+    content = response.choices[0].message.content
+    if content is None:
+        return False
+    return "yes" in content.strip().lower()
+
+
 def _contains_network_logo(image_path: str) -> bool:
     """Send the FS1 reference logo and the cropped upper-right region to the LLM.
 
@@ -350,26 +387,14 @@ def classify_image(image_path: str) -> ClassificationResult:
     if matched_rect is not None:
         return ClassificationResult(type="ad", reason="matched_rectangle", reply=matched_rect)
 
-    racing_related_pct = _report_racing_related_percentage(image_path)
-    if racing_related_pct <= 10:
-        return ClassificationResult(type="ad", reason="low_racing_related_percentage", reply=f"{racing_related_pct}% racing-related")
+    racing_related = _report_racing_related(image_path)
+    if not racing_related:
+        return ClassificationResult(type="ad", reason="model_quick_reject", reply="No NASCAR-related content detected")
 
-    # # If it contains the network logo in the upper right, it's racing content.
-    # logo_reply = _contains_network_logo(image_path)
-    # if logo_reply:
-    #     return ClassificationResult(type="content", reason="network_logo", reply="(llm)")
-
-    # # If it contains a vertical scoreboard on the left, it's racing content.
-    # # FIXME: the stupid LLM seems to treat the appearance of a car as a
-    # # scoreboard sometimes.
-    # if _contains_vertical_scoreboard(image_path):
-    #     return ClassificationResult(type="content", reason="vertical_scoreboard")
-
-    # # If it contains a horizontal scoreboard in the top 20%, it's a side-by-side
-    # # ad break.
-    # # FIXME: this actually reduced accuracy compared to just checking the logo.
-    # if _contains_horizontal_scoreboard(image_path):
-    #     return ClassificationResult(type="ad", reason="side_by_side")
+    # This seems to have a negligible effect on accuracy and is pretty slow, so skipping for now:
+    # racing_related_pct = _report_racing_related_percentage(image_path)
+    # if racing_related_pct <= 10:
+    #     return ClassificationResult(type="ad", reason="low_racing_related_percentage", reply=f"{racing_related_pct}% racing-related")
 
     return _classify_by_prompt(image_path)
 
