@@ -58,6 +58,8 @@
 
 ### Classification/Receiver
 
+- [ ] parallelize processing -- send images to the LLM as fast as it can handle them but, while waiting for the response, keep processing incoming images with OpenCV in case they have a strong signal of an ad or not-ad
+
 - [ ] I want a better way of tracking, end-to-end, how long it takes to switch after receiving an image. I also want a way to tell if things get backed up
 - [ ] handle latency and backpressure -- right now, I have two external components that can have high-ish response times, but I have no way to handle that. 
   - e.g. if I were to use a more intensive prompt for classification that takes >2s to run and then set the browser extension to send screenshost every second, I think I would end up DoSing my server. It would be better if the extension could "feel" that latency and back off
@@ -181,6 +183,8 @@
 - [x] move `state.matrix_switching` updates into `apply_matrix_settings()`
 
 ### UI
+
+- [ ] display the reason for the categorization on the UI
 
 - [ ] mobile-friendly UI so I can use it on my phone
 
