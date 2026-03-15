@@ -23,9 +23,13 @@ build-backend = "setuptools.build_meta"
 py-modules = [
     "main",
     "classify",
+    "check_classification",
     "config",
     "state",
     "matrix",
     "metrics",
 ]
-packages = ["routes"]
+packages = [
+    "routes",
+    "classification",
+]
