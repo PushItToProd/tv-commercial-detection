@@ -166,8 +166,9 @@ async def report_wrong(data: ReportWrongRequest):
     state.last_result = correct_label
 
     # Temporarily pause auto-switch so we don't flip back immediately on the
-    # next classification result.
-    state.auto_switch_paused_until = time.time() + 30
+    # next classification result (only if auto-switch is currently enabled).
+    if state.auto_switch:
+        state.auto_switch_paused_until = time.time() + 30
 
     if data.switch:
         # Immediately switch to the correct output mode.
