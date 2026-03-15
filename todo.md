@@ -168,10 +168,12 @@
 
 ### Switching
 
-- [ ] if I manually switch, temporarily pause automatic switching until I enable it again
+- [x] if I manually switch, temporarily pause automatic switching until I enable it again
 - [-] if I send two commands to the switcher back-to-back, will it handle them both without me needing to wait for its response?
   - not sure, but I was doing something with switching back and forth, after which my NUC seemingly randomly glitched out -- seems like it's maybe not ideal
   - [ ] try to avoid sending multiple parallel/back-to-back requests to change inputs
+
+- [ ] if I re-enable auto-switch, immediately switch to the right state for the current classification
 
 - [x] debounce -- require multiple consecutive classifications as ad or racing before switching
 - [x] turn off auto-switch when paused
@@ -179,6 +181,8 @@
 - [x] move `state.matrix_switching` updates into `apply_matrix_settings()`
 
 ### UI
+
+- [ ] mobile-friendly UI so I can use it on my phone
 
 - [ ] seems like the `/is_ad` SSE channel gets disconnected if the server is down for too long (more than a few seconds) or if I SIGTERM it -- the page should detect if the connection is closed, show a "connection lost" message, and fall back on polling
 - [ ] kinda wish I had hot reload on the frontend when I make UI changes
