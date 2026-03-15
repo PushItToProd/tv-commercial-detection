@@ -10,10 +10,11 @@ MATCH_METHOD = cv2.TM_CCOEFF_NORMED
 LOGOS_DIR = Path(__file__).parent.parent / "prompt" / "logos"
 
 # FIXME: load the logo from config
-NETWORK_LOGO_PATH = LOGOS_DIR / "fs1_logo_crop.png"
+# SIDE_BY_SIDE_LOGO_PATH = LOGOS_DIR / "fox_side_by_side_logo_crop.png"
 # NETWORK_LOGO_PATH = LOGOS_DIR / "fox_logo_crop.png"
 
-SIDE_BY_SIDE_LOGO_PATH = LOGOS_DIR / "fox_side_by_side_logo_crop.png"
+NETWORK_LOGO_PATH = LOGOS_DIR / "fs1_logo_crop.png"
+SIDE_BY_SIDE_LOGO_PATH = LOGOS_DIR / "fs1_side_by_side_logo_crop.png"
 
 
 class MatchResult(NamedTuple):
