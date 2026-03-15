@@ -7,9 +7,13 @@ import time
 
 MATCH_METHOD = cv2.TM_CCOEFF_NORMED
 
+LOGOS_DIR = Path(__file__).parent.parent / "prompt" / "logos"
+
 # FIXME: load the logo from config
-LOGO_PATH = Path(__file__).parent.parent / "prompt" / "logos" / "fs1_logo_crop.png"
-# LOGO_PATH = Path(__file__).parent.parent / "prompt" / "logos" / "fox_logo_crop.png"
+NETWORK_LOGO_PATH = LOGOS_DIR / "fs1_logo_crop.png"
+# NETWORK_LOGO_PATH = LOGOS_DIR / "fox_logo_crop.png"
+
+SIDE_BY_SIDE_LOGO_PATH = LOGOS_DIR / "fox_side_by_side_logo_crop.png"
 
 
 class MatchResult(NamedTuple):
@@ -52,12 +56,11 @@ def mask_non_white(img, min_thresh=200):
     return img
 
 
-MASKED_LOGO = mask_non_white(cv2.imread(LOGO_PATH))
+MASKED_NETWORK_LOGO = mask_non_white(cv2.imread(NETWORK_LOGO_PATH))
+MASKED_SIDE_BY_SIDE_LOGO = mask_non_white(cv2.imread(SIDE_BY_SIDE_LOGO_PATH))
 
 
-def has_logo(img_path, masked_logo=MASKED_LOGO):
-    img = cv2.imread(img_path)
-
+def has_network_logo(img, masked_logo=MASKED_NETWORK_LOGO):
     # scale to fixed size to ensure coordinates for logo match are consistent
     img = cv2.resize(img, (1920, 1080))
 
@@ -79,3 +82,28 @@ def has_logo(img_path, masked_logo=MASKED_LOGO):
         50 <= br_y <= 75 and
         result.max_val >= 0.39
     )
+
+
+def has_side_by_side_logo(img, masked_logo=MASKED_SIDE_BY_SIDE_LOGO):
+    # scale to fixed size to ensure coordinates for logo match are consistent
+    img = cv2.resize(img, (1920, 1080))
+
+    masked_img = mask_non_white(img)
+
+    h, w = masked_img.shape[:2]
+    masked_img_crop = masked_img[0:h//5, 0:w//5]
+
+    result = match_template(masked_img_crop, masked_logo, method=MATCH_METHOD)
+
+    tl_x, tl_y = result.top_left
+    br_x, br_y = result.bottom_right
+
+    # FIXME: make this configurable and more robust
+    return (
+        # 110 <= tl_x <= 140 and
+        # 15 <= tl_y <= 35 and
+        # 245 <= br_x <= 290 and
+        # 50 <= br_y <= 75 and
+        result.max_val >= 0.8
+    )
+    raise NotImplementedError

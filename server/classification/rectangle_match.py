@@ -108,11 +108,10 @@ def find_matching_rectangles(
 
 
 def find_matching_rectangles_in_image(
-    img_path: str,
+    img,
     normalized_boxes: dict[str, tuple[float, float, float, float]] = KNOWN_RECTANGLES,
     eps: float = EPS,
 ):
-    img = cv2.imread(img_path)
     height, width = img.shape[:2]
     rectangles = detect_rectangles(img)
     matches = find_matching_rectangles(normalized_boxes, rectangles, width, height, eps)
@@ -120,12 +119,12 @@ def find_matching_rectangles_in_image(
 
 
 def image_has_known_ad_rectangle(
-    img_path: str,
+    img,
     normalized_boxes: dict[str, tuple[float, float, float, float]] = KNOWN_RECTANGLES,
     ad_rectangle_names: list[str] = KNOWN_AD_RECTANGLE_NAMES,
     eps: float = EPS,
 ) -> str | None:
-    matches = find_matching_rectangles_in_image(img_path, normalized_boxes, eps)
+    matches = find_matching_rectangles_in_image(img, normalized_boxes, eps)
     for name in ad_rectangle_names:
         if name in matches:
             return name

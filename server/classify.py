@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from PIL import Image
+import cv2
 from openai import OpenAI
 
 import prometheus_client
@@ -379,17 +380,27 @@ def classify_image(image_path: str) -> ClassificationResult:
     # FIXME: don't pass the image as a path to every function here. Load it once
     # and pass the image object or bytes to each function.
 
-    logo_reply = logo_match.has_logo(image_path)
-    if logo_reply:
+    cv_img = cv2.imread(image_path)
+
+    # Network logo in the upper right -> not an ad break
+    if logo_match.has_network_logo(cv_img):
         return ClassificationResult(type="content", reason="network_logo", reply="(opencv)")
 
-    matched_rect = rectangle_match.image_has_known_ad_rectangle(image_path)
+    # Side-by-side logo in the upper left -> very likely an ad break
+    if logo_match.has_side_by_side_logo(cv_img):
+        return ClassificationResult(type="ad", reason="side_by_side", reply="side-by-side logo match (opencv)")
+
+    # check for bounding boxes used during side-by-side ad breaks
+    matched_rect = rectangle_match.image_has_known_ad_rectangle(cv_img)
     if matched_rect is not None:
-        return ClassificationResult(type="ad", reason="matched_rectangle", reply=matched_rect)
+        return ClassificationResult(type="ad", reason="matched_rectangle", reply=f"{matched_rect} (opencv)")
 
     racing_related = _report_racing_related(image_path)
     if not racing_related:
         return ClassificationResult(type="ad", reason="model_quick_reject", reply="No NASCAR-related content detected")
+
+    # # XXX: uncomment to test without using the slower model prompt
+    # return ClassificationResult(type="content", reason="assume_content", reply="")
 
     # This seems to have a negligible effect on accuracy and is pretty slow, so skipping for now:
     # racing_related_pct = _report_racing_related_percentage(image_path)
