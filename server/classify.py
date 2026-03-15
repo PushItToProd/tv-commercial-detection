@@ -61,14 +61,6 @@ def load_examples() -> list[tuple[str, str]]:
     return examples
 
 
-def _to_jpeg_b64(img: Image.Image) -> str:
-    if img.mode != "RGB":
-        img = img.convert("RGB")
-    buf = io.BytesIO()
-    img.save(buf, format="JPEG", quality=85)
-    return base64.b64encode(buf.getvalue()).decode("utf-8")
-
-
 def _resize_image(image_path: str) -> bytes:
     """Resize image so its longest side is at most MAX_DIMENSION, then return JPEG bytes."""
     with Image.open(image_path) as img:
@@ -80,14 +72,16 @@ def _resize_image(image_path: str) -> bytes:
         return buf.getvalue()
 
 
-def _report_racing_related(image_path: str) -> bool:
+def load_image_b64(image_path: str) -> str:
+    image_data = base64.b64encode(_resize_image(image_path)).decode("utf-8")
+    return image_data
+
+
+def _report_racing_related(image_data: str) -> bool:
     """
     Just ask the LLM "Does this image contain anything related to NASCAR racing?
     Answer 'Yes' or 'No'".
     """
-    with Image.open(image_path) as img:
-        crop_data = _to_jpeg_b64(img)
-
     messages: list[ChatCompletionMessageParam] = [
         {
             "role": "user",
@@ -96,7 +90,7 @@ def _report_racing_related(image_path: str) -> bool:
                     "type": "text",
                     "text": "Does this image contain anything related to NASCAR racing? Reply with only 'yes' or 'no'.",
                 },
-                {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{crop_data}"}},
+                {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{image_data}"}},
             ],
         }
     ]
@@ -117,9 +111,9 @@ def _report_racing_related(image_path: str) -> bool:
     return "yes" in content.strip().lower()
 
 
-def _classify_by_prompt(image_path: str) -> ClassificationResult:
+def _classify_by_prompt(image_data: str) -> ClassificationResult:
     """Classify using the full prompt in prompt.txt. Returns the raw LLM reply."""
-    image_data = base64.b64encode(_resize_image(image_path)).decode("utf-8")
+    # image_data = base64.b64encode(_resize_image(image_path)).decode("utf-8")
 
     messages: list[ChatCompletionMessageParam] = []
     for i, (ex_path, ex_reply) in enumerate(EXAMPLES):
@@ -213,7 +207,9 @@ def classify_image(image_path: str) -> ClassificationResult:
     if matched_rect is not None:
         return ClassificationResult(type="ad", reason="matched_rectangle", reply=f"{matched_rect} (opencv)")
 
-    racing_related = _report_racing_related(image_path)
+    image_data = load_image_b64(image_path)
+
+    racing_related = _report_racing_related(image_data)
     if not racing_related:
         return ClassificationResult(type="ad", reason="model_quick_reject", reply="No NASCAR-related content detected")
 
@@ -221,11 +217,11 @@ def classify_image(image_path: str) -> ClassificationResult:
     # return ClassificationResult(type="content", reason="assume_content", reply="")
 
     # This seems to have a negligible effect on accuracy and is pretty slow, so skipping for now:
-    # racing_related_pct = _report_racing_related_percentage(image_path)
+    # racing_related_pct = _report_racing_related_percentage(image_data)
     # if racing_related_pct <= 10:
     #     return ClassificationResult(type="ad", reason="low_racing_related_percentage", reply=f"{racing_related_pct}% racing-related")
 
-    return _classify_by_prompt(image_path)
+    return _classify_by_prompt(image_data)
 
 
 def get_parser():
