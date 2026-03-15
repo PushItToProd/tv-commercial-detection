@@ -22,17 +22,17 @@
     letter-spacing: 0.1em; margin-top: 0.5rem; min-height: 1.2em;
   }
   #last-frame {
-    position: fixed; bottom: 15vh; right: 1vw;
+    position: fixed; bottom: 15vh; right: 2vw;
     max-width: min(480px, 90vw); max-height: 30vh;
     border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.6);
     display: none;
   }
   #buttons {
-    position: fixed; bottom: 18vh;
+    position: fixed; left: 2vw; bottom: 18vh;
     display: flex; gap: 1rem;
   }
   .btn-correction {
-    padding: 1rem 2.4rem; font-size: 10rem; font-weight: bold;
+    padding: 1rem 2.4rem; font-size: 5rem; font-weight: bold;
     border: none; border-radius: 12px; cursor: pointer;
     background: rgba(255,255,255,0.2); color: #fff;
     /*
@@ -90,33 +90,39 @@
 <img id="last-frame" src="" alt="last frame">
 <div id="buttons"></div>
 <script>
-function reportWrong(correctLabel) {
+function reportWrong(correctLabel, doSwitch) {
   fetch('/report_wrong', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({correct_label: correctLabel})
+    body: JSON.stringify({correct_label: correctLabel, switch: doSwitch})
   })
   .then(r => r.json())
   .then(data => { if (data.error) alert(data.error); })
   .catch(() => {});
 }
 
+function makeReportButtons(correctLabel, display) {
+  const div = document.getElementById('buttons');
+  const btnSwitch = document.createElement('button');
+  btnSwitch.className = 'btn-correction';
+  btnSwitch.textContent = display + ' + Switch';
+  btnSwitch.onclick = () => reportWrong(correctLabel, true);
+  div.appendChild(btnSwitch);
+  const btnOnly = document.createElement('button');
+  btnOnly.className = 'btn-correction';
+  btnOnly.textContent = display + ' Only';
+  btnOnly.onclick = () => reportWrong(correctLabel, false);
+  div.appendChild(btnOnly);
+}
+
 function updateButtons(c) {
   const div = document.getElementById('buttons');
   div.innerHTML = '';
   if (c === 'ad' || c === 'content') {
-    const btn = document.createElement('button');
-    btn.className = 'btn-correction';
-    btn.textContent = 'Report';
-    btn.onclick = () => reportWrong(c === 'ad' ? 'content' : 'ad');
-    div.appendChild(btn);
+    makeReportButtons(c === 'ad' ? 'content' : 'ad', c === 'ad' ? 'Racing' : 'Ad');
   } else if (c !== null && c !== undefined) {  // FIXME: 'unknown' seemingly gets mapped to null/undefined so this doesn't work how we want
     [['ad', 'Ad'], ['content', 'Racing']].forEach(([lbl, display]) => {
-      const btn = document.createElement('button');
-      btn.className = 'btn-correction';
-      btn.textContent = display;
-      btn.onclick = () => reportWrong(lbl);
-      div.appendChild(btn);
+      makeReportButtons(lbl, display);
     });
   }
 }

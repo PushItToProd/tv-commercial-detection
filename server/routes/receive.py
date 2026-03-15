@@ -122,6 +122,7 @@ async def receive(
 
 class ReportWrongRequest(BaseModel):
     correct_label: str
+    switch: bool = True
 
 
 @router.post("/video-state")
@@ -163,13 +164,16 @@ async def report_wrong(data: ReportWrongRequest):
     state.classification = correct_label
     state.last_result = correct_label
 
-    # Immediately switch to the correct output mode.
-    state.matrix_switching = True
-    await broadcast_status()
-    try:
-        await apply_matrix_settings(correct_label)
-    finally:
-        state.matrix_switching = False
+    if data.switch:
+        # Immediately switch to the correct output mode.
+        state.matrix_switching = True
+        await broadcast_status()
+        try:
+            await apply_matrix_settings(correct_label)
+        finally:
+            state.matrix_switching = False
+            await broadcast_status()
+    else:
         await broadcast_status()
 
     return {"saved": saved, "correct_label": correct_label}
