@@ -12,6 +12,8 @@ from openai import OpenAI
 
 import prometheus_client
 
+from classification.logo_match import has_logo
+
 
 SERVER_URL = os.environ.get("LLAMA_SERVER_URL", "http://192.168.1.27:3002")
 
@@ -297,10 +299,14 @@ def _get_classification_from_response(reply: str) -> ClassificationResult:
 
 def classify_image(image_path: str) -> ClassificationResult:
     """Three-pass classification: logo detection, scoreboard detection, then prompt-based fallback."""
+    logo_reply = has_logo(image_path)
+    if logo_reply:
+        return ClassificationResult(type="content", reason="network_logo", reply="(opencv)")
+
     # If it contains the network logo in the upper right, it's racing content.
     logo_reply = _contains_network_logo(image_path)
     if logo_reply:
-        return ClassificationResult(type="content", reason="network_logo")
+        return ClassificationResult(type="content", reason="network_logo", reply="(llm)")
 
     # If it contains a vertical scoreboard on the left, it's racing content.
     # FIXME: the stupid LLM seems to treat the appearance of a car as a

@@ -12,6 +12,7 @@ dependencies = [
     "openai>=2.26.0",
     "pillow>=12.1.1",
     "prometheus-fastapi-instrumentator>=7.0.0",
+    "opencv-python-headless>=4.13.0.92",
 ]
 
 [build-system]
