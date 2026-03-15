@@ -11,6 +11,7 @@ from PIL import Image
 import cv2
 from openai import OpenAI
 
+from openai.types.chat import ChatCompletionMessageParam
 import prometheus_client
 
 from classification import logo_match, rectangle_match
@@ -68,21 +69,6 @@ def _to_jpeg_b64(img: Image.Image) -> str:
     return base64.b64encode(buf.getvalue()).decode("utf-8")
 
 
-def _load_reference_logo() -> str:
-    with Image.open(REFERENCE_LOGO_PATH) as img:
-        return _to_jpeg_b64(img)
-
-
-def _crop_upper_right(image_path: str) -> str:
-    """Crop the upper-right region (CROP_WIDTH_PCT x CROP_HEIGHT_PCT) and return base64 JPEG."""
-    with Image.open(image_path) as img:
-        w, h = img.size
-        crop_w = round(w * CROP_WIDTH_PCT)
-        crop_h = round(h * CROP_HEIGHT_PCT)
-        cropped = img.crop((w - crop_w, 0, w, crop_h))
-        return _to_jpeg_b64(cropped)
-
-
 def _resize_image(image_path: str) -> bytes:
     """Resize image so its longest side is at most MAX_DIMENSION, then return JPEG bytes."""
     with Image.open(image_path) as img:
@@ -94,46 +80,6 @@ def _resize_image(image_path: str) -> bytes:
         return buf.getvalue()
 
 
-def _report_racing_related_percentage(image_path: str) -> int:
-    """
-    Just ask the LLM 'What percentage of this image contains content related to
-    car racing? Reply with only a number between 0 and 100.'
-    """
-    with Image.open(image_path) as img:
-        crop_data = _to_jpeg_b64(img)
-
-    messages = [
-        {
-            "role": "user",
-            "content": [
-                {
-                    "type": "text",
-                    "text": "What percentage of this image contains content related to car racing? Reply with only a number between 0 and 100.",
-                },
-                {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{crop_data}"}},
-            ],
-        }
-    ]
-
-    client = OpenAI(base_url=f"{SERVER_URL}/v1", api_key="none")
-
-    with CLASSIFICATION_TIME.time():
-        response = client.chat.completions.create(
-            model="local",
-            messages=messages,
-            max_tokens=10,
-            temperature=0.0,
-        )
-
-    content = response.choices[0].message.content
-    if content is None:
-        return 0
-    match = re.search(r'(\d{1,3})', content)
-    if match:
-        return int(match.group(1))
-    return 0
-
-
 def _report_racing_related(image_path: str) -> bool:
     """
     Just ask the LLM "Does this image contain anything related to NASCAR racing?
@@ -142,7 +88,7 @@ def _report_racing_related(image_path: str) -> bool:
     with Image.open(image_path) as img:
         crop_data = _to_jpeg_b64(img)
 
-    messages = [
+    messages: list[ChatCompletionMessageParam] = [
         {
             "role": "user",
             "content": [
@@ -171,139 +117,11 @@ def _report_racing_related(image_path: str) -> bool:
     return "yes" in content.strip().lower()
 
 
-def _contains_network_logo(image_path: str) -> bool:
-    """Send the FS1 reference logo and the cropped upper-right region to the LLM.
-
-    Returns the raw reply from the model ('yes' or 'no').
-    """
-    reference_data = _load_reference_logo()
-    comparison_data = _crop_upper_right(image_path)
-
-    messages = [
-        {
-            "role": "user",
-            "content": [
-                {
-                    "type": "text",
-                    "text": (
-                        "The first image is a reference logo. "
-                        "The second image is a cropped region from a broadcast screenshot. "
-                        "Does the second image contain the same logo as the first image? "
-                        "Reply with only 'yes' or 'no'."
-                    ),
-                },
-                {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{reference_data}"}},
-                {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{comparison_data}"}},
-            ],
-        }
-    ]
-
-    client = OpenAI(base_url=f"{SERVER_URL}/v1", api_key="none")
-
-    with CLASSIFICATION_TIME.time():
-        response = client.chat.completions.create(
-            model="local",
-            messages=messages,
-            max_tokens=10,
-            temperature=0.0,
-        )
-
-    content = response.choices[0].message.content
-    if content is None:
-        return False
-    return "yes" in content.strip().lower()
-
-
-def _contains_vertical_scoreboard(image_path: str) -> bool:
-    """
-    Crop the lower-left 20%x80% of the image and ask the LLM if it contains a
-    vertical NASCAR/racing scoreboard.
-
-    Returns True if the model replies 'yes'.
-    """
-    with Image.open(image_path) as img:
-        w, h = img.size
-        crop_w = round(w * 0.20)
-        crop_top = round(h * 0.20)
-        cropped = img.crop((0, crop_top, crop_w, h))
-        crop_data = _to_jpeg_b64(cropped)
-
-    messages = [
-        {
-            "role": "user",
-            "content": [
-                {
-                    "type": "text",
-                    "text": "Does this image contain a NASCAR/racing scoreboard? Reply with only 'yes' or 'no'.",
-                },
-                {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{crop_data}"}},
-            ],
-        }
-    ]
-
-    client = OpenAI(base_url=f"{SERVER_URL}/v1", api_key="none")
-
-    with CLASSIFICATION_TIME.time():
-        response = client.chat.completions.create(
-            model="local",
-            messages=messages,
-            max_tokens=10,
-            temperature=0.0,
-        )
-
-    content = response.choices[0].message.content
-    if content is None:
-        return False
-    return "yes" in content.strip().lower()
-
-
-def _contains_horizontal_scoreboard(image_path: str) -> bool:
-    """
-    Crop the top 20% of the image and ask the LLM if it contains a horizontal
-    NASCAR scoreboard like those used during side-by-side ad breaks.
-
-    Returns the raw reply from the model ('yes' or 'no').
-    """
-    with Image.open(image_path) as img:
-        w, h = img.size
-        crop_h = round(h * 0.20)
-        cropped = img.crop((0, 0, w, crop_h))
-        crop_data = _to_jpeg_b64(cropped)
-
-    messages = [
-        {
-            "role": "user",
-            "content": [
-                {
-                    "type": "text",
-                    "text": "Does this image contain a NASCAR scoreboard? Reply with only 'yes' or 'no'.",
-                },
-                {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{crop_data}"}},
-            ],
-        }
-    ]
-
-    client = OpenAI(base_url=f"{SERVER_URL}/v1", api_key="none")
-
-    with CLASSIFICATION_TIME.time():
-        response = client.chat.completions.create(
-            model="local",
-            messages=messages,
-            max_tokens=10,
-            temperature=0.0,
-        )
-
-    content = response.choices[0].message.content
-    if content is None:
-        return False
-    return "yes" in content.strip().lower()
-
-
 def _classify_by_prompt(image_path: str) -> ClassificationResult:
     """Classify using the full prompt in prompt.txt. Returns the raw LLM reply."""
     image_data = base64.b64encode(_resize_image(image_path)).decode("utf-8")
 
-    messages = []
+    messages: list[ChatCompletionMessageParam] = []
     for i, (ex_path, ex_reply) in enumerate(EXAMPLES):
         ex_data = base64.b64encode(_resize_image(ex_path)).decode("utf-8")
         user_content = []
