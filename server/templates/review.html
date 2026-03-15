@@ -179,7 +179,7 @@ function saveFeatures(filename, card) {
 
 function buildGrid() {
   const grid = document.getElementById('grid');
-  IMAGES.forEach(({filename, label, features}) => {
+  IMAGES.forEach(({filename, label, features}, index) => {
     const feats = features || {};
     const card = document.createElement('div');
     card.className = 'card' + (label ? ' ' + label : '');
@@ -190,8 +190,8 @@ function buildGrid() {
 
     const img = document.createElement('img');
     img.dataset.src = imgSrc;
-    img.title = 'Click to enlarge';
-    img.addEventListener('click', () => openLightbox(imgSrc));
+    img.title = 'Click to open in Step View';
+    img.addEventListener('click', () => enterStepView(index));
     lazyObserver.observe(img);
 
     const info = document.createElement('div');
@@ -377,6 +377,9 @@ function renderStep(index) {
   stepIndex = index;
   const item = IMAGES[index];
   showSpinner();
+  // TODO: add an endpoint for partial image compression and use it here to
+  // speed up loading times. Full images can be quite large and slow to load,
+  // especially on mobile.
   document.getElementById('step-img').src = '/frames/full/' + encodeURIComponent(item.filename);
   document.getElementById('step-filename').textContent = item.filename;
   document.getElementById('step-counter').textContent = `${index + 1} / ${IMAGES.length}`;
@@ -432,15 +435,25 @@ document.addEventListener('keydown', e => {
   else if (e.key === 'i' || e.key === 'I') document.querySelector('#step-controls .tbtn[data-group="label"][data-value="ignore"]')?.click();
 });
 
+function enterStepView(index) {
+  inStepView = true;
+  document.getElementById('grid').style.display = 'none';
+  document.getElementById('step-view').style.display = '';
+  document.getElementById('hideClassified').closest('label').style.display = 'none';
+  document.getElementById('toggleView').textContent = 'Grid View';
+  buildStepControls();
+  renderStep(index);
+}
+
 document.getElementById('toggleView').addEventListener('click', () => {
-  inStepView = !inStepView;
-  document.getElementById('grid').style.display = inStepView ? 'none' : '';
-  document.getElementById('step-view').style.display = inStepView ? '' : 'none';
-  document.getElementById('hideClassified').closest('label').style.display = inStepView ? 'none' : '';
-  document.getElementById('toggleView').textContent = inStepView ? 'Grid View' : 'Step View';
   if (inStepView) {
-    buildStepControls();
-    renderStep(stepIndex);
+    inStepView = false;
+    document.getElementById('grid').style.display = '';
+    document.getElementById('step-view').style.display = 'none';
+    document.getElementById('hideClassified').closest('label').style.display = '';
+    document.getElementById('toggleView').textContent = 'Step View';
+  } else {
+    enterStepView(stepIndex);
   }
 });
 </script>
