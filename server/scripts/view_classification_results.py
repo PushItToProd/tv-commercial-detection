@@ -105,6 +105,10 @@ _HTML = r"""<!DOCTYPE html>
   .filter-btn:hover  { background: #2e2e2e; }
   .filter-btn.active { background: #383838; border-color: #777; color: #fff; }
   #counter { margin-left: auto; opacity: 0.45; font-size: 0.82rem; }
+  #reason-filter, #expected-filter {
+    padding: 0.28rem 0.5rem; border: 2px solid #444; border-radius: 4px;
+    background: #1a1a1a; color: #ccc; cursor: pointer; font-size: 0.82rem;
+  }
 
   /* Cards */
   .grid { display: flex; flex-wrap: wrap; gap: 0.75rem; }
@@ -179,6 +183,8 @@ _HTML = r"""<!DOCTYPE html>
   <button class="filter-btn" data-filter="correct">Correct</button>
   <button class="filter-btn" data-filter="unlabeled">Unlabeled</button>
   <button class="filter-btn" data-filter="ignored">Ignored</button>
+  <select id="reason-filter"><option value="">All reasons</option></select>
+  <select id="expected-filter"><option value="">All expected</option></select>
   <span id="counter"></span>
 </div>
 
@@ -240,6 +246,8 @@ function buildGrid() {
     const card = document.createElement('div');
     card.className = 'card ' + frame.status;
     card.dataset.status = frame.status;
+    card.dataset.reason = (frame.model_reply && frame.model_reply.reason) ? frame.model_reply.reason : '';
+    card.dataset.expected = frame.expected != null ? frame.expected : '';
 
     if (frame.file) {
       const img = document.createElement('img');
@@ -302,9 +310,14 @@ function buildGrid() {
 let currentFilter = 'all';
 
 function applyFilter() {
+  const reason = document.getElementById('reason-filter').value;
+  const expected = document.getElementById('expected-filter').value;
   const cards = [...document.querySelectorAll('.card')];
   cards.forEach(c => {
-    c.style.display = (currentFilter === 'all' || c.dataset.status === currentFilter) ? '' : 'none';
+    const statusOk = currentFilter === 'all' || c.dataset.status === currentFilter;
+    const reasonOk = !reason || c.dataset.reason === reason;
+    const expectedOk = !expected || c.dataset.expected === expected;
+    c.style.display = (statusOk && reasonOk && expectedOk) ? '' : 'none';
   });
   const visible = cards.filter(c => c.style.display !== 'none').length;
   document.getElementById('counter').textContent = `${visible} / ${cards.length} shown`;
@@ -319,6 +332,30 @@ document.querySelectorAll('.filter-btn').forEach(btn => {
   });
 });
 
+function buildReasonFilter() {
+  const reasons = [...new Set(FRAMES.map(f => f.model_reply && f.model_reply.reason).filter(Boolean))].sort();
+  const sel = document.getElementById('reason-filter');
+  reasons.forEach(r => {
+    const opt = document.createElement('option');
+    opt.value = r;
+    opt.textContent = r;
+    sel.appendChild(opt);
+  });
+  sel.addEventListener('change', applyFilter);
+}
+
+function buildExpectedFilter() {
+  const values = [...new Set(FRAMES.map(f => f.expected).filter(v => v != null))].sort();
+  const sel = document.getElementById('expected-filter');
+  values.forEach(v => {
+    const opt = document.createElement('option');
+    opt.value = v;
+    opt.textContent = v.toUpperCase();
+    sel.appendChild(opt);
+  });
+  sel.addEventListener('change', applyFilter);
+}
+
 // ── Lightbox ──────────────────────────────────────────────────────────────────
 function openLightbox(src) {
   document.getElementById('lb-img').src = src;
@@ -332,6 +369,8 @@ document.getElementById('lightbox').addEventListener('click', e => {
 // ── Init ──────────────────────────────────────────────────────────────────────
 buildSummary();
 buildGrid();
+buildReasonFilter();
+buildExpectedFilter();
 applyFilter();
 </script>
 </body>
