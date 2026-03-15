@@ -29,6 +29,7 @@ def _get_status_data() -> dict:
         "matrix_switching": state.matrix_switching,
         "ad_view_label": ad_view_label,
         "race_view_label": race_view_label,
+        "auto_switch_paused_until": state.auto_switch_paused_until if state.is_auto_switch_paused() else None,
     }
 
 

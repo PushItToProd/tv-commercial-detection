@@ -1,10 +1,11 @@
 import asyncio
 from collections import deque
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 import tempfile
+import time
 
 
 @dataclass
@@ -30,9 +31,13 @@ class AppState:
     last_result: str | None = None  # Immediately previous result, used for debounce
     matrix_switching: bool = False
     last_periodic_save: datetime | None = None
+    auto_switch_paused_until: float | None = None  # Unix timestamp; auto-switch temporarily suppressed until this time
 
     def is_pending_change(self) -> bool:
         return self.last_result is not None and self.last_result != self.classification
+
+    def is_auto_switch_paused(self) -> bool:
+        return self.auto_switch_paused_until is not None and self.auto_switch_paused_until > time.time()
 
 
 state = AppState()

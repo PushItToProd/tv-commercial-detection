@@ -70,6 +70,16 @@
     background: rgba(255,255,255,0.12); color: #fff; transition: background 0.15s;
   }
   .btn-matrix:hover { background: rgba(255,255,255,0.28); }
+  #auto-switch-paused {
+    display: none; color: #ffcc00; font-size: 1.2rem; font-weight: bold;
+    white-space: nowrap; align-items: center; gap: 0.6rem;
+  }
+  #auto-switch-paused .resume-btn {
+    padding: 0.25rem 0.8rem; font-size: 1rem; font-weight: bold;
+    border: 2px solid #ffcc00; border-radius: 8px; cursor: pointer;
+    background: transparent; color: #ffcc00; transition: background 0.15s;
+  }
+  #auto-switch-paused .resume-btn:hover { background: rgba(255, 204, 0, 0.2); }
 </style>
 </head>
 <body>
@@ -77,6 +87,10 @@
   <div class="toggle-wrap">
     <label class="toggle"><input type="checkbox" id="auto-switch-toggle" checked><span class="toggle-slider"></span></label>
     <span class="ctrl-label">Auto-switch</span>
+  </div>
+  <div id="auto-switch-paused">
+    &#9646;&#9646; Paused <span id="pause-seconds">30</span>s
+    <button class="resume-btn" onclick="resumeAutoSwitch()">Re-enable</button>
   </div>
   <div class="toggle-wrap">
     <label class="toggle"><input type="checkbox" id="enable-debounce-toggle" checked><span class="toggle-slider"></span></label>
@@ -90,6 +104,31 @@
 <img id="last-frame" src="" alt="last frame">
 <div id="buttons"></div>
 <script>
+let autoSwitchPausedUntil = null;
+let pauseCountdownInterval = null;
+
+function updatePauseCountdown() {
+  const el = document.getElementById('auto-switch-paused');
+  if (!autoSwitchPausedUntil) {
+    el.style.display = 'none';
+    if (pauseCountdownInterval) { clearInterval(pauseCountdownInterval); pauseCountdownInterval = null; }
+    return;
+  }
+  const remaining = Math.ceil(autoSwitchPausedUntil - Date.now() / 1000);
+  if (remaining <= 0) {
+    autoSwitchPausedUntil = null;
+    el.style.display = 'none';
+    if (pauseCountdownInterval) { clearInterval(pauseCountdownInterval); pauseCountdownInterval = null; }
+    return;
+  }
+  el.style.display = 'flex';
+  document.getElementById('pause-seconds').textContent = remaining;
+}
+
+function resumeAutoSwitch() {
+  fetch('/settings/resume_auto_switch', { method: 'POST' }).catch(() => {});
+}
+
 function reportWrong(correctLabel, doSwitch) {
   fetch('/report_wrong', {
     method: 'POST',
@@ -192,6 +231,11 @@ function applyData(data) {
     b.disabled = switching;
     b.style.opacity = switching ? '0.4' : '';
   });
+  autoSwitchPausedUntil = data.auto_switch_paused_until || null;
+  if (autoSwitchPausedUntil && !pauseCountdownInterval) {
+    pauseCountdownInterval = setInterval(updatePauseCountdown, 500);
+  }
+  updatePauseCountdown();
 }
 
 const evtSource = new EventSource('/is_ad/stream');

@@ -2,6 +2,7 @@ import logging
 import os
 import shutil
 import tempfile
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -109,7 +110,7 @@ async def receive(
         logger.info(f"Classification changed: {classification} → {result}  |  offset: {offset_str}  |  page: {page_title}")
         # Don't actually apply the new settings yet. We want to update the UI
         # first.
-        apply_new_settings = state.auto_switch
+        apply_new_settings = state.auto_switch and not state.is_auto_switch_paused()
     else:
         logger.info(f"Received image → classified as: {result}  |  offset: {offset_str}  |  page: {page_title}")
 
@@ -163,6 +164,10 @@ async def report_wrong(data: ReportWrongRequest):
     # is enabled and we get another wrong classification).
     state.classification = correct_label
     state.last_result = correct_label
+
+    # Temporarily pause auto-switch so we don't flip back immediately on the
+    # next classification result.
+    state.auto_switch_paused_until = time.time() + 30
 
     if data.switch:
         # Immediately switch to the correct output mode.

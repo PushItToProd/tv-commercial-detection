@@ -1,3 +1,5 @@
+import time
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
@@ -31,3 +33,14 @@ async def trigger_matrix(data: TriggerMatrixRequest):
         raise HTTPException(status_code=400, detail="classification must be 'ad' or 'content'")
     await apply_matrix_settings(classification)
     return {"triggered": classification}
+
+
+@router.post("/settings/resume_auto_switch")
+async def resume_auto_switch():
+    """Clear the temporary auto-switch pause and immediately switch to the correct input."""
+    state.auto_switch_paused_until = None
+    state.auto_switch = True
+    await broadcast_status()
+    if state.classification in ("ad", "content"):
+        await apply_matrix_settings(state.classification)
+    return {"auto_switch": True, "auto_switch_paused_until": None}
