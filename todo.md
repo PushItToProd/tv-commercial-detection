@@ -71,18 +71,28 @@
 - [ ] factor out an enum of classification labels to support more consistent typing
 - [ ] keep track of last receive time -- if we haven't gotten a new screenshot in a while (depending on the receive frequency), update the state to reflect possible connection loss and show that in the UI as well
 
+#### Review
+
+- [ ] I keep wanting to add new label types or update existing ones -- e.g. now I want to just tag every image that's a Fox side-by-side ad break -- maybe support custom tags of some kind
+
 - [x] `/review` can't handle the amount of image on the page (probably overwhelming the dev server) -- paginate
 - [x] update `/review` to let me categorize images based on additional features
-- [ ] record the broadcast name, network, page URL, and seek time with each image
+- [x] record the broadcast name, network, page URL, and seek time with each image
 
 #### Accuracy
 
-- [ ] periodically save some subset of received images along with their responses from the LLM, so later I can review them and find ones that I disagree with
-  - [ ] whenever the classification changes for just one iteration (e.g. three consecutive received images get classified as `content`, `ad`, `content` or vice-versa), save all three images and their responses from the LLM
+- [x] periodically save some subset of received images along with their responses from the LLM, so later I can review them and find ones that I disagree with
+  - [x] whenever the classification changes for just one iteration (e.g. three consecutive received images get classified as `content`, `ad`, `content` or vice-versa), save all three images and their responses from the LLM
   - [ ] when saving images, associate them with the active prompt
 
 - [ ] improve the data model of how inaccurate frames are saved. dumping them all in a folder with a .json file feels gross
 - [ ] increase the number of recent images we retain when reporting an error
+
+#### OpenCV
+
+##### `logo_match.py`
+
+- `LOGO_PATH` is currently hardcoded
 
 #### Prompt
 
