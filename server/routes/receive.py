@@ -60,9 +60,11 @@ async def receive(
         tmp_path = tmp.name
 
     reply = None
+    result_source = None
     try:
         reply = classify_image(tmp_path)
         result = reply.type
+        result_source = reply.source
     except Exception:
         logger.exception("Classification error")
         result = "unknown"
@@ -105,7 +107,7 @@ async def receive(
     apply_new_settings = False
 
     # Commit only when the same result appears twice in a row and differs from current state
-    if (result == prev or not state.enable_debounce) and result != classification and result in ("ad", "content"):
+    if (result_source == "opencv" or result == prev or not state.enable_debounce) and result != classification and result in ("ad", "content"):
         state.classification = result
         logger.info(f"Classification changed: {classification} → {result}  |  offset: {offset_str}  |  page: {page_title}")
         # Don't actually apply the new settings yet. We want to update the UI

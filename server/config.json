@@ -1,6 +1,6 @@
 {
   "matrix_url": "http://192.168.1.27:5000",
-  "save_dir": "frames",
+  "save_dir": "frames_testing",
   "output_settings": {
     "ad": {
       "A": "1",
