@@ -63,6 +63,8 @@ Checkboxes key:
 
 #### OpenCV
 
+- [x] manually classify a bunch of images for testing my OpenCV-based approach
+
 ##### `logo_match.py`
 
 #### Prompt

@@ -23,6 +23,9 @@ Checkboxes key:
 - [ ] +if the classifier service returned its result to the extension, the extension could do things like mute and (if possible) skip ahead automatically until it's not on an ad break anymore
 - [ ] package the extension so I can install it permanently in firefox
 
+- [ ] consider doing some of the OpenCV processing in the extension itself? https://docs.opencv.org/4.x/d8/dd1/tutorial_js_template_matching.html
+- [ ] could do some scene change detection in the extension and use that to decide when to send images
+
 ## Web app
 
 - [ ] general project cleanliness
@@ -41,6 +44,15 @@ Checkboxes key:
 ### Classification/Receiver
 
 - [ ] parallelize processing -- send images to the LLM as fast as it can handle them but, while waiting for the response, keep processing incoming images with OpenCV in case they have a strong signal of an ad or not-ad
+  - ~not fully sure this makes sense, but it's a thought -- I guess what I'm thinking is, suppose the broadcast is going to commercial and we receive a series of images like this:
+    1. cars on track with scoreboard and network logo -- can be classified by OpenCV alone
+    1. cars on track, now with no scoreboard or logo -- have to prompt the LLM to confirm it's racing. this can take 1-3 seconds
+    1. some kind of interstitial bump to commercial (stage winner graphic or something) -- 
+    1. interstitial bump continues for several consecutive captures -- have to keep prompting the LLM and it flails indecisively between "ad" and "content"
+    1. side-by-side transition graphic with the side-by-side boxes, Fox logo in the ad box, and no side-by-side scoreboard on screen yet (so we can't use logo matching) -- still prompting LLM
+    1. finally, the side-by-side scoreboard appears with the logo 
+  - as soon as that side-by-side scoreboard appears, we should be able to instantly decide to make the switch without waiting any longer
+    - however, the current approach 
 
 - [ ] I want a better way of tracking, end-to-end, how long it takes to switch after receiving an image. I also want a way to tell if things get backed up
 - [ ] handle latency and backpressure -- right now, I have two external components that can have high-ish response times, but I have no way to handle that. 
@@ -48,7 +60,7 @@ Checkboxes key:
   - I suppose a rudimentary way to do it would be to make all the request processing on the `/receive` endpoint synchronous, so it only sends a response after classification is finished and the switcher has switched (if needed). Of course, the extension's scheduled screenshot sending would need to be tweaked so it could tell if it had gotten a response from the server for its last request yet and skip sending a new screenshot if it hasn't.
 - [ ] elegantly handle timeouts from both the llama.cpp server and the HDMI Matrix control server
 
-- [/] review jpg support -- some places still assume png
+- [/] review jpg support one last time -- some places still assume png
 - [ ] don't save compressed images into the same directory as their originals
 - [ ] build an abstraction layer for accessing image files and associated data
 
@@ -59,15 +71,19 @@ Checkboxes key:
 #### Review
 
 - [ ] I keep wanting to add new label types or update existing ones -- e.g. now I want to just tag every image that's a Fox side-by-side ad break -- maybe support custom tags of some kind
+- [ ] support better filtering of images based on classifications and things (like `view_classification_results.py`)
+- [ ] I want like a timeline view that shows all the images captured in a given broadcast (or at least a given timeframe) in chronological order
 
 #### Accuracy
 
-- [ ] when saving images, associate them with the active prompt and classification setup (this seems hard)
-
-- [ ] improve the data model of how inaccurate frames are saved. dumping them all in a folder with a .json file feels gross
-- [ ] increase the number of recent images we retain when reporting an error
+- [ ] manually classify even more images to help my test cases
+- [ ] when saving images, associate them with the active prompt and classification rules (this seems hard since it's hardcoded as a function right now)
+- [ ] consider how to improve the data model of how inaccurate frames are saved. dumping them all in a folder with a .json file feels gross
+- [ ] increase the number of recent images we retain when reporting an incorrect classification
 
 #### OpenCV
+
+- [ ] can we classify based on color grade to discriminate between race content and ads? the ads that confuse the model tend to have more "cinematic" color profiles
 
 ##### `logo_match.py`
 
@@ -75,7 +91,7 @@ Checkboxes key:
 
 #### Prompt
 
-- [ ] right now I have my prompt hardcoded for just Cup on Fox -- I'll need to add separate prompts other series too
+- [ ] right now I have my prompt, image, etc. hardcoded for just Cup on Fox/FS1 -- I'll need to add separate prompts, logos, etc. for the other series and broadcasters too
   - [ ] add a dropdown to the UI that lets you pick from multiple prompt presets
     - [ ] eventually: detect which series I'm watching using YTTV and/or live feed data (if a race is live)
   - series/networks to handle:
@@ -90,6 +106,10 @@ Checkboxes key:
 - [ ] for training purposes, record a level of "importance" associated with each manual classification -- how much do I care about this being classified correctly?
   - though this might also be better addressed by just improving my categories
   - the real issue is that I don't want to penalize the classifier too much for edge cases like transitions to and from commercial
+
+- [ ] update the prompt to indicate it's likely an ad unless it has race cars?
+  - I guess that's kinda what the first "quick reject" prompt is for
+  - TTTT
 
 - [ ] maybe include the previous reported state in the prompt to see if that helps -- e.g. `You last reported seeing (an ad|racing).`
   - try including the previous screenshot, too
@@ -131,6 +151,7 @@ Checkboxes key:
 
 ### Switching
 
+- [ ] !!! don't debounce if the classification reason is from OpenCV -- switch instantly
 - [ ] try to avoid sending multiple parallel/back-to-back requests to change inputs
 - [ ] if I re-enable auto-switch, immediately switch to the right state for the current classification
 
