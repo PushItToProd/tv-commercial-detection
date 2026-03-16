@@ -2,7 +2,10 @@
 
 ## Extension
 
+- [ ] !! it has a terrible memory leak -- Firefox was using _gigs_ of RAM after I had it running for a few hours
+
 - [ ] auto-save config when you click "start" (currently, it reports an error even though there's placeholder config pre-populated)
+- [ ] weird 'No video found' error sometimes
 - [ ] notify the server when the sender extension is started or stopped
 - [ ] ensure we only accept images for classification from one tab/sender at a time -- don't want to accidentally DoS myself if I enable this on multiple tabs
 - [ ] don't switch if I'm actively interacting with the video player tab (onmouseover?)
@@ -44,6 +47,14 @@
 
 ## Web app
 
+- [ ] general project cleanliness
+  - [ ] add linting
+  - [ ] add automated tests
+    - [ ] work out how to test
+  - [ ] clean up project structure
+    - [ ] move all code into a `src/` directory
+    - [ ] store outputs (`frames`, outputs from `check_classification.py`, etc.) in a separate folder not intermingled with code
+
 - [ ] take a path to a single folder to use for all outputs and data saved by the server
 - [ ] persist state in a better way (SQLite? Redis?) than just keeping it in a dataclass in memory
 - [ ] document expected values for `output_settings` in `AppConfig` (`config.py`)
@@ -68,6 +79,8 @@
 
 - [x] support .jpg in addition to .png files so we can compress on the client side
   - [/] review jpg support -- some places still assume png
+- [ ] don't save compressed images into the same directory as their originals
+- [ ] build an abstraction layer for accessing image files and associated data
 
 - [ ] the receiver saves the received image as a file, but then `_classify_image` takes the file path and reads it as base64 -- maybe that can be cut out
 - [ ] factor out an enum of classification labels to support more consistent typing
