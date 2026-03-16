@@ -29,7 +29,9 @@
   });
 
   function initTracking(video) {
+    console.log("tracking video:", video);
     window.__videoInteractionState.videoElement = video;
+    if (!video) return;
 
     video.addEventListener('seeking', () => {
       console.debug('Video seeking started');
@@ -65,6 +67,8 @@
   }
 
   function checkNewVideoElement(video) {
+    if (!video) return;
+
     // check if the video is larger than the currently tracked one
     if (state.videoElement) {
       const r = video.getBoundingClientRect();
@@ -82,7 +86,12 @@
   // Attach to any video elements already in the DOM.
   // document.querySelectorAll('video').forEach(attachTo);
 
-  initTracking(getLargestVideo());
+  try {
+    initTracking(getLargestVideo());
+  } catch (e) {
+    // do nothing -- just using this to ensure the mutation observer gets set up
+    console.error("initTracking failed:", e);
+  }
 
   // Watch for videos added dynamically (SPAs, deferred loads, etc.).
   const observer = new MutationObserver(mutations => {
