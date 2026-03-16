@@ -3,3 +3,5 @@
 .env
 classification_results*
 image_descriptions*
+duplicates.txt
+duplicates.jsonl
