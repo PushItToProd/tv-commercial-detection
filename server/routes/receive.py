@@ -61,10 +61,12 @@ async def receive(
 
     reply = None
     result_source = None
+    result_reason = None
     try:
         reply = classify_image(tmp_path)
         result = reply.type
         result_source = reply.source
+        result_reason = reply.reason
     except Exception:
         logger.exception("Classification error")
         result = "unknown"
@@ -109,12 +111,12 @@ async def receive(
     # Commit only when the same result appears twice in a row and differs from current state
     if (result_source == "opencv" or result == prev or not state.enable_debounce) and result != classification and result in ("ad", "content"):
         state.classification = result
-        logger.info(f"Classification changed: {classification} → {result}  |  offset: {offset_str}  |  page: {page_title}")
+        logger.info(f"Classification changed: {classification} → {result} (reason: {result_reason})  |  offset: {offset_str}  |  page: {page_title}")
         # Don't actually apply the new settings yet. We want to update the UI
         # first.
         apply_new_settings = state.auto_switch and not state.is_auto_switch_paused()
     else:
-        logger.info(f"Received image → classified as: {result}  |  offset: {offset_str}  |  page: {page_title}")
+        logger.info(f"Received image → classified as: {result} (reason: {result_reason}) |  offset: {offset_str}  |  page: {page_title}")
 
     await broadcast_status()
     if apply_new_settings:
