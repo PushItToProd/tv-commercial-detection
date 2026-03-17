@@ -11,6 +11,8 @@ Checkboxes key:
 
 - [ ] !! it has a terrible memory leak -- Firefox was using _gigs_ of RAM after I had it running for a few hours
 
+- [ ] `track_interactions.js` registers event listeners on the video tag, but it doesn't unregister them if it later targets another video tag
+
 - [ ] auto-save config when you click "start" (currently, it reports an error even though there's placeholder config pre-populated)
 - [ ] weird 'No video found' error sometimes
 - [ ] notify the server when the sender extension is started or stopped

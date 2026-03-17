@@ -33,6 +33,9 @@
     window.__videoInteractionState.videoElement = video;
     if (!video) return;
 
+    // FIXME: this registers event listeners on the video tag, but doesn't
+    // unregister them if we change the target video tag.
+
     video.addEventListener('seeking', () => {
       console.debug('Video seeking started');
       state.isSeeking = true;
