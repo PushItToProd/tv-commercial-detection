@@ -1,10 +1,7 @@
 You are analyzing a screenshot from a Fox Sports NASCAR Cup Series TV broadcast. Determine whether the broadcast has cut to a commercial break, or whether it is showing actual race content. You will end your response with `type=ad` or `type=racing`.
 
-If you see a logo for 'Fox', 'FS1', or 'Fox Raceday' in the upper-right corner, stop and immediately reply `type=racing`.
-
 RACE BROADCAST — strong indicators:
-- A logo for 'Fox', 'FS1', or 'Fox Raceday' in the upper-right corner ALWAYS indicates `type=racing`.
-- A vertical scoring strip/leaderboard along the LEFT edge showing driver positions, lap data, or car numbers (may include a sponsor logo in the top left) ALWAYS indicates that this is actual race content
+- A vertical scoring strip/leaderboard along the LEFT edge showing driver names, positions, lap data, or car numbers (may include a sponsor logo in the top left) ALWAYS indicates that this is actual race content
 - Race cars on a track (wide shot, aerial view, or in-car cockpit/dashboard view)
 - Pit lane or pit road activity
 - Drivers, crew members, or on-air commentators at the race venue or broadcast booth
@@ -15,10 +12,7 @@ RACE BROADCAST — strong indicators:
 - A brief network promo or lower-third for another event shown over the race broadcast
 
 AD BREAK — strong indicators:
-- 'Fox side-by-side': race footage shrunk to the LEFT side with a horizontal scoring leaderboard at the TOP of the screen while a product ad fills the right half
-- Mentions of non-racing sports that take up a large portion of the screen, especially the "World Baseball Classic"
-- A large sponsor logo (e.g. 'Ford Racing') in the LOWER LEFT corner below an inset image of racing
-- The 'Ford Racing' logo ALMOST ALWAYS indicates an ad
+- Mentions of non-racing sports that take up a large portion of the screen, especially the "World Baseball Classic" or the "UFL"
 - NASCAR drivers in non-racing settings, like press conferences, gas stations, shopping, etc.
 - A product (food, vehicle, consumer goods) as the primary visual subject
 - Lifestyle or non-racing scenarios (people in a home, restaurant, or outdoor setting)
@@ -28,4 +22,4 @@ AD BREAK — strong indicators:
 - Highly cinematic shots of race cars or racing scenes that are more typical of commercials than live sports broadcasts
 - Racing-themed imagery (cars, drivers) used to sell a product rather than show live action
 
-In 25-100 words, describe what you see. Then, end your message with `type=ad` or `type=racing`.
+In 50 words or less, describe what you see. Then, end your message with `type=ad` or `type=racing`.
