@@ -19,15 +19,9 @@ from classification import logo_match, rectangle_match
 
 SERVER_URL = os.environ.get("LLAMA_SERVER_URL", "http://192.168.1.27:3002")
 
-REFERENCE_LOGO_PATH = Path(__file__).parent / "prompt" / "fs1_logo.png"
-
-CROP_WIDTH_PCT = 0.12
-CROP_HEIGHT_PCT = 0.15
-
-PROMPT_FILE = os.environ.get("PROMPT_FILE", Path(__file__).parent / "prompt" / "prompt.txt")
-PROMPT = Path(PROMPT_FILE).read_text()
-
 PROMPT_DIR = Path(__file__).parent / "prompt"
+PROMPT_FILE = os.environ.get("PROMPT_FILE", PROMPT_DIR / "prompt.txt")
+PROMPT = Path(PROMPT_FILE).read_text()
 
 MAX_DIMENSION = 800
 
