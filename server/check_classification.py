@@ -31,9 +31,6 @@ def main():
     with labels_path.open() as f:
         labels = json.load(f)
 
-    # classify.EXAMPLES = classify.load_examples()
-    classify.EXAMPLES = []
-
     image_files = get_images(images_dir)
 
     num_incorrect = 0

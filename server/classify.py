@@ -25,9 +25,6 @@ PROMPT = Path(PROMPT_FILE).read_text()
 
 MAX_DIMENSION = 800
 
-# Each entry is (image_path, expected_assistant_reply).
-EXAMPLES: list[tuple[str, str]] = []
-
 
 @dataclass
 class ClassificationResult:
@@ -42,18 +39,6 @@ CLASSIFICATION_TIME = prometheus_client.Histogram(
     "Time spent classifying each image",
     buckets=[0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.25, 1.5, 1.75, 2, 5, 10],
 )
-
-
-def load_examples() -> list[tuple[str, str]]:
-    """Load few-shot examples from prompt/ad_frames and prompt/race_frames."""
-    examples: list[tuple[str, str]] = []
-    for subdir in ("ad_frames", "race_frames"):
-        for img_path in sorted((PROMPT_DIR / subdir).glob("*.png")):
-            txt_path = img_path.with_suffix(".png.txt")
-            if txt_path.exists():
-                reply = txt_path.read_text().strip()
-                examples.append((str(img_path), reply))
-    return examples
 
 
 def _resize_image(image_path: str) -> bytes:
@@ -110,21 +95,12 @@ def _classify_by_prompt(image_data: str) -> ClassificationResult:
     """Classify using the full prompt in prompt.txt. Returns the raw LLM reply."""
     # image_data = base64.b64encode(_resize_image(image_path)).decode("utf-8")
 
-    messages: list[ChatCompletionMessageParam] = []
-    for i, (ex_path, ex_reply) in enumerate(EXAMPLES):
-        ex_data = base64.b64encode(_resize_image(ex_path)).decode("utf-8")
-        user_content = []
-        if i == 0:
-            user_content.append({"type": "text", "text": PROMPT})
-        user_content.append({"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{ex_data}"}})
-        messages.append({"role": "user", "content": user_content})
-        messages.append({"role": "assistant", "content": ex_reply})
-
-    final_content = []
-    if not EXAMPLES:
-        final_content.append({"type": "text", "text": PROMPT})
-    final_content.append({"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{image_data}"}})
-    messages.append({"role": "user", "content": final_content})
+    messages: list[ChatCompletionMessageParam] = [
+        {"role": "user", "content": [
+            {"type": "text", "text": PROMPT},
+            {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{image_data}"}},
+        ]},
+    ]
 
     client = OpenAI(base_url=f"{SERVER_URL}/v1", api_key="none")
 
@@ -223,7 +199,6 @@ def get_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument('image_path', type=str, help='Path to the image to classify')
     parser.add_argument('--include-reply', action='store_true', help='Whether to include the full LLM reply in the output')
-    parser.add_argument('--load-examples', action='store_true', help='(No-op) kept for backwards compatibility')
     return parser
 
 

@@ -34,7 +34,6 @@ async def lifespan(app: FastAPI):
     env_map = {
         "DETECTOR_MATRIX_URL": "matrix_url",
         "DETECTOR_SAVE_DIR": "save_dir",
-        "DETECTOR_LOAD_EXAMPLES": "load_examples",
         "DETECTOR_ENABLE_DEBOUNCE": "enable_debounce",
     }
     for env_key, attr in env_map.items():
@@ -45,9 +44,6 @@ async def lifespan(app: FastAPI):
     # Ensure path type and create directory
     app_config.save_dir = Path(app_config.save_dir)
     app_config.save_dir.mkdir(parents=True, exist_ok=True)
-
-    if app_config.load_examples:
-        classify.EXAMPLES = classify.load_examples()
 
     state.enable_debounce = app_config.enable_debounce
 
