@@ -9,12 +9,21 @@ MATCH_METHOD = cv2.TM_CCOEFF_NORMED
 
 LOGOS_DIR = Path(__file__).parent.parent / "prompt" / "logos"
 
-# FIXME: load the logo from config
-# SIDE_BY_SIDE_LOGO_PATH = LOGOS_DIR / "fox_side_by_side_logo_crop.png"
-# NETWORK_LOGO_PATH = LOGOS_DIR / "fox_logo_crop.png"
+# FIXME: load the logo(s) from config; also support loading just the logos for
+# the current network
 
-NETWORK_LOGO_PATH = LOGOS_DIR / "fs1_logo_crop.png"
-SIDE_BY_SIDE_LOGO_PATH = LOGOS_DIR / "fs1_side_by_side_logo_crop.png"
+# We search for these in the upper right. Positioning is hardcoded for Fox.
+NETWORK_LOGO_PATHS = [
+    LOGOS_DIR / "fox_logo_crop.png",
+    LOGOS_DIR / "fs1_logo_crop.png",
+]
+
+# We search for these in the upper left.
+SIDE_BY_SIDE_LOGO_PATHS = [
+    LOGOS_DIR / "fox_side_by_side_logo_crop.png",
+    LOGOS_DIR / "fs1_side_by_side_logo_crop.png",
+    LOGOS_DIR / "nbc_nascar_non_stop_side_by_side_logo.png",
+]
 
 
 class MatchResult(NamedTuple):
@@ -57,11 +66,14 @@ def mask_non_white(img, min_thresh=200):
     return img
 
 
-MASKED_NETWORK_LOGO = mask_non_white(cv2.imread(NETWORK_LOGO_PATH))
-MASKED_SIDE_BY_SIDE_LOGO = mask_non_white(cv2.imread(SIDE_BY_SIDE_LOGO_PATH))
+def load_masked(img_path):
+    return mask_non_white(cv2.imread(img_path))
+
+MASKED_NETWORK_LOGOS = [*map(load_masked, NETWORK_LOGO_PATHS)]
+MASKED_SIDE_BY_SIDE_LOGOS = [*map(load_masked, SIDE_BY_SIDE_LOGO_PATHS)]
 
 
-def has_network_logo(img, masked_logo=MASKED_NETWORK_LOGO):
+def _has_network_logo(img, masked_logo):
     # scale to fixed size to ensure coordinates for logo match are consistent
     img = cv2.resize(img, (1920, 1080))
 
@@ -85,7 +97,14 @@ def has_network_logo(img, masked_logo=MASKED_NETWORK_LOGO):
     )
 
 
-def has_side_by_side_logo(img, masked_logo=MASKED_SIDE_BY_SIDE_LOGO):
+def has_network_logo(img, masked_logos=MASKED_NETWORK_LOGOS):
+    return any(
+        _has_network_logo(img, masked_logo)
+        for masked_logo in masked_logos
+    )
+
+
+def _has_side_by_side_logo(img, masked_logo):
     # scale to fixed size to ensure coordinates for logo match are consistent
     img = cv2.resize(img, (1920, 1080))
 
@@ -107,4 +126,10 @@ def has_side_by_side_logo(img, masked_logo=MASKED_SIDE_BY_SIDE_LOGO):
         # 50 <= br_y <= 75 and
         result.max_val >= 0.8
     )
-    raise NotImplementedError
+
+
+def has_side_by_side_logo(img, masked_logos=MASKED_SIDE_BY_SIDE_LOGOS):
+    return any(
+        _has_side_by_side_logo(img, masked_logo)
+        for masked_logo in masked_logos
+    )
