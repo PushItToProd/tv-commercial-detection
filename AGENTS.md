@@ -5,7 +5,7 @@
 **TV Commercial Detector** — a two-component system that automatically detects TV commercials during live race broadcasts on YouTube TV and switches an HDMI matrix to a different input during ad breaks.
 
 - **`browser_extension/`** — Firefox extension (Manifest V2) that periodically captures screenshots of the active video tab and sends them to the server.
-- **`server/`** — FastAPI app that classifies each screenshot using a local multimodal LLM (llama.cpp), tracks the current broadcast state, and controls an HDMI matrix switcher over HTTP.
+- **`server/`** — FastAPI app that classifies each screenshot using OpenCV and a local multimodal LLM (llama.cpp), tracks the current broadcast state, and controls an HDMI matrix switcher over HTTP.
 
 External services (run via Docker):
 - **llama.cpp** — local LLM server used for vision-based classification (`LLAMA_SERVER_URL`).
@@ -25,7 +25,7 @@ server/              FastAPI application
   matrix.py          HDMI matrix control helpers
   metrics.py         Prometheus metrics setup
   routes/            FastAPI routers (receive, review, status, trigger_matrix)
-  prompt/            LLM prompt text files and few-shot example images
+  prompt/            LLM prompt text files and images used for OpenCV-based classification
   frames/            Saved frames and labels (runtime, gitignored)
 docker-compose.yml   Orchestrates llama, hdmi-matrix-control, and receiver containers
 example.env          Template — copy to .env and fill in values before running Docker
@@ -68,7 +68,7 @@ Requires Python ≥ 3.14 (see `server/pyproject.toml`).
 
 Config is layered (later overrides earlier):
 1. `server/config.json` (optional)
-2. Environment variables: `DETECTOR_MATRIX_URL`, `DETECTOR_SAVE_DIR`, `DETECTOR_INCORRECT_DIR`, `DETECTOR_LOAD_EXAMPLES`, `DETECTOR_ENABLE_DEBOUNCE`
+2. Environment variables: `DETECTOR_MATRIX_URL`, `DETECTOR_SAVE_DIR`, `DETECTOR_INCORRECT_DIR`, `DETECTOR_ENABLE_DEBOUNCE`
 3. `LLAMA_SERVER_URL` — URL for the llama.cpp server (default: `http://192.168.1.27:3002`)
 4. `PROMPT_FILE` — path to the classification prompt (default: `server/prompt/prompt.txt`)
 
@@ -111,7 +111,7 @@ Configuration (server endpoint URL, capture interval) is stored via `browser.sto
 
 ## Classification
 
-`classify.py` resizes each image to at most 800 px on its longest side, encodes it as JPEG (quality 50), and sends it to the llama.cpp server using the OpenAI vision API. The prompt lives in `server/prompt/prompt.txt`. Optional few-shot examples can be loaded from `server/prompt/ad_frames/` and `server/prompt/race_frames/` by setting `DETECTOR_LOAD_EXAMPLES=1`.
+`classify.py` resizes each image to at most 800 px on its longest side, encodes it as JPEG (quality 50), and sends it to the llama.cpp server using the OpenAI vision API. The prompt lives in `server/prompt/prompt.txt`.
 
 Classification labels: `ad`, `content` (racing), `unknown`.
 
