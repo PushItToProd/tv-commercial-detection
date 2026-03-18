@@ -54,7 +54,6 @@ Checkboxes key:
     1. side-by-side transition graphic with the side-by-side boxes, Fox logo in the ad box, and no side-by-side scoreboard on screen yet (so we can't use logo matching) -- still prompting LLM
     1. finally, the side-by-side scoreboard appears with the logo 
   - as soon as that side-by-side scoreboard appears, we should be able to instantly decide to make the switch without waiting any longer
-    - however, the current approach 
 
 - [ ] I want a better way of tracking, end-to-end, how long it takes to switch after receiving an image. I also want a way to tell if things get backed up
 - [ ] handle latency and backpressure -- right now, I have two external components that can have high-ish response times, but I have no way to handle that. 
