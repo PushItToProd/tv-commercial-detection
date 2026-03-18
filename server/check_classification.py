@@ -4,8 +4,8 @@ import time
 from dataclasses import asdict
 from pathlib import Path
 
-from classify import classify_image
-import classify
+from tv_commercial_detector.classify import classify_image
+from tv_commercial_detector import classify
 
 
 IMAGES_DIR = Path(__file__).parent / "frames"

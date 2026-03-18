@@ -3,16 +3,19 @@ import json
 import logging
 from datetime import datetime
 
-from config import app_config
-from state import FrameEntry, recent_frames, state
+from .config import app_config
+from .state import FrameEntry, recent_frames, state
 
 logger = logging.getLogger(__name__)
 
 CLASSIFICATIONS_FILE = "classifications.jsonl"
 
 
-def save_frames_batch(frames: list[FrameEntry], save_reason: str, extra: dict | None = None) -> list[str]:
-    """Save a batch of FrameEntry items to save_dir and append metadata to classifications.jsonl.
+def save_frames_batch(
+    frames: list[FrameEntry], save_reason: str, extra: dict | None = None
+) -> list[str]:
+    """Save a batch of FrameEntry items to save_dir and append metadata
+    to classifications.jsonl.
 
     Returns a list of saved filenames.
     """
@@ -62,7 +65,8 @@ async def periodic_frame_saver() -> None:
             continue
         cutoff = state.last_periodic_save
         frames_to_save = [
-            f for f in recent_frames
+            f
+            for f in recent_frames
             if cutoff is None or datetime.fromisoformat(f.timestamp) > cutoff
         ]
         if frames_to_save:

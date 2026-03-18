@@ -45,10 +45,19 @@ cd server
 uv sync
 
 # Run the dev server
-uv run uvicorn main:create_app --factory --reload --host 0.0.0.0 --port 11434
+uv run uvicorn tv_commercial_detector.main:create_app --factory --reload --host 0.0.0.0 --port 11434
 
 # Run a script / one-off command inside the venv
-uv run python classify.py
+uv run python -m tv_commercial_detector.classify
+
+# Lint
+uv run ruff check src/
+
+# Format
+uv run ruff format src/
+
+# Run tests (unit only; integration tests require a live llama.cpp server)
+uv run pytest tests/ -m "not integration"
 ```
 
 ### Python version

@@ -1,20 +1,22 @@
 import json
+import logging
 from datetime import datetime
 from pathlib import Path
-import logging
-from PIL import Image
 
 from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse
 from fastapi.templating import Jinja2Templates
+from PIL import Image
 from pydantic import BaseModel
 
-from config import app_config
+from ..config import app_config
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
-templates = Jinja2Templates(directory=Path(__file__).resolve().parent.parent / "templates")
+templates = Jinja2Templates(
+    directory=Path(__file__).resolve().parent.parent / "templates"
+)
 
 
 def load_labels() -> dict:
@@ -32,9 +34,15 @@ def save_labels(labels: dict) -> None:
 
 
 # must be kept in sync with featFields in review.html
-VALID_NETWORK_LOGOS = frozenset({"Fox", "FS1", "FS2", "NBC", "CW", "USA", "other", "none"})
-VALID_LOGO_POSITIONS = frozenset({"upper_left", "upper_right", "lower_left", "lower_right", "not_visible", "unknown"})
-VALID_SCOREBOARD_POSITIONS = frozenset({"top", "bottom", "left", "upper_left", "right", "none", "unknown"})
+VALID_NETWORK_LOGOS = frozenset(
+    {"Fox", "FS1", "FS2", "NBC", "CW", "USA", "other", "none"}
+)
+VALID_LOGO_POSITIONS = frozenset(
+    {"upper_left", "upper_right", "lower_left", "lower_right", "not_visible", "unknown"}
+)
+VALID_SCOREBOARD_POSITIONS = frozenset(
+    {"top", "bottom", "left", "upper_left", "right", "none", "unknown"}
+)
 
 
 def load_features() -> dict:
@@ -67,7 +75,11 @@ async def save(
 ):
     # Use the extension's timestamp if provided, otherwise use server time
     try:
-        dt = datetime.fromisoformat(timestamp.replace("Z", "+00:00")) if timestamp else datetime.now()
+        dt = (
+            datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+            if timestamp
+            else datetime.now()
+        )
     except ValueError:
         dt = datetime.now()
 
@@ -85,8 +97,11 @@ async def save(
 
 @router.get("/frames/{filename}")
 def serve_frame(filename: str):
-    # Guard against path traversal: filename must be a plain basename ending in .jpg or .png
-    if Path(filename).name != filename or not filename.endswith((".jpg", ".jpeg", ".png")):
+    # Guard against path traversal: filename must be a plain basename
+    # ending in .jpg or .png
+    if Path(filename).name != filename or not filename.endswith(
+        (".jpg", ".jpeg", ".png")
+    ):
         raise HTTPException(status_code=400, detail="Invalid filename")
 
     save_dir = app_config.save_dir
@@ -113,7 +128,9 @@ def serve_frame(filename: str):
 @router.get("/frames/full/{filename}")
 def serve_frame_full(filename: str):
     """Serve the original (uncompressed) frame, used by the step-through review view."""
-    if Path(filename).name != filename or not filename.endswith((".jpg", ".jpeg", ".png")):
+    if Path(filename).name != filename or not filename.endswith(
+        (".jpg", ".jpeg", ".png")
+    ):
         raise HTTPException(status_code=400, detail="Invalid filename")
     if filename.startswith("compressed_"):
         raise HTTPException(status_code=404, detail="File not found")
@@ -139,10 +156,13 @@ class FeaturesRequest(BaseModel):
 def handle_classify(data: ClassifyRequest):
     label = data.label
     if label not in ("ad", "content", "ignore"):
-        raise HTTPException(status_code=400, detail="label must be 'ad', 'content', or 'ignore'")
+        raise HTTPException(
+            status_code=400, detail="label must be 'ad', 'content', or 'ignore'"
+        )
 
     filename = data.filename
-    # Guard against path traversal: filename must be a plain basename ending in .png or .jpg
+    # Guard against path traversal: filename must be a plain basename
+    # ending in .png or .jpg
     if Path(filename).name != filename or not filename.endswith((".png", ".jpg")):
         raise HTTPException(status_code=400, detail="Invalid filename")
     labels = load_labels()
@@ -155,22 +175,32 @@ def handle_classify(data: ClassifyRequest):
 def handle_features(data: FeaturesRequest):
     if data.network_logo is not None and data.network_logo not in VALID_NETWORK_LOGOS:
         raise HTTPException(status_code=400, detail="Invalid network_logo value")
-    if data.logo_position is not None and data.logo_position not in VALID_LOGO_POSITIONS:
+    if (
+        data.logo_position is not None
+        and data.logo_position not in VALID_LOGO_POSITIONS
+    ):
         raise HTTPException(status_code=400, detail="Invalid logo_position value")
-    if data.scoreboard_position is not None and data.scoreboard_position not in VALID_SCOREBOARD_POSITIONS:
+    if (
+        data.scoreboard_position is not None
+        and data.scoreboard_position not in VALID_SCOREBOARD_POSITIONS
+    ):
         raise HTTPException(status_code=400, detail="Invalid scoreboard_position value")
 
     filename = data.filename
-    if Path(filename).name != filename or not filename.endswith((".png", ".jpg", ".jpeg")):
+    if Path(filename).name != filename or not filename.endswith(
+        (".png", ".jpg", ".jpeg")
+    ):
         raise HTTPException(status_code=400, detail="Invalid filename")
 
     features = load_features()
     record = features.get(filename, {"filename": filename})
-    record.update({
-        "network_logo": data.network_logo,
-        "logo_position": data.logo_position,
-        "scoreboard_position": data.scoreboard_position,
-    })
+    record.update(
+        {
+            "network_logo": data.network_logo,
+            "logo_position": data.logo_position,
+            "scoreboard_position": data.scoreboard_position,
+        }
+    )
     features[filename] = record
     save_features(features)
     return {"saved": filename}
@@ -186,5 +216,10 @@ def review(request: Request):
         for p in [*save_dir.glob("*.png"), *save_dir.glob("*.jpg")]
         if not p.name.startswith("compressed_")
     )
-    image_data = [{"filename": f, "label": labels.get(f), "features": features.get(f, {})} for f in images]
-    return templates.TemplateResponse(request, "review.html", {"image_data": image_data})
+    image_data = [
+        {"filename": f, "label": labels.get(f), "features": features.get(f, {})}
+        for f in images
+    ]
+    return templates.TemplateResponse(
+        request, "review.html", {"image_data": image_data}
+    )

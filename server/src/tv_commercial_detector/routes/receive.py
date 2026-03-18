@@ -9,12 +9,12 @@ from pathlib import Path
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel
 
-from classify import classify_image
-from config import app_config
-from frame_saver import save_frames_batch
-from routes.status import broadcast_status
-from routes.trigger_matrix import apply_matrix_settings
-from state import FrameEntry, last_image_path, recent_frames, state
+from ..classify import classify_image
+from ..config import app_config
+from ..frame_saver import save_frames_batch
+from ..state import FrameEntry, last_image_path, recent_frames, state
+from .status import broadcast_status
+from .trigger_matrix import apply_matrix_settings
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +40,11 @@ async def receive(
         if is_seeking_bool:
             print(f"Seeking (no image)  |  offset: {offset_str}  |  page: {page_title}")
             await broadcast_status()
-            return {"classification": state.classification, "paused": False, "seeking": True}
+            return {
+                "classification": state.classification,
+                "paused": False,
+                "seeking": True,
+            }
         if is_paused_bool:
             print(f"Paused (no image)  |  offset: {offset_str}  |  page: {page_title}")
             await broadcast_status()
@@ -74,17 +78,19 @@ async def receive(
     classification = state.classification
 
     try:
-        recent_frames.append(FrameEntry(
-            timestamp=datetime.now().isoformat(),
-            frame_bytes=frame_bytes,
-            ext=ext,
-            result=reply,
-            page_title=page_title,
-            video_title=video_title,
-            network_name=network_name,
-            video_offset=offset_secs,
-            state_classification=classification,
-        ))
+        recent_frames.append(
+            FrameEntry(
+                timestamp=datetime.now().isoformat(),
+                frame_bytes=frame_bytes,
+                ext=ext,
+                result=reply,
+                page_title=page_title,
+                video_title=video_title,
+                network_name=network_name,
+                video_offset=offset_secs,
+                state_classification=classification,
+            )
+        )
         shutil.copy2(tmp_path, last_image_path)
     except Exception:
         logger.exception("Error saving recent frame")
@@ -102,21 +108,41 @@ async def receive(
 
     # Save frames when debounce would block a real classification change — the
     # two consecutive checks failed, suggesting the model may have got it wrong.
-    if result in ("ad", "content") and prev is not None and result != prev and result != classification:
+    if (
+        result in ("ad", "content")
+        and prev is not None
+        and result != prev
+        and result != classification
+    ):
         save_frames_batch(list(recent_frames), "suspicious_debounce")
-        logger.info(f"Suspicious debounce save: prev={prev}, result={result}, state={classification}")
+        logger.info(
+            f"Suspicious debounce save: prev={prev},"
+            f" result={result}, state={classification}"
+        )
 
     apply_new_settings = False
 
-    # Commit only when the same result appears twice in a row and differs from current state
-    if (result_source == "opencv" or result == prev or not state.enable_debounce) and result != classification and result in ("ad", "content"):
+    # Commit only when the same result appears twice in a row
+    # and differs from current state
+    if (
+        (result_source == "opencv" or result == prev or not state.enable_debounce)
+        and result != classification
+        and result in ("ad", "content")
+    ):
         state.classification = result
-        logger.info(f"Classification changed: {classification} → {result} (reason: {result_reason})  |  offset: {offset_str}  |  page: {page_title}")
+        logger.info(
+            f"Classification changed: {classification} → {result}"
+            f" (reason: {result_reason})  |  offset: {offset_str}"
+            f"  |  page: {page_title}"
+        )
         # Don't actually apply the new settings yet. We want to update the UI
         # first.
         apply_new_settings = state.auto_switch and not state.is_auto_switch_paused()
     else:
-        logger.info(f"Received image → classified as: {result} (reason: {result_reason}) |  offset: {offset_str}  |  page: {page_title}")
+        logger.info(
+            f"Received image → classified as: {result} (reason: {result_reason})"
+            f" |  offset: {offset_str}  |  page: {page_title}"
+        )
 
     await broadcast_status()
     if apply_new_settings:
@@ -146,14 +172,20 @@ async def video_state(
     print(f"Video state: {status}  |  page: {page_title}")
 
     await broadcast_status()
-    return {"classification": state.classification, "paused": is_paused_bool, "seeking": is_seeking_bool}
+    return {
+        "classification": state.classification,
+        "paused": is_paused_bool,
+        "seeking": is_seeking_bool,
+    }
 
 
 @router.post("/report_wrong")
 async def report_wrong(data: ReportWrongRequest):
     correct_label = data.correct_label
     if correct_label not in ("ad", "content"):
-        raise HTTPException(status_code=400, detail="correct_label must be 'ad' or 'content'")
+        raise HTTPException(
+            status_code=400, detail="correct_label must be 'ad' or 'content'"
+        )
     if not recent_frames:
         raise HTTPException(status_code=400, detail="No image available")
 
@@ -162,7 +194,10 @@ async def report_wrong(data: ReportWrongRequest):
         "manual_report",
         extra={"correct_label": correct_label, "classified_as": state.classification},
     )
-    print(f"Correction saved: {len(saved)} frame(s) to {app_config.save_dir}  |  classified as: {state.classification}, correct: {correct_label}")
+    print(
+        f"Correction saved: {len(saved)} frame(s) to {app_config.save_dir}"
+        f"  |  classified as: {state.classification}, correct: {correct_label}"
+    )
 
     # Update the classification (so we won't immediately switch back if debounce
     # is enabled and we get another wrong classification).

@@ -1,5 +1,4 @@
 import cv2
-from pathlib import Path
 
 # Two normalised boxes are considered the same candidate if their L2 distance
 # in (rx, ry, rw, rh) space is within this threshold.
@@ -8,15 +7,15 @@ EPS = 0.05
 
 
 KNOWN_RECTANGLES = {
-    'fox-side-by-side-left': (0.000, 0.239, 0.387, 0.381),
-    'fox-side-by-side-right': (0.411, 0.234, 0.542, 0.542),
-    'fox-side-by-side-scoreboard': (0.022, 0.029, 0.792, 0.176),
+    "fox-side-by-side-left": (0.000, 0.239, 0.387, 0.381),
+    "fox-side-by-side-right": (0.411, 0.234, 0.542, 0.542),
+    "fox-side-by-side-scoreboard": (0.022, 0.029, 0.792, 0.176),
 }
 
 KNOWN_AD_RECTANGLE_NAMES = [
-    'fox-side-by-side-left',
-    'fox-side-by-side-right',
-    'fox-side-by-side-scoreboard',
+    "fox-side-by-side-left",
+    "fox-side-by-side-right",
+    "fox-side-by-side-scoreboard",
 ]
 
 
@@ -71,7 +70,7 @@ def find_matching_rectangle(
         dy = ry - ry_norm
         dw = rw - rw_norm
         dh = rh - rh_norm
-        dist_sq = dx*dx + dy*dy + dw*dw + dh*dh
+        dist_sq = dx * dx + dy * dy + dw * dw + dh * dh
 
         if dist_sq <= eps_sq:
             matches.append((idx, (x, y, w, h)))

@@ -6,7 +6,7 @@ from PIL import Image
 from openai import OpenAI
 from openai.types.chat.chat_completion_message_param import ChatCompletionMessageParam
 
-import classify
+from tv_commercial_detector import classify
 import check_classification
 
 

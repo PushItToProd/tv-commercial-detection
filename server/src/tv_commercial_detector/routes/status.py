@@ -1,18 +1,20 @@
 import asyncio
 import json
+from pathlib import Path
 
 from fastapi import APIRouter, Request
 from fastapi.responses import FileResponse, Response, StreamingResponse
 from fastapi.templating import Jinja2Templates
-from pathlib import Path
 from pydantic import BaseModel
 
-from config import app_config
-from state import last_image_path, sse_clients, state
+from ..config import app_config
+from ..state import last_image_path, sse_clients, state
 
 router = APIRouter()
 
-templates = Jinja2Templates(directory=Path(__file__).resolve().parent.parent / "templates")
+templates = Jinja2Templates(
+    directory=Path(__file__).resolve().parent.parent / "templates"
+)
 
 
 def _get_status_data() -> dict:
@@ -29,7 +31,9 @@ def _get_status_data() -> dict:
         "matrix_switching": state.matrix_switching,
         "ad_view_label": ad_view_label,
         "race_view_label": race_view_label,
-        "auto_switch_paused_until": state.auto_switch_paused_until if state.is_auto_switch_paused() else None,
+        "auto_switch_paused_until": state.auto_switch_paused_until
+        if state.is_auto_switch_paused()
+        else None,
     }
 
 
@@ -58,7 +62,7 @@ async def is_ad_stream():
                 try:
                     data = await asyncio.wait_for(queue.get(), timeout=30)
                     yield f"data: {json.dumps(data)}\n\n"
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     yield ": keepalive\n\n"
         finally:
             sse_clients.discard(queue)

@@ -7,15 +7,14 @@ from pathlib import Path
 
 from fastapi import FastAPI
 
-import classify
-from config import app_config
-from frame_saver import periodic_frame_saver
-from metrics import instrumentator
-from routes.receive import router as receive_router
-from routes.review import router as review_router
-from routes.status import router as status_router
-from routes.trigger_matrix import router as matrix_router
-from state import state
+from .config import app_config
+from .frame_saver import periodic_frame_saver
+from .metrics import instrumentator
+from .routes.receive import router as receive_router
+from .routes.review import router as review_router
+from .routes.status import router as status_router
+from .routes.trigger_matrix import router as matrix_router
+from .state import state
 
 logging.basicConfig(level=logging.INFO)
 
@@ -71,5 +70,6 @@ def create_app() -> FastAPI:
 
 if __name__ == "__main__":
     import uvicorn
+
     app = create_app()
     uvicorn.run(app, host="0.0.0.0", port=11434)

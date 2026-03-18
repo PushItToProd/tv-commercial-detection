@@ -1,9 +1,8 @@
-import cv2
-
-from typing import NamedTuple
-from pathlib import Path
 import time
+from pathlib import Path
+from typing import NamedTuple
 
+import cv2
 
 MATCH_METHOD = cv2.TM_CCOEFF_NORMED
 
@@ -35,9 +34,13 @@ class MatchResult(NamedTuple):
     elapsed_time: float
 
     def __str__(self):
-        max_val_str = f"{self.max_val*100:.2f}%"
-        min_val_str = f"{self.min_val*100:.2f}%"
-        return f"top_left={self.top_left}, bottom_right={self.bottom_right}, max_val={max_val_str}, min_val={min_val_str}, elapsed_time={self.elapsed_time:.4f}s"
+        max_val_str = f"{self.max_val * 100:.2f}%"
+        min_val_str = f"{self.min_val * 100:.2f}%"
+        return (
+            f"top_left={self.top_left}, bottom_right={self.bottom_right}, "
+            f"max_val={max_val_str}, min_val={min_val_str}, "
+            f"elapsed_time={self.elapsed_time:.4f}s"
+        )
 
 
 def match_template(img, template, method) -> MatchResult:
@@ -61,13 +64,18 @@ def match_template(img, template, method) -> MatchResult:
 
 
 def mask_non_white(img, min_thresh=200):
-    non_white_mask = (img[:, :, 0] < min_thresh) | (img[:, :, 1] < min_thresh) | (img[:, :, 2] < min_thresh)
+    non_white_mask = (
+        (img[:, :, 0] < min_thresh)
+        | (img[:, :, 1] < min_thresh)
+        | (img[:, :, 2] < min_thresh)
+    )
     img[non_white_mask] = [0, 0, 0]
     return img
 
 
 def load_masked(img_path):
     return mask_non_white(cv2.imread(img_path))
+
 
 MASKED_NETWORK_LOGOS = [*map(load_masked, NETWORK_LOGO_PATHS)]
 MASKED_SIDE_BY_SIDE_LOGOS = [*map(load_masked, SIDE_BY_SIDE_LOGO_PATHS)]
@@ -80,7 +88,7 @@ def _has_network_logo(img, masked_logo):
     masked_img = mask_non_white(img)
 
     h, w = masked_img.shape[:2]
-    masked_img_crop = masked_img[0:h//8, w*5//6:w]
+    masked_img_crop = masked_img[0 : h // 8, w * 5 // 6 : w]
 
     result = match_template(masked_img_crop, masked_logo, method=MATCH_METHOD)
 
@@ -89,19 +97,16 @@ def _has_network_logo(img, masked_logo):
 
     # FIXME: make this configurable and more robust
     return (
-        110 <= tl_x <= 140 and
-        15 <= tl_y <= 35 and
-        245 <= br_x <= 290 and
-        50 <= br_y <= 75 and
-        result.max_val >= 0.39
+        110 <= tl_x <= 140
+        and 15 <= tl_y <= 35
+        and 245 <= br_x <= 290
+        and 50 <= br_y <= 75
+        and result.max_val >= 0.39
     )
 
 
 def has_network_logo(img, masked_logos=MASKED_NETWORK_LOGOS):
-    return any(
-        _has_network_logo(img, masked_logo)
-        for masked_logo in masked_logos
-    )
+    return any(_has_network_logo(img, masked_logo) for masked_logo in masked_logos)
 
 
 def _has_side_by_side_logo(img, masked_logo):
@@ -111,7 +116,7 @@ def _has_side_by_side_logo(img, masked_logo):
     masked_img = mask_non_white(img)
 
     h, w = masked_img.shape[:2]
-    masked_img_crop = masked_img[0:h//5, 0:w//5]
+    masked_img_crop = masked_img[0 : h // 5, 0 : w // 5]
 
     result = match_template(masked_img_crop, masked_logo, method=MATCH_METHOD)
 
@@ -129,7 +134,4 @@ def _has_side_by_side_logo(img, masked_logo):
 
 
 def has_side_by_side_logo(img, masked_logos=MASKED_SIDE_BY_SIDE_LOGOS):
-    return any(
-        _has_side_by_side_logo(img, masked_logo)
-        for masked_logo in masked_logos
-    )
+    return any(_has_side_by_side_logo(img, masked_logo) for masked_logo in masked_logos)

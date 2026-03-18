@@ -18,4 +18,4 @@ RUN pip install --upgrade pip && pip install --no-cache-dir -e .
 EXPOSE 11434
 
 # Run the Flask app
-CMD ["python", "main.py"]
+CMD ["uvicorn", "tv_commercial_detector.main:create_app", "--factory", "--host", "0.0.0.0", "--port", "11434"]
