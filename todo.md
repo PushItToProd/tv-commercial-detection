@@ -96,7 +96,8 @@ Checkboxes key:
   - [ ] add a dropdown to the UI that lets you pick from multiple prompt presets
     - [ ] eventually: detect which series I'm watching using YTTV and/or live feed data (if a race is live)
   - series/networks to handle:
-    - [ ] Xfinity on CW
+    - [/] O'Reilly on CW
+      - they keep their "CW Sports" logo visible in the upper right during side-by-side, so `classify_image` has to be rewritten to handle that
     - [ ] Cup on Amazon Prime
     - [ ] Cup on TNT
     - [ ] Cup on NBC

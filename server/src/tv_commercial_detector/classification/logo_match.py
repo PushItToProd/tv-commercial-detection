@@ -15,6 +15,7 @@ LOGOS_DIR = Path(__file__).parent.parent / "prompt" / "logos"
 NETWORK_LOGO_PATHS = [
     LOGOS_DIR / "fox_logo_crop.png",
     LOGOS_DIR / "fs1_logo_crop.png",
+    LOGOS_DIR / "cw_sports_logo.png",
 ]
 
 # We search for these in the upper left.
