@@ -4,74 +4,11 @@
 
 ---
 
-## Phase 1 — Package Restructure
-
-**1. Create the package skeleton**
-- Create `server/src/tv_commercial_detector/` with an `__init__.py`
-- Create `server/src/tv_commercial_detector/routes/` and `server/src/tv_commercial_detector/classification/` (both already have `__init__.py`s; bring them along)
-
-**2. Move source modules into the package**
-Move these into `server/src/tv_commercial_detector/`:
-- Flat modules: `classify.py`, `config.py`, `state.py`, `matrix.py`, `metrics.py`, `frame_saver.py`, `main.py`
-- Sub-packages: `routes/`, `classification/`
-- Resource directories: `templates/`, `prompt/` (including all logos) — they move *inside* the package so `Path(__file__)` anchoring still works
-
-**3. Update all internal imports to relative syntax** — *depends on step 2*
-
-Every bare cross-module import in every file:
-
-| File | Before | After |
-|---|---|---|
-| `main.py` | `import classify` | `from . import classify` |
-| `main.py` | `from config import app_config` | `from .config import app_config` |
-| `main.py` | `from routes.receive import …` | `from .routes.receive import …` |
-| `classify.py` | `from classification import logo_match` | `from .classification import logo_match` |
-| `matrix.py`, `frame_saver.py` | `from config import …` / `from state import …` | `from .config import …` / `from .state import …` |
-| `routes/receive.py` | `from classify import classify_image` | `from ..classify import classify_image` |
-| `routes/receive.py` | `from routes.status import …` | `from .status import …` |
-| `routes/trigger_matrix.py` | `import matrix` | `from .. import matrix` |
-| `routes/status.py`, `routes/review.py` | `from config import …` | `from ..config import …` |
-
-**4. Update consumers outside the package** — *depends on step 3*
-- `server/check_classification.py`: `from classify import …` → `from tv_commercial_detector.classify import …`
-- `server/scripts/get_image_descriptions.py`: check and update if it imports from the server modules
-
-**5. Update `pyproject.toml`** — *parallel with step 2*
-- Replace `[tool.setuptools]` `py-modules` + `packages` with autodiscovery:
-  ```toml
-  [tool.setuptools.packages.find]
-  where = ["src"]
-
-  [tool.setuptools.package-data]
-  "tv_commercial_detector" = ["templates/*", "prompt/*", "prompt/logos/*"]
-  ```
-- `Path(__file__)` references in `routes/status.py`, `routes/review.py`, and `classify.py` that point to `templates/` or `prompt/` need updating to reflect the new depth (e.g. `Jinja2Templates(directory=Path(__file__).parent.parent / "templates")` becomes `Path(__file__).parent.parent / "templates"` — still valid since `routes/` is one level inside the package)
-
-**6. Update the entry point** — *depends on step 3*
-- `AGENTS.md`, `server/Dockerfile`, `docker-compose.yml`: `uvicorn main:create_app` → `uvicorn tv_commercial_detector.main:create_app`
-
----
-
-## Phase 2 — Ruff (lint + format)
-
-**7. Add ruff as a dev dependency**
-- `uv add --dev ruff` (adds to `[dependency-groups].dev` in `pyproject.toml`)
-
-**8. Configure ruff in `pyproject.toml`**
-- `[tool.ruff]` — `src = ["src"]`, `target-version = "py314"`, `line-length = 88`
-- `[tool.ruff.lint]` — `select = ["E", "W", "F", "I", "UP"]` (errors, warnings, pyflakes, isort, pyupgrade)
-- `[tool.ruff.format]` — defaults are fine
-
-**9. Apply to existing code**
-- `uv run ruff check --fix src/` — auto-fix safe violations
-- `uv run ruff format src/` — reformat all files
-- Manually resolve any remaining reported issues
-
-**10. Document lint/format commands in `AGENTS.md`**
-
----
+Phases 1 and 2 removed -- already complete
 
 ## Phase 3 — Tests
+
+Implement the test suite incrementally and ask for feedback as you go. Don't write all the tests at once, as I keep getting timeouts when you try to generate them in one large batch.
 
 **11. Add test dependencies**
 - `uv add --dev pytest pytest-mock httpx`
