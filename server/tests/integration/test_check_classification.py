@@ -169,7 +169,6 @@ def test_per_label_accuracy(frames_dir, labels, llama_server):
     content_threshold = float(os.environ.get("ACCURACY_THRESHOLD_CONTENT", "0.75"))
 
     image_files = _get_image_files(frames_dir)
-    buckets = _classify_all(image_files, labels)
 
     # Build per-label ground truth
     ad_files = [f for f in image_files if labels.get(f.name) == "ad"]
