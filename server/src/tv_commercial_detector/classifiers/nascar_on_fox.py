@@ -3,6 +3,10 @@ import cv2
 from ..classification import llm_match, logo_match, rectangle_match
 from ..classification.result import ClassificationResult
 
+# XXX: I've stored these logo locations in dicts so that in the future we could
+# theoretically configure this classifier to only look for the logo of the the
+# network we're currently watching.
+
 
 # We search for these in the upper right.
 NETWORK_LOGO_PATHS = {
