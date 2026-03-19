@@ -30,13 +30,7 @@ Checkboxes key:
 
 ## Web app
 
-- [ ] general project cleanliness
-  - [ ] add linting
-  - [ ] add automated tests
-    - [ ] work out how to test
-  - [ ] clean up project structure
-    - [ ] move all code into a `src/` directory
-    - [ ] store outputs (`frames`, outputs from `check_classification.py`, etc.) in a separate folder not intermingled with code
+- [ ] update my config to move outputs (`frames`, outputs from `check_classification.py`, etc.) in a separate folder outside this project
 
 - [ ] take a path to a single folder to use for all outputs and data saved by the server
 - [ ] persist state in a better way (SQLite? Redis?) than just keeping it in a dataclass in memory
@@ -68,6 +62,8 @@ Checkboxes key:
 - [ ] the receiver saves the received image as a file, but then `_classify_image` takes the file path and reads it as base64 -- maybe that can be cut out
 - [ ] factor out an enum of classification labels to support more consistent typing
 - [ ] keep track of last receive time -- if we haven't gotten a new screenshot in a while (depending on the receive frequency), update the state to reflect possible connection loss and show that in the UI as well
+
+- [ ] allow importing classification profiles (classifiers) from a full path (so they could be added as plugins)
 
 #### Review
 
@@ -158,6 +154,8 @@ Checkboxes key:
 - [ ] if I re-enable auto-switch, immediately switch to the right state for the current classification
 
 ### UI
+
+- [ ] add a button to just save the last few screenshots
 
 - [ ] display the reason for the categorization on the UI
 - [ ] maybe use a CSS framework

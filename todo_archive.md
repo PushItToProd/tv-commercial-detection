@@ -45,6 +45,12 @@ Checkboxes key:
 - [x] split flask app into blueprints
 - [x] refactor to use Flask's config support https://flask.palletsprojects.com/en/stable/config/
 - [-] would websockets be more useful? -> no. SSE instead
+- [x] general project cleanliness
+  - [x] add linting
+  - [x] add automated tests
+    - [x] work out how to test
+  - [x] clean up project structure
+    - [x] move all code into a `src/` directory
 
 ### Classification/Receiver
 
