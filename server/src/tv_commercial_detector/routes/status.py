@@ -7,6 +7,7 @@ from fastapi.responses import FileResponse, Response, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 
+from ..classify import list_profiles
 from ..config import app_config
 from ..state import last_image_path, sse_clients, state
 
@@ -102,3 +103,27 @@ async def set_enable_debounce(data: EnabledRequest):
     state.enable_debounce = data.enabled
     await broadcast_status()
     return {"enable_debounce": state.enable_debounce}
+
+
+@router.get("/settings/classifier_profile")
+def get_classifier_profile():
+    return {"current": app_config.classifier_profile, "available": list_profiles()}
+
+
+class ClassifierProfileRequest(BaseModel):
+    profile: str
+
+
+@router.post("/settings/classifier_profile")
+async def set_classifier_profile(data: ClassifierProfileRequest):
+    import re
+
+    # if not re.fullmatch(r"[a-z][a-z0-9_]*", data.profile):
+    #     from fastapi import HTTPException
+    #     raise HTTPException(status_code=422, detail="Invalid profile name")
+    if data.profile not in list_profiles():
+        from fastapi import HTTPException
+        raise HTTPException(status_code=422, detail=f"Profile '{data.profile}' not found")
+    app_config.classifier_profile = data.profile
+    await broadcast_status()
+    return {"classifier_profile": app_config.classifier_profile}

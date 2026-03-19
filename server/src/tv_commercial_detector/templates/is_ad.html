@@ -80,6 +80,11 @@
     background: transparent; color: #ffcc00; transition: background 0.15s;
   }
   #auto-switch-paused .resume-btn:hover { background: rgba(255, 204, 0, 0.2); }
+  #classifier-profile-select {
+    background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 8px; padding: 0.35rem 0.7rem; font-size: 1.2rem; cursor: pointer;
+  }
+  #classifier-profile-select option { background: #333; color: #fff; }
 </style>
 </head>
 <body>
@@ -98,6 +103,10 @@
   </div>
   <button class="btn-matrix" id="btn-ad-input">Input ?</button>
   <button class="btn-matrix" id="btn-race-input">Input ?</button>
+  <div class="toggle-wrap">
+    <span class="ctrl-label">Classifier:</span>
+    <select id="classifier-profile-select"></select>
+  </div>
 </div>
 <div id="label">...</div>
 <div id="paused-indicator"></div>
@@ -242,6 +251,30 @@ const evtSource = new EventSource('/is_ad/stream');
 evtSource.onmessage = function(event) {
   applyData(JSON.parse(event.data));
 };
+
+// Classifier profile selector
+(function() {
+  const sel = document.getElementById('classifier-profile-select');
+  fetch('/settings/classifier_profile')
+    .then(r => r.json())
+    .then(data => {
+      data.available.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p;
+        opt.textContent = p;
+        if (p === data.current) opt.selected = true;
+        sel.appendChild(opt);
+      });
+    })
+    .catch(() => {});
+  sel.addEventListener('change', function() {
+    fetch('/settings/classifier_profile', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({profile: sel.value})
+    }).catch(() => {});
+  });
+})();
 </script>
 </body>
 </html>

@@ -34,6 +34,7 @@ async def lifespan(app: FastAPI):
         "DETECTOR_MATRIX_URL": "matrix_url",
         "DETECTOR_SAVE_DIR": "save_dir",
         "DETECTOR_ENABLE_DEBOUNCE": "enable_debounce",
+        "DETECTOR_CLASSIFIER_PROFILE": "classifier_profile",
     }
     for env_key, attr in env_map.items():
         val = os.environ.get(env_key)
