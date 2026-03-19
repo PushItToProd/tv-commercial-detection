@@ -26,6 +26,9 @@ SIDE_BY_SIDE_LOGO_PATHS = [
 ]
 
 
+# MatchResult is a NamedTuple rather than a dataclass because it is intended to
+# be immutable and lightweight, and it benefits from the built-in tuple behavior
+# (e.g., unpacking, indexing).
 class MatchResult(NamedTuple):
     res: MatLike
     top_left: Point
@@ -44,7 +47,7 @@ class MatchResult(NamedTuple):
         )
 
 
-def _match_template(img: MatLike, template: MatLike, method=TEMPLATE_MATCH_METHOD) -> MatchResult:
+def match_template(img: MatLike, template: MatLike, method=TEMPLATE_MATCH_METHOD) -> MatchResult:
     """
     Perform template matching on the given image using the given method.
     """
@@ -86,58 +89,60 @@ class ImageLoadError(Exception):
         self.img_path = img_path
 
 
-def _load_masked(img_path: Path | str) -> MatLike:
+def load_masked(img_path: Path | str) -> MatLike:
     img = cv2.imread(img_path)
     if img is None:
         raise ImageLoadError(img_path)
     return mask_non_white(img)
 
 
-MASKED_NETWORK_LOGOS = [*map(_load_masked, NETWORK_LOGO_PATHS)]
-MASKED_SIDE_BY_SIDE_LOGOS = [*map(_load_masked, SIDE_BY_SIDE_LOGO_PATHS)]
+MASKED_NETWORK_LOGOS = [*map(load_masked, NETWORK_LOGO_PATHS)]
+MASKED_SIDE_BY_SIDE_LOGOS = [*map(load_masked, SIDE_BY_SIDE_LOGO_PATHS)]
 
 
-def _has_network_logo(img: MatLike, masked_logo: MatLike) -> bool:
-    # scale to fixed size to ensure coordinates for logo match are consistent
-    img = cv2.resize(img, (1920, 1080))
+# def _has_network_logo(img: MatLike, masked_logo: MatLike) -> bool:
+#     # scale to fixed size to ensure coordinates for logo match are consistent.
+#     # XXX: also, template matching -- all cropped logos are from 1920x1080
+#     # images.
+#     img = cv2.resize(img, (1920, 1080))
 
-    masked_img = mask_non_white(img)
+#     masked_img = mask_non_white(img)
 
-    h, w = masked_img.shape[:2]
-    masked_img_crop = masked_img[0 : h // 8, w * 5 // 6 : w]
+#     h, w = masked_img.shape[:2]
+#     masked_img_crop = masked_img[0 : h // 8, w * 5 // 6 : w]
 
-    result = _match_template(masked_img_crop, masked_logo, method=TEMPLATE_MATCH_METHOD)
+#     result = match_template(masked_img_crop, masked_logo, method=TEMPLATE_MATCH_METHOD)
 
-    tl_x, tl_y = result.top_left
-    br_x, br_y = result.bottom_right
+#     tl_x, tl_y = result.top_left
+#     br_x, br_y = result.bottom_right
 
-    # TODO: these values are hardcoded for Fox -- move them into nascar_on_fox
-    return (
-        110 <= tl_x <= 140
-        and 15 <= tl_y <= 35
-        and 245 <= br_x <= 290
-        and 50 <= br_y <= 75
-        and result.max_val >= 0.39
-    )
-
-
-def has_network_logo(img, masked_logos=MASKED_NETWORK_LOGOS):
-    return any(_has_network_logo(img, masked_logo) for masked_logo in masked_logos)
+#     # TODO: these values are hardcoded for Fox -- move them into nascar_on_fox
+#     return (
+#         110 <= tl_x <= 140
+#         and 15 <= tl_y <= 35
+#         and 245 <= br_x <= 290
+#         and 50 <= br_y <= 75
+#         and result.max_val >= 0.39
+#     )
 
 
-def _has_side_by_side_logo(img: MatLike, masked_logo: MatLike) -> bool:
-    # scale to fixed size to ensure coordinates for logo match are consistent
-    img = cv2.resize(img, (1920, 1080))
-
-    masked_img = mask_non_white(img)
-
-    h, w = masked_img.shape[:2]
-    masked_img_crop = masked_img[0 : h // 5, 0 : w // 5]
-
-    result = _match_template(masked_img_crop, masked_logo, method=TEMPLATE_MATCH_METHOD)
-
-    return result.max_val >= 0.8
+# def has_network_logo(img, masked_logos=MASKED_NETWORK_LOGOS):
+#     return any(_has_network_logo(img, masked_logo) for masked_logo in masked_logos)
 
 
-def has_side_by_side_logo(img: MatLike, masked_logos=MASKED_SIDE_BY_SIDE_LOGOS) -> bool:
-    return any(_has_side_by_side_logo(img, masked_logo) for masked_logo in masked_logos)
+# def _has_side_by_side_logo(img: MatLike, masked_logo: MatLike) -> bool:
+#     # scale to fixed size to ensure coordinates for logo match are consistent
+#     img = cv2.resize(img, (1920, 1080))
+
+#     masked_img = mask_non_white(img)
+
+#     h, w = masked_img.shape[:2]
+#     masked_img_crop = masked_img[0 : h // 5, 0 : w // 5]
+
+#     result = match_template(masked_img_crop, masked_logo, method=TEMPLATE_MATCH_METHOD)
+
+#     return result.max_val >= 0.8
+
+
+# def has_side_by_side_logo(img: MatLike, masked_logos=MASKED_SIDE_BY_SIDE_LOGOS) -> bool:
+#     return any(_has_side_by_side_logo(img, masked_logo) for masked_logo in masked_logos)

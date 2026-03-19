@@ -4,6 +4,120 @@ from ..classification import llm_match, logo_match, rectangle_match
 from ..classification.result import ClassificationResult
 
 
+# We search for these in the upper right.
+NETWORK_LOGO_PATHS = {
+    "fox": logo_match.LOGOS_DIR / "fox_logo_crop.png",
+    "fs1": logo_match.LOGOS_DIR / "fs1_logo_crop.png",
+}
+
+# We search for these in the upper left.
+SIDE_BY_SIDE_LOGO_PATHS = {
+    "fox": logo_match.LOGOS_DIR / "fox_side_by_side_logo_crop.png",
+    "fs1": logo_match.LOGOS_DIR / "fs1_side_by_side_logo_crop.png",
+}
+
+MASKED_NETWORK_LOGOS = {
+    name: logo_match.load_masked(path)
+    for name, path in NETWORK_LOGO_PATHS.items()
+}
+MASKED_SIDE_BY_SIDE_LOGOS = {
+    name: logo_match.load_masked(path)
+    for name, path in SIDE_BY_SIDE_LOGO_PATHS.items()
+}
+
+
+def _extract_fox_logo_region(img: cv2.typing.MatLike) -> cv2.typing.MatLike:
+    """
+    Crop the region of the image where the Fox network logo would appear if
+    present.
+    """
+    h, w = img.shape[:2]
+    return img[0 : h // 8, w * 5 // 6 : w]
+
+
+# def _has_network_logo_upper_right(img: cv2.typing.MatLike, masked_logos = MASKED_NETWORK_LOGOS):
+#     """
+#     Detect the presence of the Fox network logo in the image.
+
+#     Expects the input image to be a 1920×1080 frame from a NASCAR broadcast on
+#     Fox or FS1.
+#     """
+#     cropped_img = _extract_fox_logo_region(img)
+#     masked_img_crop = logo_match.mask_non_white(cropped_img)
+
+#     for name, masked_logo in masked_logos.items():
+#         result = logo_match.match_template(masked_img_crop, masked_logo)
+
+#         # tl_x, tl_y = result.top_left
+#         # br_x, br_y = result.bottom_right
+
+#         if (
+#             # # Hardcoded bounds for where the logo should be within the cropped
+#             # # region. -- Not sure these are needed since we crop the image.
+#             # 110 <= tl_x <= 140 and
+#             # 15 <= tl_y <= 35 and
+#             # 245 <= br_x <= 290 and
+#             # 50 <= br_y <= 75 and
+
+#             # This threshold might seem low, but in practice this is needed to
+#             # catch cases where the logo gets washed out in a white background.
+#             result.max_val >= 0.39
+#         ):
+#             return name
+
+#     return None
+
+
+def _has_network_logo(img: cv2.typing.MatLike, masked_logo: cv2.typing.MatLike) -> bool:
+    # scale to fixed size to ensure coordinates for logo match are consistent.
+    # XXX: also, template matching -- all cropped logos are from 1920x1080
+    # images.
+    # img = cv2.resize(img, (1920, 1080))
+
+    img_crop = _extract_fox_logo_region(img)
+    masked_img_crop = logo_match.mask_non_white(img)
+
+    # h, w = masked_img.shape[:2]
+    # masked_img_crop = masked_img[0 : h // 8, w * 5 // 6 : w]
+
+    result = logo_match.match_template(masked_img_crop, masked_logo)
+
+    tl_x, tl_y = result.top_left
+    br_x, br_y = result.bottom_right
+
+    # TODO: these values are hardcoded for Fox -- move them into nascar_on_fox
+    return (
+        110 <= tl_x <= 140
+        and 15 <= tl_y <= 35
+        and 245 <= br_x <= 290
+        and 50 <= br_y <= 75
+        and result.max_val >= 0.39
+    )
+
+
+def has_network_logo(img, masked_logos=MASKED_NETWORK_LOGOS):
+    return any(_has_network_logo(img, masked_logo) for masked_logo in masked_logos.values())
+
+
+def _has_side_by_side_logo(img: cv2.typing.MatLike, masked_logo: cv2.typing.MatLike) -> bool:
+    # scale to fixed size to ensure coordinates for logo match are consistent
+    # img = cv2.resize(img, (1920, 1080))
+
+    masked_img = logo_match.mask_non_white(img)
+
+    h, w = masked_img.shape[:2]
+    masked_img_crop = masked_img[0 : h // 5, 0 : w // 5]
+
+    result = logo_match.match_template(masked_img_crop, masked_logo)
+
+    return result.max_val >= 0.8
+
+
+def has_side_by_side_logo(img: cv2.typing.MatLike, masked_logos=MASKED_SIDE_BY_SIDE_LOGOS) -> bool:
+    return any(_has_side_by_side_logo(img, masked_logo) for masked_logo in masked_logos.values())
+
+
+
 def classify_image(image_path: str) -> ClassificationResult:
     """Three-pass classification: logo detection, scoreboard detection,
     then prompt-based fallback."""
@@ -11,15 +125,16 @@ def classify_image(image_path: str) -> ClassificationResult:
     # and pass the image object or bytes to each function.
 
     cv_img = cv2.imread(image_path)
+    cv_img_1080p = cv2.resize(cv_img, (1920, 1080))
 
     # Network logo in the upper right -> not an ad break
-    if logo_match.has_network_logo(cv_img):
+    if has_network_logo(cv_img_1080p):
         return ClassificationResult(
             source="opencv", type="content", reason="network_logo", reply="(opencv)"
         )
 
     # Side-by-side logo in the upper left -> very likely an ad break
-    if logo_match.has_side_by_side_logo(cv_img):
+    if has_side_by_side_logo(cv_img_1080p):
         return ClassificationResult(
             source="opencv",
             type="ad",
@@ -28,7 +143,7 @@ def classify_image(image_path: str) -> ClassificationResult:
         )
 
     # check for bounding boxes used during side-by-side ad breaks
-    matched_rect = rectangle_match.image_has_known_ad_rectangle(cv_img)
+    matched_rect = rectangle_match.image_has_known_ad_rectangle(cv_img_1080p)
     if matched_rect is not None:
         return ClassificationResult(
             source="opencv",
