@@ -8,8 +8,7 @@ MATCH_METHOD = cv2.TM_CCOEFF_NORMED
 
 LOGOS_DIR = Path(__file__).parent.parent / "prompt" / "logos"
 
-# FIXME: load the logo(s) from config; also support loading just the logos for
-# the current network
+# TODO: move network-specific logo details into per-network packages.
 
 # We search for these in the upper right. Positioning is hardcoded for Fox.
 NETWORK_LOGO_PATHS = [
@@ -96,8 +95,7 @@ def _has_network_logo(img, masked_logo):
     tl_x, tl_y = result.top_left
     br_x, br_y = result.bottom_right
 
-    # FIXME: these values are hardcoded for Fox and may need to be adjusted for
-    # other networks or if the logos change; make this more robust
+    # TODO: these values are hardcoded for Fox -- move them into nascar_on_fox
     return (
         110 <= tl_x <= 140
         and 15 <= tl_y <= 35
