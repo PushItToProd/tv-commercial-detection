@@ -58,11 +58,18 @@ def main():
         times_taken.append(elapsed_time)
 
         classification = resp.type
-        reason = resp.reason
-        model_reply = resp.reply
 
-        if classification == actual:
-            print(json.dumps({"file": f.name, "status": "correct", "expected": actual, "classified": classification, "elapsed": round(elapsed_time, 2), "model_reply": asdict(resp)}))
+        result_json = {
+            "file": f.name,
+            "status": "correct" if classification == actual else "incorrect",
+            "expected": actual,
+            "classified": classification,
+            "elapsed": round(elapsed_time, 2),
+            "model_reply": asdict(resp),
+        }
+
+        if result_json["status"] == "correct":
+            print(json.dumps(result_json))
             continue
 
         num_incorrect += 1
@@ -74,7 +81,8 @@ def main():
         else:
             incorrectly_unknown.append(f.name)
 
-        print(json.dumps({"file": f.name, "status": "incorrect", "expected": actual, "classified": classification, "elapsed": round(elapsed_time, 2), "model_reply": asdict(resp)}))
+        print(json.dumps(result_json))
+
 
     num_images = len(image_files)
     num_skipped = num_unlabeled + num_ignored
