@@ -35,39 +35,6 @@ def _extract_fox_logo_region(img: cv2.typing.MatLike) -> cv2.typing.MatLike:
     return img[0 : h // 8, w * 5 // 6 : w]
 
 
-# def _has_network_logo_upper_right(img: cv2.typing.MatLike, masked_logos = MASKED_NETWORK_LOGOS):
-#     """
-#     Detect the presence of the Fox network logo in the image.
-
-#     Expects the input image to be a 1920×1080 frame from a NASCAR broadcast on
-#     Fox or FS1.
-#     """
-#     cropped_img = _extract_fox_logo_region(img)
-#     masked_img_crop = logo_match.mask_non_white(cropped_img)
-
-#     for name, masked_logo in masked_logos.items():
-#         result = logo_match.match_template(masked_img_crop, masked_logo)
-
-#         # tl_x, tl_y = result.top_left
-#         # br_x, br_y = result.bottom_right
-
-#         if (
-#             # # Hardcoded bounds for where the logo should be within the cropped
-#             # # region. -- Not sure these are needed since we crop the image.
-#             # 110 <= tl_x <= 140 and
-#             # 15 <= tl_y <= 35 and
-#             # 245 <= br_x <= 290 and
-#             # 50 <= br_y <= 75 and
-
-#             # This threshold might seem low, but in practice this is needed to
-#             # catch cases where the logo gets washed out in a white background.
-#             result.max_val >= 0.39
-#         ):
-#             return name
-
-#     return None
-
-
 def _has_network_logo(img: cv2.typing.MatLike, masked_logo: cv2.typing.MatLike) -> bool:
     # scale to fixed size to ensure coordinates for logo match are consistent.
     # XXX: also, template matching -- all cropped logos are from 1920x1080
