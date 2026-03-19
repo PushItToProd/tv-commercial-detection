@@ -118,11 +118,11 @@ def test_classify_image_llm_returns_ad(tmp_path, mocker):
     image_path = _make_jpeg(tmp_path)
 
     mocker.patch(
-        "tv_commercial_detector.classification.logo_match.has_network_logo",
+        "tv_commercial_detector.classifiers.nascar_on_fox.has_network_logo",
         return_value=False,
     )
     mocker.patch(
-        "tv_commercial_detector.classification.logo_match.has_side_by_side_logo",
+        "tv_commercial_detector.classifiers.nascar_on_fox.has_side_by_side_logo",
         return_value=False,
     )
     mocker.patch(
@@ -152,11 +152,11 @@ def test_classify_image_llm_returns_content(tmp_path, mocker):
     image_path = _make_jpeg(tmp_path)
 
     mocker.patch(
-        "tv_commercial_detector.classification.logo_match.has_network_logo",
+        "tv_commercial_detector.classifiers.nascar_on_fox.has_network_logo",
         return_value=False,
     )
     mocker.patch(
-        "tv_commercial_detector.classification.logo_match.has_side_by_side_logo",
+        "tv_commercial_detector.classifiers.nascar_on_fox.has_side_by_side_logo",
         return_value=False,
     )
     mocker.patch(
@@ -183,11 +183,11 @@ def test_classify_image_quick_reject_returns_ad(tmp_path, mocker):
     image_path = _make_jpeg(tmp_path)
 
     mocker.patch(
-        "tv_commercial_detector.classification.logo_match.has_network_logo",
+        "tv_commercial_detector.classifiers.nascar_on_fox.has_network_logo",
         return_value=False,
     )
     mocker.patch(
-        "tv_commercial_detector.classification.logo_match.has_side_by_side_logo",
+        "tv_commercial_detector.classifiers.nascar_on_fox.has_side_by_side_logo",
         return_value=False,
     )
     mocker.patch(
@@ -212,7 +212,7 @@ def test_classify_image_opencv_network_logo_wins(tmp_path, mocker):
     image_path = _make_jpeg(tmp_path)
 
     mocker.patch(
-        "tv_commercial_detector.classification.logo_match.has_network_logo",
+        "tv_commercial_detector.classifiers.nascar_on_fox.has_network_logo",
         return_value=True,
     )
     mock_llm = mocker.patch("tv_commercial_detector.classification.llm_match._report_racing_related")
@@ -229,11 +229,11 @@ def test_classify_image_opencv_side_by_side_wins(tmp_path, mocker):
     image_path = _make_jpeg(tmp_path)
 
     mocker.patch(
-        "tv_commercial_detector.classification.logo_match.has_network_logo",
+        "tv_commercial_detector.classifiers.nascar_on_fox.has_network_logo",
         return_value=False,
     )
     mocker.patch(
-        "tv_commercial_detector.classification.logo_match.has_side_by_side_logo",
+        "tv_commercial_detector.classifiers.nascar_on_fox.has_side_by_side_logo",
         return_value=True,
     )
     mock_llm = mocker.patch("tv_commercial_detector.classification.llm_match._report_racing_related")
@@ -250,11 +250,11 @@ def test_classify_image_opencv_rectangle_wins(tmp_path, mocker):
     image_path = _make_jpeg(tmp_path)
 
     mocker.patch(
-        "tv_commercial_detector.classification.logo_match.has_network_logo",
+        "tv_commercial_detector.classifiers.nascar_on_fox.has_network_logo",
         return_value=False,
     )
     mocker.patch(
-        "tv_commercial_detector.classification.logo_match.has_side_by_side_logo",
+        "tv_commercial_detector.classifiers.nascar_on_fox.has_side_by_side_logo",
         return_value=False,
     )
     mocker.patch(

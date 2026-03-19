@@ -46,10 +46,7 @@ def _has_network_logo(img: cv2.typing.MatLike, masked_logo: cv2.typing.MatLike) 
     # img = cv2.resize(img, (1920, 1080))
 
     img_crop = _extract_fox_logo_region(img)
-    masked_img_crop = logo_match.mask_non_white(img)
-
-    # h, w = masked_img.shape[:2]
-    # masked_img_crop = masked_img[0 : h // 8, w * 5 // 6 : w]
+    masked_img_crop = logo_match.mask_non_white(img_crop.copy())
 
     result = logo_match.match_template(masked_img_crop, masked_logo)
 
