@@ -3,8 +3,9 @@ from pathlib import Path
 from typing import NamedTuple
 
 import cv2
+from cv2.typing import MatLike, Point
 
-MATCH_METHOD = cv2.TM_CCOEFF_NORMED
+TEMPLATE_MATCH_METHOD = cv2.TM_CCOEFF_NORMED
 
 LOGOS_DIR = Path(__file__).parent.parent / "prompt" / "logos"
 
@@ -26,9 +27,9 @@ SIDE_BY_SIDE_LOGO_PATHS = [
 
 
 class MatchResult(NamedTuple):
-    res: cv2.typing.MatLike
-    top_left: cv2.typing.Point
-    bottom_right: cv2.typing.Point
+    res: MatLike
+    top_left: Point
+    bottom_right: Point
     max_val: float
     min_val: float
     elapsed_time: float
@@ -43,7 +44,10 @@ class MatchResult(NamedTuple):
         )
 
 
-def match_template(img, template, method) -> MatchResult:
+def _match_template(img: MatLike, template: MatLike, method=TEMPLATE_MATCH_METHOD) -> MatchResult:
+    """
+    Perform template matching on the given image using the given method.
+    """
     h, w, *_ = template.shape
 
     # Apply template Matching
@@ -63,7 +67,7 @@ def match_template(img, template, method) -> MatchResult:
     return MatchResult(res, top_left, bottom_right, max_val, min_val, elapsed_time)
 
 
-def mask_non_white(img, min_thresh=200):
+def mask_non_white(img: MatLike, min_thresh=200):
     non_white_mask = (
         (img[:, :, 0] < min_thresh)
         | (img[:, :, 1] < min_thresh)
@@ -73,15 +77,27 @@ def mask_non_white(img, min_thresh=200):
     return img
 
 
-def load_masked(img_path):
-    return mask_non_white(cv2.imread(img_path))
+class ImageLoadError(Exception):
+    """
+    Indicates a failure to load the image using cv2.imread.
+    """
+    def __init__(self, img_path):
+        super().__init__(f"Failed to load image at path: {img_path}")
+        self.img_path = img_path
 
 
-MASKED_NETWORK_LOGOS = [*map(load_masked, NETWORK_LOGO_PATHS)]
-MASKED_SIDE_BY_SIDE_LOGOS = [*map(load_masked, SIDE_BY_SIDE_LOGO_PATHS)]
+def _load_masked(img_path: Path | str) -> MatLike:
+    img = cv2.imread(img_path)
+    if img is None:
+        raise ImageLoadError(img_path)
+    return mask_non_white(img)
 
 
-def _has_network_logo(img, masked_logo):
+MASKED_NETWORK_LOGOS = [*map(_load_masked, NETWORK_LOGO_PATHS)]
+MASKED_SIDE_BY_SIDE_LOGOS = [*map(_load_masked, SIDE_BY_SIDE_LOGO_PATHS)]
+
+
+def _has_network_logo(img: MatLike, masked_logo: MatLike) -> bool:
     # scale to fixed size to ensure coordinates for logo match are consistent
     img = cv2.resize(img, (1920, 1080))
 
@@ -90,7 +106,7 @@ def _has_network_logo(img, masked_logo):
     h, w = masked_img.shape[:2]
     masked_img_crop = masked_img[0 : h // 8, w * 5 // 6 : w]
 
-    result = match_template(masked_img_crop, masked_logo, method=MATCH_METHOD)
+    result = _match_template(masked_img_crop, masked_logo, method=TEMPLATE_MATCH_METHOD)
 
     tl_x, tl_y = result.top_left
     br_x, br_y = result.bottom_right
@@ -109,7 +125,7 @@ def has_network_logo(img, masked_logos=MASKED_NETWORK_LOGOS):
     return any(_has_network_logo(img, masked_logo) for masked_logo in masked_logos)
 
 
-def _has_side_by_side_logo(img, masked_logo):
+def _has_side_by_side_logo(img: MatLike, masked_logo: MatLike) -> bool:
     # scale to fixed size to ensure coordinates for logo match are consistent
     img = cv2.resize(img, (1920, 1080))
 
@@ -118,10 +134,10 @@ def _has_side_by_side_logo(img, masked_logo):
     h, w = masked_img.shape[:2]
     masked_img_crop = masked_img[0 : h // 5, 0 : w // 5]
 
-    result = match_template(masked_img_crop, masked_logo, method=MATCH_METHOD)
+    result = _match_template(masked_img_crop, masked_logo, method=TEMPLATE_MATCH_METHOD)
 
     return result.max_val >= 0.8
 
 
-def has_side_by_side_logo(img, masked_logos=MASKED_SIDE_BY_SIDE_LOGOS):
+def has_side_by_side_logo(img: MatLike, masked_logos=MASKED_SIDE_BY_SIDE_LOGOS) -> bool:
     return any(_has_side_by_side_logo(img, masked_logo) for masked_logo in masked_logos)

@@ -17,7 +17,7 @@ from tv_commercial_detector.classification.logo_match import (
     MASKED_SIDE_BY_SIDE_LOGOS,
     has_network_logo,
     has_side_by_side_logo,
-    load_masked,
+    _load_masked,
     mask_non_white,
 )
 
@@ -58,8 +58,8 @@ def test_no_network_logo_in_blank_frame():
     # Use only logos that fit inside the crop region (135h × 320w).
     from tv_commercial_detector.classification.logo_match import LOGOS_DIR as _LD
     small_logos = [
-        load_masked(str(_LD / "fox_logo_crop.png")),
-        load_masked(str(_LD / "fs1_logo_crop.png")),
+        _load_masked(str(_LD / "fox_logo_crop.png")),
+        _load_masked(str(_LD / "fs1_logo_crop.png")),
     ]
     assert has_network_logo(blank_bgr(), small_logos) is False
 
@@ -100,7 +100,7 @@ SIDE_BY_SIDE_LOGO_ABS_Y = 0
     ids=["fox", "fs1"],
 )
 def test_network_logo_detected(logo_path):
-    masked = load_masked(str(logo_path))
+    masked = _load_masked(str(logo_path))
     frame = frame_with_logo_at(masked, NETWORK_LOGO_ABS_X, NETWORK_LOGO_ABS_Y)
     assert has_network_logo(frame, [masked]) is True
 
@@ -115,7 +115,7 @@ def test_network_logo_detected(logo_path):
     ids=["fox_sbs", "fs1_sbs", "nbc_sbs"],
 )
 def test_side_by_side_logo_detected(logo_path):
-    masked = load_masked(str(logo_path))
+    masked = _load_masked(str(logo_path))
     frame = frame_with_logo_at(masked, SIDE_BY_SIDE_LOGO_ABS_X, SIDE_BY_SIDE_LOGO_ABS_Y)
     assert has_side_by_side_logo(frame, [masked]) is True
 

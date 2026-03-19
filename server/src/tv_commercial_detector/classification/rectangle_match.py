@@ -1,4 +1,5 @@
 import cv2
+from cv2.typing import MatLike, Rect
 
 # Two normalised boxes are considered the same candidate if their L2 distance
 # in (rx, ry, rw, rh) space is within this threshold.
@@ -23,7 +24,7 @@ KNOWN_AD_RECTANGLE_NAMES = [
 ]
 
 
-def detect_rectangles(img):
+def detect_rectangles(img: MatLike) -> list[Rect]:
     """Detect axis-aligned rectangles in image using edge detection."""
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     edges = cv2.Canny(gray, 50, 150)
@@ -43,7 +44,7 @@ def find_matching_rectangle(
     width: int,
     height: int,
     eps: float = EPS,
-) -> list[tuple[int, tuple[int, int, int, int]]]:
+) -> list[tuple[int, Rect]]:
     """
     Find all rectangles that match a given normalized box.
 
@@ -111,7 +112,7 @@ def find_matching_rectangles(
 
 
 def find_matching_rectangles_in_image(
-    img,
+    img: MatLike,
     normalized_boxes: dict[str, tuple[float, float, float, float]] = KNOWN_RECTANGLES,
     eps: float = EPS,
 ):
@@ -122,7 +123,7 @@ def find_matching_rectangles_in_image(
 
 
 def image_has_known_ad_rectangle(
-    img,
+    img: MatLike,
     normalized_boxes: dict[str, tuple[float, float, float, float]] = KNOWN_RECTANGLES,
     ad_rectangle_names: list[str] = KNOWN_AD_RECTANGLE_NAMES,
     eps: float = EPS,
