@@ -50,17 +50,10 @@ def classify_image(image_path: str) -> ClassificationResult:
             reply="No NASCAR-related content detected",
         )
 
-    # # XXX: uncomment to test without using the slower model prompt
+    ## XXX: uncomment to test without using the slower model prompt.
+    ## (It would be better if classification was more configurable so I could
+    ## just toggle off the final lengthy step.)
     # return ClassificationResult(type="content", reason="assume_content", reply="")
-
-    # This seems to have a negligible effect on accuracy and is pretty slow,
-    # so skipping for now:
-    # racing_related_pct = _report_racing_related_percentage(image_data)
-    # if racing_related_pct <= 10:
-    #     return ClassificationResult(
-    #         type="ad", reason="low_racing_related_percentage",
-    #         reply=f"{racing_related_pct}% racing-related"
-    #     )
 
     return llm_match.classify_by_prompt(image_data)
 

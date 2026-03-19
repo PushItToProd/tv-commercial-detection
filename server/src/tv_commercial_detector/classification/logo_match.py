@@ -96,7 +96,8 @@ def _has_network_logo(img, masked_logo):
     tl_x, tl_y = result.top_left
     br_x, br_y = result.bottom_right
 
-    # FIXME: make this configurable and more robust
+    # FIXME: these values are hardcoded for Fox and may need to be adjusted for
+    # other networks or if the logos change; make this more robust
     return (
         110 <= tl_x <= 140
         and 15 <= tl_y <= 35
@@ -121,17 +122,7 @@ def _has_side_by_side_logo(img, masked_logo):
 
     result = match_template(masked_img_crop, masked_logo, method=MATCH_METHOD)
 
-    tl_x, tl_y = result.top_left
-    br_x, br_y = result.bottom_right
-
-    # FIXME: make this configurable and more robust
-    return (
-        # 110 <= tl_x <= 140 and
-        # 15 <= tl_y <= 35 and
-        # 245 <= br_x <= 290 and
-        # 50 <= br_y <= 75 and
-        result.max_val >= 0.8
-    )
+    return result.max_val >= 0.8
 
 
 def has_side_by_side_logo(img, masked_logos=MASKED_SIDE_BY_SIDE_LOGOS):

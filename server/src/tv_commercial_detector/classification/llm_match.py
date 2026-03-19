@@ -16,6 +16,8 @@ SERVER_URL = os.environ.get("LLAMA_SERVER_URL", "http://192.168.1.27:3002")
 
 PROMPT_DIR = Path(__file__).parent.parent / "prompt"
 PROMPT_FILE = os.environ.get("PROMPT_FILE", PROMPT_DIR / "prompt.txt")
+# TODO: Support multiple prompts. This prompt is hardcoded and assumes Fox
+# specifically, so it's probably less accurate for other TV networks.
 PROMPT = Path(PROMPT_FILE).read_text()
 
 MAX_DIMENSION = 800

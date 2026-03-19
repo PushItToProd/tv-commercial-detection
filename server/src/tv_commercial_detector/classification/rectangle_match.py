@@ -6,6 +6,7 @@ import cv2
 EPS = 0.05
 
 
+# TODO: ad more known rectangles for other networks and ad break styles
 KNOWN_RECTANGLES = {
     "fox-side-by-side-left": (0.000, 0.239, 0.387, 0.381),
     "fox-side-by-side-right": (0.411, 0.234, 0.542, 0.542),
