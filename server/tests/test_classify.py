@@ -11,12 +11,12 @@ from unittest.mock import MagicMock, patch
 import pytest
 from PIL import Image
 
-from tv_commercial_detector.classify import (
-    ClassificationResult,
+from tv_commercial_detector.classification.llm_match import (
     _extract_json,
     _get_classification_from_response,
-    classify_image,
 )
+from tv_commercial_detector.classification.result import ClassificationResult
+from tv_commercial_detector.classify import classify_image
 
 
 # ---------------------------------------------------------------------------
@@ -132,12 +132,12 @@ def test_classify_image_llm_returns_ad(tmp_path, mocker):
 
     # Quick-reject says racing-related (so we proceed to full prompt)
     mocker.patch(
-        "tv_commercial_detector.classify._report_racing_related",
+        "tv_commercial_detector.classification.llm_match._report_racing_related",
         return_value=True,
     )
     # Full prompt returns "ad"
     mocker.patch(
-        "tv_commercial_detector.classify._classify_by_prompt",
+        "tv_commercial_detector.classification.llm_match.classify_by_prompt",
         return_value=ClassificationResult(
             source="llm", type="ad", reason="model-match", reply='{"classification":"ad"}'
         ),
@@ -164,11 +164,11 @@ def test_classify_image_llm_returns_content(tmp_path, mocker):
         return_value=None,
     )
     mocker.patch(
-        "tv_commercial_detector.classify._report_racing_related",
+        "tv_commercial_detector.classification.llm_match._report_racing_related",
         return_value=True,
     )
     mocker.patch(
-        "tv_commercial_detector.classify._classify_by_prompt",
+        "tv_commercial_detector.classification.llm_match.classify_by_prompt",
         return_value=ClassificationResult(
             source="llm", type="content", reason="model-match", reply='{"classification":"racing"}'
         ),
@@ -195,11 +195,11 @@ def test_classify_image_quick_reject_returns_ad(tmp_path, mocker):
         return_value=None,
     )
     mocker.patch(
-        "tv_commercial_detector.classify._report_racing_related",
+        "tv_commercial_detector.classification.llm_match._report_racing_related",
         return_value=False,
     )
-    # _classify_by_prompt should NOT be called
-    mock_prompt = mocker.patch("tv_commercial_detector.classify._classify_by_prompt")
+    # classify_by_prompt should NOT be called
+    mock_prompt = mocker.patch("tv_commercial_detector.classification.llm_match.classify_by_prompt")
 
     result = classify_image(image_path)
     assert result.type == "ad"
@@ -215,7 +215,7 @@ def test_classify_image_opencv_network_logo_wins(tmp_path, mocker):
         "tv_commercial_detector.classify.logo_match.has_network_logo",
         return_value=True,
     )
-    mock_llm = mocker.patch("tv_commercial_detector.classify._report_racing_related")
+    mock_llm = mocker.patch("tv_commercial_detector.classification.llm_match._report_racing_related")
 
     result = classify_image(image_path)
     assert result.type == "content"
@@ -236,7 +236,7 @@ def test_classify_image_opencv_side_by_side_wins(tmp_path, mocker):
         "tv_commercial_detector.classify.logo_match.has_side_by_side_logo",
         return_value=True,
     )
-    mock_llm = mocker.patch("tv_commercial_detector.classify._report_racing_related")
+    mock_llm = mocker.patch("tv_commercial_detector.classification.llm_match._report_racing_related")
 
     result = classify_image(image_path)
     assert result.type == "ad"
@@ -261,7 +261,7 @@ def test_classify_image_opencv_rectangle_wins(tmp_path, mocker):
         "tv_commercial_detector.classify.rectangle_match.image_has_known_ad_rectangle",
         return_value="fox-side-by-side-left",
     )
-    mock_llm = mocker.patch("tv_commercial_detector.classify._report_racing_related")
+    mock_llm = mocker.patch("tv_commercial_detector.classification.llm_match._report_racing_related")
 
     result = classify_image(image_path)
     assert result.type == "ad"
@@ -277,57 +277,57 @@ def test_classify_image_opencv_rectangle_wins(tmp_path, mocker):
 
 def test_classify_by_prompt_parses_ad_json(mocker):
     """Patch OpenAI() so the network never touches the actual LLM."""
-    from tv_commercial_detector.classify import _classify_by_prompt
+    from tv_commercial_detector.classification.llm_match import classify_by_prompt
 
     mock_client = MagicMock()
     mock_client.chat.completions.create.return_value = _mock_openai_response(
         '{"classification": "ad", "reason": "no scoreboard"}'
     )
-    mocker.patch("tv_commercial_detector.classify.OpenAI", return_value=mock_client)
-    mocker.patch("tv_commercial_detector.classify.CLASSIFICATION_TIME.time")
+    mocker.patch("tv_commercial_detector.classification.llm_match.OpenAI", return_value=mock_client)
+    mocker.patch("tv_commercial_detector.classification.llm_match.CLASSIFICATION_TIME.time")
 
-    result = _classify_by_prompt("fakebase64data==")
+    result = classify_by_prompt("fakebase64data==")
     assert result.type == "ad"
 
 
 def test_classify_by_prompt_parses_racing_json(mocker):
-    from tv_commercial_detector.classify import _classify_by_prompt
+    from tv_commercial_detector.classification.llm_match import classify_by_prompt
 
     mock_client = MagicMock()
     mock_client.chat.completions.create.return_value = _mock_openai_response(
         '{"classification": "racing", "reason": "scoreboard visible"}'
     )
-    mocker.patch("tv_commercial_detector.classify.OpenAI", return_value=mock_client)
-    mocker.patch("tv_commercial_detector.classify.CLASSIFICATION_TIME.time")
+    mocker.patch("tv_commercial_detector.classification.llm_match.OpenAI", return_value=mock_client)
+    mocker.patch("tv_commercial_detector.classification.llm_match.CLASSIFICATION_TIME.time")
 
-    result = _classify_by_prompt("fakebase64data==")
+    result = classify_by_prompt("fakebase64data==")
     assert result.type == "content"
 
 
 def test_classify_by_prompt_handles_none_content(mocker):
     """If the LLM returns None content, return unknown."""
-    from tv_commercial_detector.classify import _classify_by_prompt
+    from tv_commercial_detector.classification.llm_match import classify_by_prompt
 
     mock_client = MagicMock()
     mock_client.chat.completions.create.return_value = _mock_openai_response(None)
-    mocker.patch("tv_commercial_detector.classify.OpenAI", return_value=mock_client)
-    mocker.patch("tv_commercial_detector.classify.CLASSIFICATION_TIME.time")
+    mocker.patch("tv_commercial_detector.classification.llm_match.OpenAI", return_value=mock_client)
+    mocker.patch("tv_commercial_detector.classification.llm_match.CLASSIFICATION_TIME.time")
 
-    result = _classify_by_prompt("fakebase64data==")
+    result = classify_by_prompt("fakebase64data==")
     assert result.type == "unknown"
     assert result.reason == "empty_response"
 
 
 def test_classify_by_prompt_handles_malformed_json(mocker):
     """Malformed JSON but with a regex match should still parse correctly."""
-    from tv_commercial_detector.classify import _classify_by_prompt
+    from tv_commercial_detector.classification.llm_match import classify_by_prompt
 
     mock_client = MagicMock()
     mock_client.chat.completions.create.return_value = _mock_openai_response(
         "type=ad (could not parse as json)"
     )
-    mocker.patch("tv_commercial_detector.classify.OpenAI", return_value=mock_client)
-    mocker.patch("tv_commercial_detector.classify.CLASSIFICATION_TIME.time")
+    mocker.patch("tv_commercial_detector.classification.llm_match.OpenAI", return_value=mock_client)
+    mocker.patch("tv_commercial_detector.classification.llm_match.CLASSIFICATION_TIME.time")
 
-    result = _classify_by_prompt("fakebase64data==")
+    result = classify_by_prompt("fakebase64data==")
     assert result.type == "ad"
