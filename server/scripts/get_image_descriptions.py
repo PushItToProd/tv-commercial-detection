@@ -2,12 +2,12 @@ import json
 import sys
 import time
 
-from PIL import Image
+import check_classification
 from openai import OpenAI
 from openai.types.chat.chat_completion_message_param import ChatCompletionMessageParam
+from PIL import Image
 
 from tv_commercial_detector import classify
-import check_classification
 
 
 def get_image_description(image_path: str, server_url: str = classify.SERVER_URL) -> str | None:

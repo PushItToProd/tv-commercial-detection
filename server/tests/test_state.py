@@ -1,6 +1,5 @@
 """Tests for AppState — transitions, debounce, and SSE queue helpers."""
 
-import asyncio
 import time
 
 from tv_commercial_detector.state import AppState

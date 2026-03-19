@@ -116,7 +116,6 @@ class ClassifierProfileRequest(BaseModel):
 
 @router.post("/settings/classifier_profile")
 async def set_classifier_profile(data: ClassifierProfileRequest):
-    import re
 
     # if not re.fullmatch(r"[a-z][a-z0-9_]*", data.profile):
     #     from fastapi import HTTPException

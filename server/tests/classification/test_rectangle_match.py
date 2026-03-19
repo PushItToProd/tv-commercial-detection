@@ -1,19 +1,16 @@
 """Tests for rectangle_match — pure logic and synthetic-image detection."""
 
-import numpy as np
 import cv2
-import pytest
+import numpy as np
 
 from tv_commercial_detector.classification.rectangle_match import (
-    KNOWN_RECTANGLES,
     EPS,
+    KNOWN_RECTANGLES,
     detect_rectangles,
     find_matching_rectangle,
     find_matching_rectangles,
-    find_matching_rectangles_in_image,
     image_has_known_ad_rectangle,
 )
-
 
 # ---------------------------------------------------------------------------
 # find_matching_rectangle — pure maths, no images

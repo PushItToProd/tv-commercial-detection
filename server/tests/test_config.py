@@ -3,8 +3,6 @@
 import json
 import os
 
-import pytest
-
 from tv_commercial_detector.config import AppConfig
 
 

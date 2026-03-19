@@ -1,6 +1,5 @@
 """Tests for POST /trigger_matrix and POST /settings/resume_auto_switch."""
 
-import pytest
 
 from tv_commercial_detector import state as state_module
 

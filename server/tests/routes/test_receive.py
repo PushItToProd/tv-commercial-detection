@@ -6,12 +6,10 @@ matrix.apply_matrix_settings is also patched so no HTTP calls go out.
 
 import io
 
-import pytest
 from fastapi.testclient import TestClient
 from PIL import Image
 
 from tv_commercial_detector import state as state_module
-
 
 # ---------------------------------------------------------------------------
 # Helpers

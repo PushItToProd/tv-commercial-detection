@@ -3,12 +3,10 @@
 All tests use synthetic JPEG fixtures — no real broadcast images needed.
 """
 
-import io
 import json
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
-import pytest
 from PIL import Image
 
 from tv_commercial_detector.classification.llm_match import (
@@ -17,7 +15,6 @@ from tv_commercial_detector.classification.llm_match import (
 )
 from tv_commercial_detector.classification.result import ClassificationResult
 from tv_commercial_detector.classify import classify_image
-
 
 # ---------------------------------------------------------------------------
 # Helpers

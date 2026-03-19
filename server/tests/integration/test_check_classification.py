@@ -16,14 +16,12 @@ Example:
 
 import json
 import os
-import time
 import urllib.request
 from pathlib import Path
 
 import pytest
 
 from tv_commercial_detector.classify import classify_image
-
 
 # ---------------------------------------------------------------------------
 # Skip early if the environment is not set up for integration tests

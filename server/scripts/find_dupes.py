@@ -1,8 +1,8 @@
-import os
 import hashlib
 import json
-from pathlib import Path
 from collections import defaultdict
+from pathlib import Path
+
 import imagehash
 from PIL import Image
 

@@ -1,8 +1,6 @@
 """Tests for SSE and JSON status endpoints."""
 
-import json
 
-import pytest
 
 from tv_commercial_detector import state as state_module
 

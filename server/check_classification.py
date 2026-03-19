@@ -5,8 +5,6 @@ from dataclasses import asdict
 from pathlib import Path
 
 from tv_commercial_detector.classify import classify_image
-from tv_commercial_detector import classify
-
 
 IMAGES_DIR = Path(__file__).parent / "frames"
 LABELS_PATH = IMAGES_DIR / "labels.json"

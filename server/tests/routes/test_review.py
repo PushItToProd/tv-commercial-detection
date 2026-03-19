@@ -3,11 +3,9 @@
 import io
 import json
 
-import pytest
 from PIL import Image
 
 from tv_commercial_detector.config import app_config
-
 
 # ---------------------------------------------------------------------------
 # Helpers

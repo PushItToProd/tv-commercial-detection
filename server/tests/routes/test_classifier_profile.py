@@ -3,7 +3,6 @@
 from tv_commercial_detector.classify import list_profiles
 from tv_commercial_detector.config import app_config
 
-
 # ---------------------------------------------------------------------------
 # list_profiles()
 # ---------------------------------------------------------------------------
@@ -80,7 +79,6 @@ def test_post_classifier_profile_nonexistent_profile_rejected(client):
 
 def test_env_var_sets_classifier_profile(tmp_path, monkeypatch):
     """Verify that DETECTOR_CLASSIFIER_PROFILE is applied during lifespan startup."""
-    import os
 
     from fastapi.testclient import TestClient
 

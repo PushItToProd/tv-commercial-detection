@@ -1,12 +1,10 @@
 """Tests for logo_match — using synthetic images, no real broadcast frames."""
 
 import numpy as np
-import pytest
 
 from tv_commercial_detector.classification.logo_match import (
     mask_non_white,
 )
-
 
 # ---------------------------------------------------------------------------
 # mask_non_white unit test
