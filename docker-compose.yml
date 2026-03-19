@@ -10,8 +10,7 @@ services:
       --jinja
       --mmproj /models/${MMPROJ_FILE}
       --model /models/${MODEL_FILE}
-      --ctx-size 4096
-      -b 4096 --ubatch-size 4096
+      ${LLAMA_EXTRA_ARGS:-}
     ports:
       - "${LLAMA_PORT:?}:8080"
     volumes:
