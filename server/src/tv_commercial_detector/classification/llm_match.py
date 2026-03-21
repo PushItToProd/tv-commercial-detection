@@ -14,6 +14,9 @@ from .result import ClassificationResult
 
 SERVER_URL = os.environ.get("LLAMA_SERVER_URL", "http://192.168.1.27:3002")
 
+# Reuse a single client to avoid leaking sockets (httpx connection pool)
+_client = OpenAI(base_url=f"{SERVER_URL}/v1", api_key="none")
+
 PROMPT_DIR = Path(__file__).parent.parent / "prompt"
 PROMPT_FILE = os.environ.get("PROMPT_FILE", PROMPT_DIR / "prompt.txt")
 
@@ -114,10 +117,8 @@ def _report_racing_related(image_data: str) -> bool:
         }
     ]
 
-    client = OpenAI(base_url=f"{SERVER_URL}/v1", api_key="none")
-
     with CLASSIFICATION_TIME.time():
-        response = client.chat.completions.create(
+        response = _client.chat.completions.create(
             model="local",
             messages=messages,
             max_tokens=10,
@@ -145,10 +146,8 @@ def classify_by_prompt(image_data: str) -> ClassificationResult:
         },
     ]
 
-    client = OpenAI(base_url=f"{SERVER_URL}/v1", api_key="none")
-
     with CLASSIFICATION_TIME.time():
-        response = client.chat.completions.create(
+        response = _client.chat.completions.create(
             model="local",
             messages=messages,
             max_tokens=500,
