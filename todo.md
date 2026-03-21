@@ -94,6 +94,7 @@ Checkboxes key:
   - series/networks to handle:
     - [/] O'Reilly on CW
       - they keep their "CW Sports" logo visible in the upper right during side-by-side, so `classify_image` has to be rewritten to handle that
+      - the logo changes to yellow when it's a caution period
     - [ ] Cup on Amazon Prime
     - [ ] Cup on TNT
     - [ ] Cup on NBC
