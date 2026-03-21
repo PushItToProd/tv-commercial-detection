@@ -9,11 +9,19 @@
   body {
     height: 100vh;
     background: #333; transition: background 0.4s;
+    padding-bottom: 5vh;
   }
 
   .text-mega {
-    font-size: 30vh; font-weight: bold;
+    font-size: clamp(1rem, 20cqw, 20vh);
+    font-weight: bold;
     letter-spacing: 0.05em;
+  }
+
+  @media(min-width: 1200px) {
+    .text-mega {
+      font-size: clamp(1rem, 30cqw, 30vh);
+    }
   }
 
   .text-white {
@@ -22,12 +30,28 @@
 
   #last-frame {
     max-height: 30vh;
-    border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+    max-width: 30vw;
+    border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.6);
     display: none;
   }
 
+  @media(max-width: 992px) {
+    #last-frame {
+      max-width: 90vw;
+    }
+  }
+
+  @media(min-width: 1200px) {
+    #last-frame {
+      max-width: 40vw;
+    }
+  }
+
   .btn-correction {
-    padding: 1rem 2.4rem; font-size: 3.5rem; font-weight: bold;
+    padding: 1rem 2.4rem;
+    font-size: clamp(1rem, 10cqh, 3.5rem);
+    font-weight: bold;
     border: none; border-radius: 12px; cursor: pointer;
     background: rgba(255,255,255,0.2); color: #fff;
     /*
@@ -51,9 +75,9 @@
     </div>
 
     <div>
-      <div class="hstack text-center align-items-center gap-5 my-5 ms-5 me-5">
+      <div class="d-flex flex-column-reverse flex-lg-row text-center align-items-center gap-5 my-5 ms-5 me-5">
         <div class="flex-grow-1">
-          <div id="buttons" class="d-flex flex-column gap-5"></div>
+          <div id="buttons" class="d-flex flex-column flex-lg-row align-items-center justify-content-center gap-5"></div>
         </div>
         <div><img id="last-frame" src="" alt="last frame"></div>
       </div>
@@ -62,7 +86,7 @@
   </main>
 
   <!-- Fixed bottom control bar -->
-  <nav class="navbar fixed-bottom bg-dark bg-opacity-75 py-2 px-3">
+  <nav id="bottom-nav" class="navbar fixed-bottom bg-dark bg-opacity-75 py-2 px-3">
     <div class="d-flex align-items-center flex-wrap gap-3 w-100">
 
       <!-- Auto-switch toggle -->
