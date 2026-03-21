@@ -18,6 +18,7 @@ NETWORK_LOGO_PATHS = {
 SIDE_BY_SIDE_LOGO_PATHS = {
     "fox": logo_match.LOGOS_DIR / "fox_side_by_side_logo_crop.png",
     "fs1": logo_match.LOGOS_DIR / "fs1_side_by_side_logo_crop.png",
+    "trucks": logo_match.LOGOS_DIR / "truck_series_logo.png",
 }
 
 MASKED_NETWORK_LOGOS = {
