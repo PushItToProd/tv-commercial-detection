@@ -43,23 +43,27 @@
 </head>
 <body>
 
-<main class="d-flex flex-column align-items-center gap-4" style="width:100%;">
+  <main class="vstack text-center gap-4" style="width:100%;">
 
-  <div class="container text-center flex-grow-1">
-    <div class="d-flex flex-column justify-content-center">
-      <h1 id="label" class="text-mega text-white">...</h1>
-      <h2 id="paused-indicator" class="display-1 text-white"></h2>
-    </div>
-  </div>
-
-  <div>
-    <div class="d-flex align-items-center gap-5 my-5" style="width: 90vw;">
-      <div class="flex-grow-1">
-        <div id="buttons" class="d-flex flex-column gap-5"></div>
+    <div>
+      <div class="container text-center">
+        <div class="d-flex flex-column justify-content-center">
+          <h1 id="label" class="text-mega text-white">...</h1>
+          <h2 id="paused-indicator" class="display-1 text-white"></h2>
+        </div>
       </div>
-      <div><img id="last-frame" src="" alt="last frame"></div>
     </div>
-  </div>
+
+    <div>
+      <div class="d-flex text-center align-items-center gap-5 my-5" style="margin-left: 5vw; margin-right: 5vw;">
+        <div class="flex-grow-1">
+          <div id="buttons" class="d-flex flex-column gap-5"></div>
+        </div>
+        <div><img id="last-frame" src="" alt="last frame"></div>
+      </div>
+    </div>
+
+  </main>
 
   <!-- Fixed bottom control bar -->
   <nav class="navbar fixed-bottom bg-dark bg-opacity-75 py-2 px-3">
@@ -95,8 +99,6 @@
 
     </div>
   </nav>
-
-</main>
 
 <script>
 let autoSwitchPausedUntil = null;
