@@ -10,6 +10,7 @@ services:
       --jinja
       --mmproj /models/${MMPROJ_FILE}
       --model /models/${MODEL_FILE}
+      --metrics
       ${LLAMA_EXTRA_ARGS:-}
     ports:
       - "${LLAMA_PORT:?}:8080"
