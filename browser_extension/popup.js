@@ -14,10 +14,10 @@ const $log = document.getElementById('log');
 
 function addEndpointRow(url = '') {
   const row = document.createElement('div');
-  row.className = 'endpoint-row';
+  row.className = 'endpoint-row d-flex gap-1 align-items-center';
   row.innerHTML = `
-    <input type="text" placeholder="${DEFAULT_URL}" value="${url}">
-    <button class="btn-icon" title="Remove">×</button>
+    <input type="text" class="form-control form-control-sm" placeholder="${DEFAULT_URL}" value="${url}">
+    <button class="btn-icon btn btn-sm btn-outline-danger p-0" title="Remove" style="width:32px;height:32px;">×</button>
   `;
   row.querySelector('.btn-icon').addEventListener('click', () => row.remove());
   $list.appendChild(row);
@@ -97,7 +97,7 @@ $btnSave.addEventListener('click', async () => {
   let valid = true;
   $list.querySelectorAll('input[type="text"]').forEach(inp => {
     const ok = isValidUrl(inp.value.trim()) || inp.value.trim() === '';
-    inp.classList.toggle('error', inp.value.trim() !== '' && !ok);
+    inp.classList.toggle('is-invalid', inp.value.trim() !== '' && !ok);
     if (!ok && inp.value.trim() !== '') valid = false;
   });
   if (!valid) { appendLog('Invalid URL — fix highlighted fields.', 'err'); return; }

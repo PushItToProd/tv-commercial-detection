@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 
 from .config import app_config
 from .frame_saver import periodic_frame_saver
@@ -65,6 +66,9 @@ def create_app() -> FastAPI:
     app.include_router(review_router)
     app.include_router(status_router)
     app.include_router(matrix_router)
+
+    static_dir = Path(__file__).resolve().parent / "static"
+    app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
     return app
 

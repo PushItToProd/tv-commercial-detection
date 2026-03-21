@@ -2,281 +2,68 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <link rel="stylesheet" href="vendor/bootstrap.min.css">
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500&display=swap');
-
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    :root {
-      --bg:       #0e0e0f;
-      --surface:  #1a1a1c;
-      --border:   #2e2e32;
-      --accent:   #00e0a0;
-      --accent2:  #005c42;
-      --text:     #e8e8e8;
-      --muted:    #777;
-      --danger:   #ff4d4d;
-      --mono:     'IBM Plex Mono', monospace;
-      --sans:     'IBM Plex Sans', sans-serif;
-    }
-
-    body {
-      width: 340px;
-      background: var(--bg);
-      color: var(--text);
-      font-family: var(--sans);
-      font-size: 13px;
-      padding: 0;
-      user-select: none;
-    }
-
-    header {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 14px 16px 12px;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .logo {
-      width: 28px; height: 28px;
-      background: var(--accent2);
-      border: 1.5px solid var(--accent);
-      border-radius: 6px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 14px;
-    }
-
-    header h1 {
-      font-family: var(--mono);
-      font-size: 12px;
-      font-weight: 500;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--accent);
-    }
-
+    body { width: 340px; }
     .status-dot {
-      margin-left: auto;
-      width: 8px; height: 8px;
-      border-radius: 50%;
-      background: var(--muted);
-      transition: background 0.3s;
-      box-shadow: none;
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #adb5bd; transition: background 0.3s;
     }
     .status-dot.active {
-      background: var(--accent);
-      box-shadow: 0 0 6px var(--accent);
+      background: #198754;
+      box-shadow: 0 0 6px #198754;
       animation: pulse 2s infinite;
     }
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50%       { opacity: 0.4; }
-    }
-
-    .body { padding: 14px 16px; display: flex; flex-direction: column; gap: 14px; }
-
-    /* ── interval row ── */
-    .row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    label {
-      font-family: var(--mono);
-      font-size: 11px;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      white-space: nowrap;
-    }
-    input[type="number"] {
-      width: 64px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      color: var(--text);
-      font-family: var(--mono);
-      font-size: 13px;
-      padding: 5px 8px;
-      outline: none;
-      transition: border-color 0.15s;
-    }
-    input[type="number"]:focus { border-color: var(--accent); }
-
-    /* ── endpoints ── */
-    .section-label {
-      font-family: var(--mono);
-      font-size: 11px;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      margin-bottom: 6px;
-    }
-
-    #endpoints-list { display: flex; flex-direction: column; gap: 6px; }
-
-    .endpoint-row {
-      display: flex;
-      gap: 6px;
-      align-items: center;
-    }
-    .endpoint-row input[type="text"] {
-      flex: 1;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      color: var(--text);
-      font-family: var(--mono);
-      font-size: 11px;
-      padding: 5px 8px;
-      outline: none;
-      transition: border-color 0.15s;
-    }
-    .endpoint-row input[type="text"]:focus { border-color: var(--accent); }
-    .endpoint-row input[type="text"].error  { border-color: var(--danger); }
-
-    .btn-icon {
-      flex-shrink: 0;
-      width: 26px; height: 26px;
-      background: none;
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      color: var(--muted);
-      cursor: pointer;
-      font-size: 15px;
-      line-height: 1;
-      display: flex; align-items: center; justify-content: center;
-      transition: border-color 0.15s, color 0.15s;
-    }
-    .btn-icon:hover { border-color: var(--danger); color: var(--danger); }
-
-    .btn-add {
-      align-self: flex-start;
-      background: none;
-      border: 1px dashed var(--border);
-      border-radius: 4px;
-      color: var(--muted);
-      cursor: pointer;
-      font-family: var(--mono);
-      font-size: 11px;
-      padding: 4px 10px;
-      transition: border-color 0.15s, color 0.15s;
-    }
-    .btn-add:hover { border-color: var(--accent); color: var(--accent); }
-
-    /* ── toggle / save row ── */
-    .actions {
-      display: flex;
-      gap: 8px;
-      padding-top: 2px;
-    }
-
-    .btn-save {
-      flex: 1;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      color: var(--text);
-      cursor: pointer;
-      font-family: var(--mono);
-      font-size: 11px;
-      letter-spacing: 0.05em;
-      padding: 7px;
-      text-transform: uppercase;
-      transition: border-color 0.15s, color 0.15s;
-    }
-    .btn-save:hover { border-color: var(--accent); color: var(--accent); }
-
-    .btn-toggle {
-      flex: 2;
-      background: var(--accent2);
-      border: 1.5px solid var(--accent);
-      border-radius: 4px;
-      color: var(--accent);
-      cursor: pointer;
-      font-family: var(--mono);
-      font-size: 11px;
-      font-weight: 500;
-      letter-spacing: 0.08em;
-      padding: 7px;
-      text-transform: uppercase;
-      transition: background 0.15s, color 0.15s;
-    }
-    .btn-toggle:hover { background: var(--accent); color: var(--bg); }
-    .btn-toggle.running {
-      background: transparent;
-      border-color: var(--danger);
-      color: var(--danger);
-    }
-    .btn-toggle.running:hover { background: var(--danger); color: var(--bg); }
-
-    /* ── log ── */
-    #log {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      font-family: var(--mono);
-      font-size: 10px;
-      color: var(--muted);
-      padding: 8px;
-      height: 72px;
-      overflow-y: auto;
-      line-height: 1.6;
-    }
-    #log .entry { color: var(--text); }
-    #log .entry.ok  { color: var(--accent); }
-    #log .entry.err { color: var(--danger); }
-
-    footer {
-      padding: 8px 16px;
-      border-top: 1px solid var(--border);
-      font-family: var(--mono);
-      font-size: 10px;
-      color: var(--border);
-      text-align: center;
-      letter-spacing: 0.04em;
-    }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+    .entry.ok  { color: #198754; }
+    .entry.err { color: #dc3545; }
+    #btn-toggle.running { background-color: #dc3545 !important; border-color: #dc3545 !important; color: #fff !important; }
+    #btn-toggle.running:hover { background-color: #bb2d3b !important; border-color: #b02a37 !important; }
   </style>
 </head>
 <body>
 
-<header>
-  <div class="logo">⬡</div>
-  <h1>Frame Capture</h1>
-  <div class="status-dot" id="status-dot"></div>
+<header class="d-flex align-items-center gap-2 p-3 border-bottom">
+  <div class="d-flex align-items-center justify-content-center rounded bg-success text-white" style="width:28px;height:28px;font-size:14px;">⬡</div>
+  <span class="fw-semibold text-uppercase small" style="letter-spacing:0.08em;">Frame Capture</span>
+  <div class="status-dot ms-auto" id="status-dot"></div>
 </header>
 
-<div class="body">
+<div class="p-3 d-flex flex-column gap-3">
 
   <!-- Interval -->
-  <div class="row">
-    <label for="interval">Interval</label>
-    <input type="number" id="interval" min="1" max="3600" value="10">
-    <label>sec</label>
+  <div class="d-flex align-items-center gap-2">
+    <label class="form-label mb-0 text-muted small text-uppercase" for="interval">Interval</label>
+    <input type="number" class="form-control form-control-sm" id="interval" min="1" max="3600" value="10" style="width:72px;">
+    <span class="text-muted small">sec</span>
   </div>
 
   <!-- Endpoints -->
   <div>
-    <div class="section-label">POST endpoints</div>
-    <div id="endpoints-list"></div>
-    <br>
-    <button class="btn-add" id="btn-add">+ add endpoint</button>
+    <div class="small text-muted text-uppercase mb-2">POST endpoints</div>
+    <div id="endpoints-list" class="d-flex flex-column gap-2"></div>
+    <button class="btn btn-sm btn-outline-secondary mt-2" id="btn-add">+ add endpoint</button>
   </div>
 
   <!-- Actions -->
-  <div class="actions">
-    <button class="btn-save" id="btn-save">Save</button>
-    <button class="btn-toggle" id="btn-toggle">Start</button>
+  <div class="d-flex gap-2">
+    <button class="btn btn-sm btn-outline-secondary flex-fill" id="btn-save">Save</button>
+    <button class="btn btn-sm btn-primary flex-fill" id="btn-toggle" style="flex:2;">Start</button>
   </div>
 
   <!-- Log -->
-  <div id="log"><span style="color:var(--border)">// activity log</span></div>
+  <div id="log" class="border rounded p-2 font-monospace small text-muted overflow-y-auto" style="height:72px;line-height:1.6;">
+    <span class="text-secondary">// activity log</span>
+  </div>
 
 </div>
 
-<footer>tab-frame-capture · v2.0</footer>
+<footer class="border-top px-3 py-2 text-center text-muted small">
+  tab-frame-capture · v2.0
+</footer>
 
+<script src="vendor/bootstrap.bundle.min.js"></script>
 <script src="popup.js"></script>
 </body>
+</html>
 </html>

@@ -3,112 +3,66 @@
 <head>
 <meta charset="UTF-8">
 <title>Frame Review</title>
+<link rel="stylesheet" href="/static/bootstrap.min.css">
 <style>
-  body { font-family: sans-serif; background: #1a1a1a; color: #eee; margin: 0; padding: 1rem; }
-  h1 { margin-bottom: 0.5rem; }
-  #controls { margin-bottom: 1rem; display: flex; align-items: center; gap: 1.2rem; flex-wrap: wrap; }
-  #counter { opacity: 0.6; font-size: 0.9rem; }
-  .grid { display: flex; flex-wrap: wrap; gap: 1rem; }
-  .card {
-    background: #2a2a2a; border-radius: 8px; overflow: hidden;
-    width: 260px; display: flex; flex-direction: column; border: 2px solid transparent;
-  }
-  .card.ad      { border-color: #e05; }
-  .card.content { border-color: #0a5; }
-  .card img { width: 100%; display: block; cursor: zoom-in; }
-  .card .info { padding: 0.4rem 0.5rem; font-size: 0.72rem; opacity: 0.6; word-break: break-all; }
-  .badge {
-    display: inline-block; margin: 0 0.5rem 0.5rem;
-    padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: bold;
-  }
-  .badge.ad      { background: #e05; color: #fff; }
-  .badge.content { background: #0a5; color: #fff; }
-  .badge.none    { background: #555; color: #ccc; }
-  .actions { display: flex; gap: 0.5rem; padding: 0.5rem; }
-  .btn {
-    flex: 1; padding: 0.4rem; border: none; border-radius: 4px;
-    cursor: pointer; font-weight: bold; font-size: 0.85rem; transition: opacity .15s;
-  }
-  .btn:hover { opacity: 0.75; }
-  .btn-ad      { background: #e05; color: #fff; }
-  .btn-content { background: #0a5; color: #fff; }
-  .features { padding: 0.4rem 0.5rem 0.5rem; display: flex; flex-direction: column; gap: 0.25rem; border-top: 1px solid #3a3a3a; }
-  .features label { font-size: 0.72rem; display: flex; align-items: center; gap: 0.4rem; color: #bbb; }
-  .features select { flex: 1; background: #333; color: #eee; border: 1px solid #555; border-radius: 3px; padding: 0.1rem 0.2rem; font-size: 0.72rem; }
-  /* Step view */
-  #step-view { max-width: 960px; margin: 0 auto; }
-  #step-nav { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.6rem; flex-wrap: wrap; }
-  #step-counter { font-size: 0.9rem; opacity: 0.7; min-width: 6rem; text-align: center; }
-  #step-filename { font-size: 0.78rem; opacity: 0.55; margin-bottom: 0.5rem; word-break: break-all; }
-  #step-img-wrap { position: relative; min-height: 4rem; margin-bottom: 1rem; display: flex; align-items: center; justify-content: center; }
-  #step-img { display: block; max-width: 100%; max-height: 62vh; width: auto; height: auto; border-radius: 6px; cursor: zoom-in; background: #111; }
-  #step-spinner {
-    display: none; position: absolute;
-    width: 48px; height: 48px;
-    border: 5px solid #444; border-top-color: #aaa;
-    border-radius: 50%;
-    animation: spin .7s linear infinite;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
+  /* Card border color-coding by classification */
+  .card.ad      { border-color: #d63384 !important; border-width: 2px !important; }
+  .card.content { border-color: #198754 !important; border-width: 2px !important; }
+  /* Step view image */
+  #step-img { display: block; max-width: 100%; max-height: 62vh; width: auto; height: auto; border-radius: 6px; cursor: zoom-in; }
   #step-img.loading { opacity: 0.15; }
-  .step-controls { display: flex; flex-direction: column; gap: 0.55rem; }
-  .step-row { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
-  .step-row-label { font-size: 0.78rem; color: #888; min-width: 90px; flex-shrink: 0; }
-  .tbtn {
-    padding: 0.3rem 0.7rem; border: 2px solid #444; border-radius: 4px;
-    background: #252525; color: #aaa; cursor: pointer; font-size: 0.82rem;
-    transition: border-color .1s, background .1s, color .1s;
-  }
-  .tbtn:hover { border-color: #777; color: #eee; }
-  .tbtn.active                          { background: #444;  border-color: #aaa; color: #fff; }
-  .tbtn.active[data-value="ad"]         { background: #e05;  border-color: #e05; color: #fff; }
-  .tbtn.active[data-value="content"]    { background: #0a5;  border-color: #0a5; color: #fff; }
-  .tbtn.active[data-value="ignore"]     { background: #555;  border-color: #888; color: #ddd; }
-  .nav-btn { padding: 0.35rem 0.9rem; background: #2e2e2e; border: 1px solid #555; color: #ddd; border-radius: 4px; cursor: pointer; font-size: 0.9rem; }
-  .nav-btn:hover { background: #3a3a3a; }
-  .nav-btn:disabled { opacity: 0.3; cursor: default; }
-  /* Lightbox */
-  #lightbox {
-    display: none; position: fixed; inset: 0; background: rgba(0,0,0,.85);
-    align-items: center; justify-content: center; z-index: 100;
-  }
-  #lightbox.open { display: flex; }
-  #lightbox img { max-width: 95vw; max-height: 92vh; border-radius: 6px; }
-  #lightbox-close {
-    position: fixed; top: 1rem; right: 1.4rem; font-size: 2rem; cursor: pointer;
-    color: #fff; line-height: 1; user-select: none;
-  }
+  /* Toggle buttons active states */
+  .tbtn.active[data-value="ad"]      { background: #d63384 !important; border-color: #d63384 !important; color: #fff !important; }
+  .tbtn.active[data-value="content"] { background: #198754 !important; border-color: #198754 !important; color: #fff !important; }
+  .tbtn.active[data-value="ignore"]  { background: #6c757d !important; border-color: #6c757d !important; color: #fff !important; }
+  .tbtn.active { background: #495057 !important; border-color: #adb5bd !important; color: #fff !important; }
 </style>
 </head>
-<body>
-<h1>Frame Review</h1>
-<div id="controls">
-  <label><input type="checkbox" id="hideClassified"> Hide already classified</label>
-  <button class="nav-btn" id="toggleView">Step View</button>
-  <span id="counter"></span>
-</div>
-<div class="grid" id="grid"></div>
+<body class="bg-light">
+<div class="container-fluid py-3">
+  <h1 class="h3 mb-3">Frame Review</h1>
 
-<div id="step-view" style="display:none">
-  <div id="step-nav">
-    <button class="nav-btn" id="step-prev">&#8592; Prev</button>
-    <span id="step-counter"></span>
-    <button class="nav-btn" id="step-next">Next &#8594;</button>
-    <button class="nav-btn" id="step-prev-incomplete" title="Previous image missing a label or features">&#8592; Prev incomplete</button>
-    <button class="nav-btn" id="step-next-incomplete" title="Next image missing a label or features">Next incomplete &#8594;</button>
-    <label style="font-size:0.85rem"><input type="checkbox" id="step-auto-advance"> Auto-advance on label</label>
+  <div id="controls" class="d-flex align-items-center gap-3 flex-wrap mb-3">
+    <div class="form-check mb-0">
+      <input class="form-check-input" type="checkbox" id="hideClassified">
+      <label class="form-check-label" for="hideClassified">Hide already classified</label>
+    </div>
+    <button class="btn btn-outline-secondary btn-sm" id="toggleView">Step View</button>
+    <span id="counter" class="text-muted small"></span>
   </div>
-  <div id="step-filename"></div>
-  <div id="step-img-wrap">
-    <div id="step-spinner"></div>
-    <img id="step-img" src="" alt="">
+
+  <!-- Grid view -->
+  <div class="d-flex flex-wrap gap-3" id="grid"></div>
+
+  <!-- Step view -->
+  <div id="step-view" class="d-none" style="max-width:960px;margin:0 auto;">
+    <div id="step-nav" class="d-flex align-items-center flex-wrap gap-2 mb-2">
+      <button class="btn btn-outline-secondary btn-sm" id="step-prev">&#8592; Prev</button>
+      <span id="step-counter" class="text-muted small text-center" style="min-width:6rem;"></span>
+      <button class="btn btn-outline-secondary btn-sm" id="step-next">Next &#8594;</button>
+      <button class="btn btn-outline-secondary btn-sm" id="step-prev-incomplete" title="Previous image missing a label or features">&#8592; Prev incomplete</button>
+      <button class="btn btn-outline-secondary btn-sm" id="step-next-incomplete" title="Next image missing a label or features">Next incomplete &#8594;</button>
+      <div class="form-check mb-0">
+        <input class="form-check-input" type="checkbox" id="step-auto-advance">
+        <label class="form-check-label small" for="step-auto-advance">Auto-advance on label</label>
+      </div>
+    </div>
+    <div id="step-filename" class="text-muted small mb-2" style="word-break:break-all;"></div>
+    <div id="step-img-wrap" class="position-relative d-flex align-items-center justify-content-center mb-3" style="min-height:4rem;">
+      <div id="step-spinner" class="spinner-border d-none position-absolute" role="status"><span class="visually-hidden">Loading...</span></div>
+      <img id="step-img" src="" alt="">
+    </div>
+    <div class="d-flex flex-column gap-2" id="step-controls"></div>
   </div>
-  <div class="step-controls" id="step-controls"></div>
 </div>
 
-<div id="lightbox">
-  <span id="lightbox-close" title="Close">&times;</span>
-  <img id="lightbox-img" src="" alt="">
+<!-- Lightbox modal -->
+<div class="modal fade" id="lightbox" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:95vw;">
+    <div class="modal-content bg-transparent border-0">
+      <img id="lightbox-img" src="" alt="" class="img-fluid rounded">
+    </div>
+  </div>
 </div>
 
 <script>
@@ -124,7 +78,7 @@ const IMAGES = {{ image_data | tojson }};
 
 function updateCounter() {
   const cards = document.querySelectorAll('.card');
-  const visible = [...cards].filter(c => c.style.display !== 'none').length;
+  const visible = [...cards].filter(c => !c.classList.contains('d-none')).length;
   document.getElementById('counter').textContent = `${visible} / ${cards.length} shown`;
 }
 
@@ -132,7 +86,7 @@ function applyFilter() {
   const hide = document.getElementById('hideClassified').checked;
   document.querySelectorAll('.card').forEach(card => {
     const classified = card.dataset.label && card.dataset.label !== 'null';
-    card.style.display = (hide && classified) ? 'none' : '';
+    card.classList.toggle('d-none', !!(hide && classified));
   });
   updateCounter();
 }
@@ -147,9 +101,9 @@ function classifyImage(filename, label, card) {
   .then(data => {
     if (data.error) { alert(data.error); return; }
     card.dataset.label = label;
-    card.className = 'card ' + label;
-    const badge = card.querySelector('.badge');
-    badge.className = 'badge ' + label;
+    card.className = 'card border ' + label;
+    const badge = card.querySelector('.img-badge');
+    badge.className = 'img-badge badge ' + (label === 'ad' ? 'bg-danger' : label === 'content' ? 'bg-success' : 'bg-secondary');
     badge.textContent = label.toUpperCase();
     applyFilter();
   });
@@ -157,12 +111,13 @@ function classifyImage(filename, label, card) {
 
 function openLightbox(src) {
   document.getElementById('lightbox-img').src = src;
-  document.getElementById('lightbox').classList.add('open');
+  const modal = new bootstrap.Modal(document.getElementById('lightbox'));
+  modal.show();
 }
 
 document.getElementById('lightbox').addEventListener('click', e => {
-  if (e.target === e.currentTarget || e.target.id === 'lightbox-close')
-    e.currentTarget.classList.remove('open');
+  if (e.target === e.currentTarget || e.target.classList.contains('modal-content') || e.target.classList.contains('modal-dialog'))
+    bootstrap.Modal.getInstance(document.getElementById('lightbox'))?.hide();
 });
 
 function saveFeatures(filename, card) {
@@ -182,43 +137,51 @@ function buildGrid() {
   IMAGES.forEach(({filename, label, features}, index) => {
     const feats = features || {};
     const card = document.createElement('div');
-    card.className = 'card' + (label ? ' ' + label : '');
+    card.className = 'card border ' + (label ? label : '');
+    card.style.width = '260px';
     card.dataset.label = label;
     card.dataset.filename = filename;
 
     const imgSrc = '/frames/' + encodeURIComponent(filename);
 
     const img = document.createElement('img');
+    img.className = 'card-img-top';
+    img.style.cursor = 'zoom-in';
     img.dataset.src = imgSrc;
     img.title = 'Click to open in Step View';
     img.addEventListener('click', () => enterStepView(index));
     lazyObserver.observe(img);
 
+    const cardBody = document.createElement('div');
+    cardBody.className = 'card-body p-2';
+
     const info = document.createElement('div');
-    info.className = 'info';
+    info.className = 'small text-muted mb-1';
+    info.style.wordBreak = 'break-all';
     info.textContent = filename;
 
     const badge = document.createElement('span');
-    badge.className = 'badge ' + (label || 'none');
+    badge.className = 'img-badge badge ' + (label === 'ad' ? 'bg-danger' : label === 'content' ? 'bg-success' : 'bg-secondary');
     badge.textContent = label ? label.toUpperCase() : 'UNCLASSIFIED';
 
     const actions = document.createElement('div');
-    actions.className = 'actions';
-    ['ad', 'content', 'ignore'].forEach(lbl => {
+    actions.className = 'd-flex gap-1 mt-2';
+    [{lbl:'ad',cls:'btn-danger'},{lbl:'content',cls:'btn-success'},{lbl:'ignore',cls:'btn-secondary'}].forEach(({lbl,cls}) => {
       const btn = document.createElement('button');
-      btn.className = 'btn btn-' + lbl;
+      btn.className = 'btn btn-sm ' + cls + ' flex-fill';
       btn.textContent = lbl.charAt(0).toUpperCase() + lbl.slice(1);
       btn.addEventListener('click', () => classifyImage(filename, lbl, card));
       actions.appendChild(btn);
     });
 
     const featDiv = document.createElement('div');
-    featDiv.className = 'features';
+    featDiv.className = 'mt-2 border-top pt-2 d-flex flex-column gap-1';
     FEAT_FIELDS.forEach(({field, label: flabel, options}) => {
       const row = document.createElement('label');
+      row.className = 'd-flex align-items-center gap-1 small text-secondary';
       row.textContent = flabel + ': ';
       const sel = document.createElement('select');
-      sel.className = 'feat-select';
+      sel.className = 'form-select form-select-sm feat-select flex-fill';
       sel.dataset.field = field;
       const blank = document.createElement('option');
       blank.value = '';
@@ -236,7 +199,8 @@ function buildGrid() {
       featDiv.appendChild(row);
     });
 
-    card.append(img, info, badge, actions, featDiv);
+    cardBody.append(info, badge, actions, featDiv);
+    card.append(img, cardBody);
     grid.appendChild(card);
   });
   updateCounter();
@@ -268,14 +232,15 @@ function buildStepControls() {
 
   // Label row
   const labelRow = document.createElement('div');
-  labelRow.className = 'step-row';
+  labelRow.className = 'd-flex align-items-center gap-2 flex-wrap';
   const labelTitle = document.createElement('span');
-  labelTitle.className = 'step-row-label';
+  labelTitle.className = 'text-muted small';
+  labelTitle.style.minWidth = '90px';
   labelTitle.textContent = 'Label:';
   labelRow.appendChild(labelTitle);
   ['ad', 'content', 'ignore'].forEach(lbl => {
     const btn = document.createElement('button');
-    btn.className = 'tbtn';
+    btn.className = 'btn btn-sm btn-outline-secondary tbtn';
     btn.dataset.group = 'label';
     btn.dataset.value = lbl;
     btn.textContent = lbl.charAt(0).toUpperCase() + lbl.slice(1);
@@ -286,14 +251,15 @@ function buildStepControls() {
   // Feature rows
   FEAT_FIELDS.forEach(({field, label, options}) => {
     const row = document.createElement('div');
-    row.className = 'step-row';
+    row.className = 'd-flex align-items-center gap-2 flex-wrap';
     const title = document.createElement('span');
-    title.className = 'step-row-label';
+    title.className = 'text-muted small';
+    title.style.minWidth = '90px';
     title.textContent = label + ':';
     row.appendChild(title);
     options.forEach(opt => {
       const btn = document.createElement('button');
-      btn.className = 'tbtn';
+      btn.className = 'btn btn-sm btn-outline-secondary tbtn';
       btn.dataset.group = field;
       btn.dataset.value = opt;
       btn.textContent = opt.replace(/_/g, '\u00a0'); // non-breaking space keeps short labels together
@@ -318,10 +284,10 @@ function buildStepControls() {
       const card = document.querySelector(`.card[data-filename="${CSS.escape(item.filename)}"]`);
       if (card) {
         card.dataset.label = newValue || '';
-        card.className = 'card' + (newValue ? ' ' + newValue : '');
-        const badge = card.querySelector('.badge');
+        card.className = 'card border' + (newValue ? ' ' + newValue : '');
+        const badge = card.querySelector('.img-badge');
         if (badge) {
-          badge.className = 'badge ' + (newValue || 'none');
+          badge.className = 'img-badge badge ' + (newValue === 'ad' ? 'bg-danger' : newValue === 'content' ? 'bg-success' : newValue ? 'bg-secondary' : 'bg-secondary');
           badge.textContent = newValue ? newValue.toUpperCase() : 'UNCLASSIFIED';
         }
       }
@@ -364,13 +330,13 @@ function updateStepButtons() {
 function showSpinner() {
   const img = document.getElementById('step-img');
   img.classList.add('loading');
-  document.getElementById('step-spinner').style.display = '';
+  document.getElementById('step-spinner').classList.remove('d-none');
 }
 
 function hideSpinner() {
   const img = document.getElementById('step-img');
   img.classList.remove('loading');
-  document.getElementById('step-spinner').style.display = 'none';
+  document.getElementById('step-spinner').classList.add('d-none');
 }
 
 function renderStep(index) {
@@ -437,9 +403,9 @@ document.addEventListener('keydown', e => {
 
 function enterStepView(index) {
   inStepView = true;
-  document.getElementById('grid').style.display = 'none';
-  document.getElementById('step-view').style.display = '';
-  document.getElementById('hideClassified').closest('label').style.display = 'none';
+  document.getElementById('grid').classList.add('d-none');
+  document.getElementById('step-view').classList.remove('d-none');
+  document.getElementById('hideClassified').closest('.form-check').classList.add('d-none');
   document.getElementById('toggleView').textContent = 'Grid View';
   buildStepControls();
   renderStep(index);
@@ -448,14 +414,15 @@ function enterStepView(index) {
 document.getElementById('toggleView').addEventListener('click', () => {
   if (inStepView) {
     inStepView = false;
-    document.getElementById('grid').style.display = '';
-    document.getElementById('step-view').style.display = 'none';
-    document.getElementById('hideClassified').closest('label').style.display = '';
+    document.getElementById('grid').classList.remove('d-none');
+    document.getElementById('step-view').classList.add('d-none');
+    document.getElementById('hideClassified').closest('.form-check').classList.remove('d-none');
     document.getElementById('toggleView').textContent = 'Step View';
   } else {
     enterStepView(stepIndex);
   }
 });
 </script>
+<script src="/static/bootstrap.bundle.min.js"></script>
 </body>
 </html>
