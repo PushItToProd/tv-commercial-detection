@@ -16,6 +16,8 @@ SWITCHING_TIME = prometheus_client.Histogram(
     buckets=[0.5, 0.75, 1, 1.5, 2, 3, 4, 5],
 )
 
+VALID_OUTPUTS = {"A", "B"}
+
 
 async def apply_matrix_settings(classification: str) -> None:
     """Send HDMI matrix switch commands for the given classification,
@@ -28,6 +30,11 @@ async def apply_matrix_settings(classification: str) -> None:
 
     def _send():
         for output, input_num in settings.items():
+            if output == "label":
+                continue
+            if output not in VALID_OUTPUTS:
+                logger.error("invalid output '%s' in settings for classification '%s'", output, classification)
+                continue
             payload = json.dumps(
                 {
                     "output": output,
