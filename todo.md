@@ -14,8 +14,7 @@ Checkboxes key:
 - [ ] `track_interactions.js` registers event listeners on the video tag, but it doesn't unregister them if it later targets another video tag
 
 - [ ] auto-save config when you click "start" (currently, it reports an error even though there's placeholder config pre-populated)
-- [ ] weird 'No video found' error sometimes
-- [ ] notify the server when the sender extension is started or stopped
+- [ ] notify the server when the sender extension is started or stopped (and show this on the UI)
 - [ ] ensure we only accept images for classification from one tab/sender at a time -- don't want to accidentally DoS myself if I enable this on multiple tabs
 - [ ] don't switch if I'm actively interacting with the video player tab (onmouseover?)
 - [ ] if I seek multiple times or catch up to live and end up on a commercial after having been on a break, switch after a short delay
@@ -63,7 +62,9 @@ Checkboxes key:
 - [ ] factor out an enum of classification labels to support more consistent typing
 - [ ] keep track of last receive time -- if we haven't gotten a new screenshot in a while (depending on the receive frequency), update the state to reflect possible connection loss and show that in the UI as well
 
-- [ ] allow importing classification profiles (classifiers) from a full path (so they could be added as plugins)
+- [ ] allow importing classification profiles from a full Python path (so they could be added as plugins)
+  - e.g. in `config.json` you could put `my_classifiers.some_sport` and it'd auto-import that package
+- [ ] have an option to bypass the LLM-based classification in case I want to turn off the llama.cpp server temporarily
 
 #### Review
 

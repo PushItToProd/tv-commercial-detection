@@ -37,6 +37,7 @@ Checkboxes key:
   - -> `rect` only works on Firefox - may as well keep it simple
 - [-] potentially resize using canvas https://stackoverflow.com/a/39637827
 - [-] allow configuring separate intervals for each endpoint
+- [x] weird 'No video found' error sometimes
 
 ## Web app
 - [x] deploy everything in docker
