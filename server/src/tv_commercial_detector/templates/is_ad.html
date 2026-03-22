@@ -101,6 +101,9 @@
         <button class="btn btn-sm btn-outline-warning" onclick="resumeAutoSwitch()">Re-enable</button>
       </div>
 
+      <!-- Pause auto-switch button (only shown when not already paused) -->
+      <button id="btn-pause-auto-switch" class="btn btn-outline-secondary btn-sm fw-semibold" onclick="pauseAutoSwitch()">Pause 30s</button>
+
       <!-- Enable debounce toggle -->
       <div class="form-check form-switch mb-0 d-flex align-items-center gap-2">
         <input class="form-check-input" type="checkbox" role="switch" id="enable-debounce-toggle" checked style="width:3rem;height:1.5rem;">
@@ -147,6 +150,10 @@ function updatePauseCountdown() {
 
 function resumeAutoSwitch() {
   fetch('/settings/resume_auto_switch', { method: 'POST' }).catch(() => {});
+}
+
+function pauseAutoSwitch() {
+  fetch('/settings/pause_auto_switch', { method: 'POST' }).catch(() => {});
 }
 
 function reportWrong(correctLabel, doSwitch) {
@@ -256,6 +263,8 @@ function applyData(data) {
     pauseCountdownInterval = setInterval(updatePauseCountdown, 500);
   }
   updatePauseCountdown();
+  const pauseBtn = document.getElementById('btn-pause-auto-switch');
+  if (pauseBtn) pauseBtn.style.display = (data.auto_switch && !autoSwitchPausedUntil) ? '' : 'none';
 }
 
 const evtSource = new EventSource('/is_ad/stream');

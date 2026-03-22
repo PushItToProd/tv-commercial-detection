@@ -1,3 +1,5 @@
+import time
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
@@ -34,6 +36,14 @@ async def trigger_matrix(data: TriggerMatrixRequest):
     state.auto_switch = False
     await apply_matrix_settings(classification)
     return {"triggered": classification}
+
+
+@router.post("/settings/pause_auto_switch")
+async def pause_auto_switch():
+    """Temporarily pause auto-switch for 30 seconds without recording a classification."""
+    state.auto_switch_paused_until = time.time() + 30
+    await broadcast_status()
+    return {"auto_switch_paused_until": state.auto_switch_paused_until}
 
 
 @router.post("/settings/resume_auto_switch")
