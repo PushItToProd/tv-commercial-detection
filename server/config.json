@@ -3,10 +3,12 @@
   "save_dir": "frames_cw",
   "output_settings": {
     "ad": {
+      "label": "Alt view",
       "A": "1",
       "B": "4"
     },
     "content": {
+      "label": "Main view",
       "A": "4",
       "B": "1"
     }
