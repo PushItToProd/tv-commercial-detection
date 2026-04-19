@@ -5,6 +5,7 @@ import os
 import pytest
 from fastapi.testclient import TestClient
 
+import tv_commercial_detector.phash_override as phash_override_module
 from tv_commercial_detector import state as state_module
 from tv_commercial_detector.config import app_config
 from tv_commercial_detector.main import create_app
@@ -47,6 +48,7 @@ def reset_state():
     s.auto_switch_paused_until = None
     state_module.sse_clients.clear()
     state_module.recent_frames.clear()
+    phash_override_module.reset()
 
     app_config.matrix_url = "http://localhost:5000"
     app_config.enable_debounce = False

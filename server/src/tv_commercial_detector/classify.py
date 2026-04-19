@@ -4,10 +4,19 @@ from pathlib import Path
 
 from .classification.result import ClassificationResult
 from .config import app_config
+from .phash_override import check_override
 
 
 def classify_image(image_path: str) -> ClassificationResult:
     """Dispatch to the active classifier profile."""
+    override_label = check_override(image_path)
+    if override_label is not None:
+        return ClassificationResult(
+            source="phash_override",
+            type=override_label,
+            reason="phash_override",
+            reply="(phash override)",
+        )
     module = importlib.import_module(
         f".classifiers.{app_config.classifier_profile}",
         package=__package__,

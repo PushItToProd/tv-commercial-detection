@@ -11,6 +11,7 @@ from pydantic import BaseModel
 
 from ..classify import classify_image
 from ..config import app_config
+from ..phash_override import add_override
 from ..frame_saver import save_frames_batch
 from ..state import FrameEntry, last_image_path, recent_frames, state
 from .status import broadcast_status
@@ -269,5 +270,14 @@ async def flag_frames(data: FlagFramesRequest):
     for item in data.frames:
         if item.label not in ("ad", "content", "ignore"):
             raise HTTPException(status_code=400, detail="invalid label")
-    # TODO: Part 2 — call add_override()
-    return {"saved": 0}
+    saved = 0
+    frames_list = list(recent_frames)
+    for item in data.frames:
+        if item.label == "ignore":
+            continue
+        for entry in frames_list:
+            if entry.timestamp == item.timestamp:
+                add_override(entry.frame_bytes, item.label)
+                saved += 1
+                break
+    return {"saved": saved}
