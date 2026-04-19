@@ -222,3 +222,13 @@ async def report_wrong(data: ReportWrongRequest):
         await broadcast_status()
 
     return {"saved": saved, "correct_label": correct_label}
+
+
+@router.post("/capture")
+async def capture():
+    if not recent_frames:
+        raise HTTPException(status_code=400, detail="No image available")
+
+    saved = save_frames_batch(list(recent_frames), "manual_capture")
+    print(f"Captured: {len(saved)} frame(s) to {app_config.save_dir}")
+    return {"saved": saved}
