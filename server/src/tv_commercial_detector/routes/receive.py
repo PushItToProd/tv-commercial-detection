@@ -267,7 +267,7 @@ async def get_recent_frame_image(timestamp: str):
 @router.post("/flag_frames")
 async def flag_frames(data: FlagFramesRequest):
     for item in data.frames:
-        if item.label not in ("ad", "content"):
+        if item.label not in ("ad", "content", "ignore"):
             raise HTTPException(status_code=400, detail="invalid label")
     # TODO: Part 2 — call add_override()
     return {"saved": 0}

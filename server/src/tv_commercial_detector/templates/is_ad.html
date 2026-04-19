@@ -328,6 +328,29 @@ evtSource.onmessage = function(event) {
 
 <script src="/static/bootstrap.bundle.min.js"></script>
 <script>
+const FLAG_BTNS = [
+  {value: 'ad',      label: 'Ad',      active: 'btn-danger',    inactive: 'btn-outline-danger'},
+  {value: 'content', label: 'Content', active: 'btn-success',   inactive: 'btn-outline-success'},
+  {value: 'ignore',  label: 'Ignore',  active: 'btn-secondary', inactive: 'btn-outline-secondary'},
+  {value: 'none',    label: 'Skip',    active: 'btn-light',     inactive: 'btn-outline-light'},
+];
+
+const FLAG_CARD_BORDER = {
+  ad:      'border-danger',
+  content: 'border-success',
+  ignore:  'border-secondary',
+  none:    'border-dark',
+};
+
+function setFlagCardLabel(card, label) {
+  card.dataset.label = label;
+  card.className = 'card bg-dark h-100 flag-card border border-2 ' + (FLAG_CARD_BORDER[label] || 'border-dark');
+  card.querySelectorAll('.flag-btn').forEach(btn => {
+    const cfg = FLAG_BTNS.find(b => b.value === btn.dataset.value);
+    btn.className = 'btn btn-sm flag-btn ' + (btn.dataset.value === label ? cfg.active : cfg.inactive);
+  });
+}
+
 async function openFlagModal(correctLabel) {
   const resp = await fetch('/recent_frames');
   const data = await resp.json();
@@ -336,27 +359,56 @@ async function openFlagModal(correctLabel) {
   for (const frame of data.frames) {
     const col = document.createElement('div');
     col.className = 'col-sm-6 col-md-4 col-lg-3';
-    col.innerHTML = `
-      <div class="card bg-secondary h-100">
-        <img src="/recent_frames/${frame.timestamp}/image" class="img-fluid rounded mb-2" alt="frame">
-        <div class="form-check p-2">
-          <input class="form-check-input flag-frame-checkbox" type="checkbox"
-                 data-timestamp="${frame.timestamp}" checked>
-          <label class="form-check-label text-white">${frame.classification ?? '?'}</label>
-        </div>
-      </div>`;
+
+    const card = document.createElement('div');
+    // initial class set by setFlagCardLabel below
+    card.dataset.timestamp = frame.timestamp;
+
+    const img = document.createElement('img');
+    img.src = '/recent_frames/' + frame.timestamp + '/image';
+    img.className = 'img-fluid rounded-top';
+    img.alt = 'frame';
+
+    const footer = document.createElement('div');
+    footer.className = 'card-footer p-2';
+
+    const info = document.createElement('div');
+    info.className = 'small text-muted mb-2';
+    info.textContent = frame.classification ?? '?';
+
+    const btnGroup = document.createElement('div');
+    btnGroup.className = 'btn-group w-100 btn-group-sm';
+    btnGroup.setAttribute('role', 'group');
+    FLAG_BTNS.forEach(({value}) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.dataset.value = value;
+      btn.className = 'btn btn-sm flag-btn'; // styled by setFlagCardLabel
+      btn.textContent = FLAG_BTNS.find(b => b.value === value).label;
+      btn.addEventListener('click', () => setFlagCardLabel(card, value));
+      btnGroup.appendChild(btn);
+    });
+
+    footer.appendChild(info);
+    footer.appendChild(btnGroup);
+    card.appendChild(img);
+    card.appendChild(footer);
+    col.appendChild(card);
     grid.appendChild(col);
+
+    setFlagCardLabel(card, correctLabel);
   }
-  const modal = document.getElementById('flag-modal');
-  modal.dataset.correctLabel = correctLabel;
-  bootstrap.Modal.getOrCreateInstance(modal).show();
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('flag-modal')).show();
 }
 
 async function submitFlaggedFrames() {
-  const modal = document.getElementById('flag-modal');
-  const correctLabel = modal.dataset.correctLabel;
-  const checked = [...document.querySelectorAll('.flag-frame-checkbox:checked')];
-  const frames = checked.map(cb => ({timestamp: cb.dataset.timestamp, label: correctLabel}));
+  const frames = [...document.querySelectorAll('.flag-card')]
+    .filter(c => c.dataset.label !== 'none')
+    .map(c => ({timestamp: c.dataset.timestamp, label: c.dataset.label}));
+  if (frames.length === 0) {
+    bootstrap.Modal.getInstance(document.getElementById('flag-modal')).hide();
+    return;
+  }
   try {
     const resp = await fetch('/flag_frames', {
       method: 'POST',
@@ -368,7 +420,7 @@ async function submitFlaggedFrames() {
       alert('Error: ' + (err.detail || resp.statusText));
       return;
     }
-    bootstrap.Modal.getInstance(modal).hide();
+    bootstrap.Modal.getInstance(document.getElementById('flag-modal')).hide();
   } catch (e) {
     alert('Failed to save: ' + e);
   }
