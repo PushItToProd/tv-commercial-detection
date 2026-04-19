@@ -6,7 +6,7 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, File, Form, HTTPException, Response, UploadFile
 from pydantic import BaseModel
 
 from ..classify import classify_image
@@ -156,6 +156,15 @@ class ReportWrongRequest(BaseModel):
     switch: bool = True
 
 
+class FlagFrameItem(BaseModel):
+    timestamp: str
+    label: str
+
+
+class FlagFramesRequest(BaseModel):
+    frames: list[FlagFrameItem]
+
+
 @router.post("/video-state")
 async def video_state(
     is_paused: str = Form(default=""),
@@ -232,3 +241,33 @@ async def capture():
     saved = save_frames_batch(list(recent_frames), "manual_capture")
     print(f"Captured: {len(saved)} frame(s) to {app_config.save_dir}")
     return {"saved": saved}
+
+
+@router.get("/recent_frames")
+async def get_recent_frames():
+    frames = []
+    for entry in list(recent_frames):
+        frames.append({
+            "timestamp": entry.timestamp,
+            "classification": entry.result.type if entry.result is not None else None,
+            "state_classification": entry.state_classification,
+        })
+    return {"frames": frames}
+
+
+@router.get("/recent_frames/{timestamp}/image")
+async def get_recent_frame_image(timestamp: str):
+    for entry in list(recent_frames):
+        if entry.timestamp == timestamp:
+            media_type = "image/jpeg" if entry.ext in (".jpg", ".jpeg") else "image/png"
+            return Response(content=entry.frame_bytes, media_type=media_type)
+    raise HTTPException(status_code=404, detail="Frame not found")
+
+
+@router.post("/flag_frames")
+async def flag_frames(data: FlagFramesRequest):
+    for item in data.frames:
+        if item.label not in ("ad", "content"):
+            raise HTTPException(status_code=400, detail="invalid label")
+    # TODO: Part 2 — call add_override()
+    return {"saved": 0}

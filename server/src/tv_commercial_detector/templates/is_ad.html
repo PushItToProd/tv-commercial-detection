@@ -175,6 +175,7 @@ function reportWrong(correctLabel, doSwitch) {
   .then(r => r.json())
   .then(data => { if (data.error) alert(data.error); })
   .catch(() => {});
+  openFlagModal(correctLabel);
 }
 
 function makeReportButtons(correctLabel, display) {
@@ -306,6 +307,74 @@ evtSource.onmessage = function(event) {
   });
 })();
 </script>
+
+<div id="flag-modal" class="modal fade" tabindex="-1" aria-labelledby="flag-modal-label" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered">
+    <div class="modal-content bg-dark text-white">
+      <div class="modal-header">
+        <h5 class="modal-title" id="flag-modal-label">Flag Misclassified Frames</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="flag-frames-grid" class="row g-3"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="btn-flag-save">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="/static/bootstrap.bundle.min.js"></script>
+<script>
+async function openFlagModal(correctLabel) {
+  const resp = await fetch('/recent_frames');
+  const data = await resp.json();
+  const grid = document.getElementById('flag-frames-grid');
+  grid.innerHTML = '';
+  for (const frame of data.frames) {
+    const col = document.createElement('div');
+    col.className = 'col-sm-6 col-md-4 col-lg-3';
+    col.innerHTML = `
+      <div class="card bg-secondary h-100">
+        <img src="/recent_frames/${frame.timestamp}/image" class="img-fluid rounded mb-2" alt="frame">
+        <div class="form-check p-2">
+          <input class="form-check-input flag-frame-checkbox" type="checkbox"
+                 data-timestamp="${frame.timestamp}" checked>
+          <label class="form-check-label text-white">${frame.classification ?? '?'}</label>
+        </div>
+      </div>`;
+    grid.appendChild(col);
+  }
+  const modal = document.getElementById('flag-modal');
+  modal.dataset.correctLabel = correctLabel;
+  bootstrap.Modal.getOrCreateInstance(modal).show();
+}
+
+async function submitFlaggedFrames() {
+  const modal = document.getElementById('flag-modal');
+  const correctLabel = modal.dataset.correctLabel;
+  const checked = [...document.querySelectorAll('.flag-frame-checkbox:checked')];
+  const frames = checked.map(cb => ({timestamp: cb.dataset.timestamp, label: correctLabel}));
+  try {
+    const resp = await fetch('/flag_frames', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({frames})
+    });
+    if (!resp.ok) {
+      const err = await resp.json();
+      alert('Error: ' + (err.detail || resp.statusText));
+      return;
+    }
+    bootstrap.Modal.getInstance(modal).hide();
+  } catch (e) {
+    alert('Failed to save: ' + e);
+  }
+}
+
+document.getElementById('btn-flag-save').addEventListener('click', submitFlaggedFrames);
+</script>
 </body>
 </html>
