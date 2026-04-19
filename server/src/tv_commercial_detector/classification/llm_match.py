@@ -12,7 +12,7 @@ from PIL import Image
 
 from .result import ClassificationResult
 
-SERVER_URL = os.environ.get("LLAMA_SERVER_URL", "http://192.168.1.27:3002")
+SERVER_URL = os.environ.get("LLAMA_SERVER_URL", "http://localhost:3002")
 
 # Reuse a single client to avoid leaking sockets (httpx connection pool).
 # Lazily initialize to keep tests deterministic when OpenAI is patched.
