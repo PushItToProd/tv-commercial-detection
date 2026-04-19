@@ -54,13 +54,14 @@ def _has_network_logo(img: cv2.typing.MatLike, masked_logo: cv2.typing.MatLike) 
     tl_x, tl_y = result.top_left
     br_x, br_y = result.bottom_right
 
-    # TODO: these values are hardcoded for Fox -- move them into nascar_on_fox
     return (
-        110 <= tl_x <= 140
+        # TODO: add an option to override or temporarily disable checking the pixels
+        True
+        and result.max_val >= 0.39
+        and 110 <= tl_x <= 140
         and 15 <= tl_y <= 35
         and 245 <= br_x <= 290
         and 50 <= br_y <= 75
-        and result.max_val >= 0.39
     )
 
 
