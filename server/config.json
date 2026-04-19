@@ -1,6 +1,7 @@
 {
   "matrix_url": "http://192.168.1.27:5000",
-  "save_dir": "frames_cw",
+  "save_dir": "frames",
+  "classifier_profile": "nascar_on_fox",
   "output_settings": {
     "ad": {
       "label": "Alt view",
@@ -8,7 +9,7 @@
       "B": "4"
     },
     "content": {
-      "label": "Main view",
+      "label": "Race view",
       "A": "4",
       "B": "1"
     }
