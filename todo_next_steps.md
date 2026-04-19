@@ -1,4 +1,6 @@
-- [/] enable multiple classification profiles
+- [ ] move the images in the save_dir to two subdirectories under that directory: `${save_dir}/images` for full sized images and `${save_dir}/thumbnails` for compressed images
+
+- [x] enable multiple classification profiles
   - [x] only specify Fox-specific logos in `nascar_on_fox.py`
 
 - [ ] deduplicate images -- figure out how to clean up without losing information (maybe save as symlinks?)
