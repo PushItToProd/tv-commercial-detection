@@ -16,6 +16,7 @@ NETWORK_LOGO_PATHS = {
 
 # We search for these in the upper left.
 SIDE_BY_SIDE_LOGO_PATHS = {
+    "fox": logo_match.LOGOS_DIR / "fox_logo_crop.png",
     "fox": logo_match.LOGOS_DIR / "fox_side_by_side_logo_crop.png",
     "fs1": logo_match.LOGOS_DIR / "fs1_side_by_side_logo_crop.png",
     "trucks": logo_match.LOGOS_DIR / "truck_series_logo.png",
@@ -58,10 +59,10 @@ def _has_network_logo(img: cv2.typing.MatLike, masked_logo: cv2.typing.MatLike) 
         # TODO: add an option to override or temporarily disable checking the pixels
         True
         and result.max_val >= 0.39
-        and 110 <= tl_x <= 140
-        and 15 <= tl_y <= 35
-        and 245 <= br_x <= 290
-        and 50 <= br_y <= 75
+        # and 110 <= tl_x <= 140
+        # and 15 <= tl_y <= 35
+        # and 245 <= br_x <= 290
+        # and 50 <= br_y <= 75
     )
 
 
