@@ -57,6 +57,9 @@ Checkboxes key:
 
 - [x] support .jpg in addition to .png files so we can compress on the client side
 
+- [x] enable multiple classification profiles
+  - [x] only specify Fox-specific logos in `nascar_on_fox.py`
+
 #### Review
 
 - [x] `/review` can't handle the amount of image on the page (probably overwhelming the dev server) -- paginate
