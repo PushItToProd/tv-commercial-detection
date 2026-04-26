@@ -24,6 +24,7 @@ def _get_status_data() -> dict:
     race_view_label = output_settings.get("content", {}).get("label", "Race view")
     return {
         "classification": state.classification,
+        "classification_reason": state.classification_reason,
         "paused": state.paused,
         "seeking": state.seeking,
         "pending": state.is_pending_change(),

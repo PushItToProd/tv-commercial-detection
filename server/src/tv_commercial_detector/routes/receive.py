@@ -131,6 +131,7 @@ async def receive(
         and result in ("ad", "content")
     ):
         state.classification = result
+        state.classification_reason = result_reason
         logger.info(
             f"Classification changed: {classification} → {result}"
             f" (reason: {result_reason})  |  offset: {offset_str}"

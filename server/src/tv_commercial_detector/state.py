@@ -24,6 +24,7 @@ class FrameEntry:
 @dataclass
 class AppState:
     classification: str | None = None  # None | "ad" | "content" | "unknown"
+    classification_reason: str | None = None  # Reason for the current classification
     paused: bool = True
     seeking: bool = False
     auto_switch: bool = True

@@ -63,15 +63,17 @@
     /* transition: background 0.2s; */
   }
   .btn-correction:hover { background: rgba(255,255,255,0.38); }
+
 </style>
 </head>
 <body>
 
   <main class="vstack text-center gap-4" style="width:100%; height: 95vh;">
 
-    <div class="text-center flex-grow-1">
-      <h1 id="label" class="text-mega text-white">...</h1>
-      <h2 id="paused-indicator" class="display-1 text-white"></h2>
+    <div class="text-center flex-grow-1 text-white">
+      <h1 id="label" class="text-mega text-white mb-0">...</h1>
+      <div id="classification-reason" class="mt-0 pt-0 fs-3 fst-italic"></div>
+      <h2 id="paused-indicator" class="display-2 text-white mb-0 pb-0"></h2>
     </div>
 
     <div>
@@ -237,9 +239,11 @@ document.getElementById('btn-race-input').addEventListener('click', () => trigge
 
 function applyData(data) {
   const c = data.classification;
+  const reason = data.classification_reason;
   const paused = data.paused;
   const seeking = data.seeking;
   const el = document.getElementById('label');
+  const reasonEl = document.getElementById('classification-reason');
   const pausedEl = document.getElementById('paused-indicator');
   if (c === 'ad') {
     document.body.style.background = '#cc0033';
@@ -251,6 +255,7 @@ function applyData(data) {
     document.body.style.background = '#333';
     el.textContent = c === null ? '...' : '?';
   }
+  reasonEl.textContent = reason || '';
   const pending = data.pending;
   pausedEl.textContent = paused ? '⏸ PAUSED' : seeking ? '⏳ SEEKING' : pending ? '⏳ PENDING CHANGE' : '';
   updateButtons(c);
