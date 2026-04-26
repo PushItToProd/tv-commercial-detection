@@ -145,6 +145,7 @@ async def receive(
             f"Received image → classified as: {result} (reason: {result_reason})"
             f" |  offset: {offset_str}  |  page: {page_title}"
         )
+        state.classification_reason = result_reason
 
     await broadcast_status()
     if apply_new_settings:
