@@ -108,6 +108,7 @@ Checkboxes key:
 - [x] if I manually switch, temporarily pause automatic switching until I enable it again
 - [x] if I send two commands to the switcher back-to-back, will it handle them both without me needing to wait for its response?
   - -> yes
+- [x] !!! don't debounce if the classification reason is from OpenCV -- switch instantly
 
 ### UI
 - [x] show a visual indicator when an ad has been detected and it's about to switch
@@ -122,3 +123,4 @@ Checkboxes key:
 - [x] when the classification first changes, even if we don't actually switch the switcher yet, update the UI to show it thinks it's about to change
 - [x] change "Wrong!" to "Report"
 - [x] add UI toggle to enable/disable debounce
+- [x] add a button to just save the last few screenshots

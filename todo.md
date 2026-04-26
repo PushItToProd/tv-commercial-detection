@@ -17,9 +17,9 @@ Checkboxes key:
 - [ ] notify the server when the sender extension is started or stopped (and show this on the UI)
 - [ ] ensure we only accept images for classification from one tab/sender at a time -- don't want to accidentally DoS myself if I enable this on multiple tabs
 - [ ] don't switch if I'm actively interacting with the video player tab (onmouseover?)
-- [ ] if I seek multiple times or catch up to live and end up on a commercial after having been on a break, switch after a short delay
-  - although maybe this is just how it works as it is
-- [ ] just get rid of multi-endpoint config and assume it's going to be linked to one control server from now on
+  - [ ] if I seek multiple times or catch up to live and end up on a commercial after having been on a break, wait to switch after a short delay in case I want to keep interacting
+    - probably not that important of an enhancement compared to other options
+- [ ] maybe just get rid of multi-endpoint config and assume it's going to be linked to one control server from now on
 
 - [ ] +if the classifier service returned its result to the extension, the extension could do things like mute and (if possible) skip ahead automatically until it's not on an ad break anymore
 - [ ] package the extension so I can install it permanently in firefox
@@ -90,8 +90,8 @@ Checkboxes key:
 #### Prompt
 
 - [ ] right now I have my prompt, image, etc. hardcoded for just Cup on Fox/FS1 -- I'll need to add separate prompts, logos, etc. for the other series and broadcasters too
-  - [ ] add a dropdown to the UI that lets you pick from multiple prompt presets
-    - [ ] eventually: detect which series I'm watching using YTTV and/or live feed data (if a race is live)
+  - [x] add a dropdown to the UI that lets you pick from multiple prompt presets
+  - [ ] eventually: detect which series I'm watching using YTTV and/or live feed data (if a race is live)
   - series/networks to handle:
     - [/] O'Reilly on CW
       - they keep their "CW Sports" logo visible in the upper right during side-by-side, so `classify_image` has to be rewritten to handle that
@@ -103,7 +103,7 @@ Checkboxes key:
 
 - [ ] support switching between multiple prompt files
 
-- [ ] for training purposes, record a level of "importance" associated with each manual classification -- how much do I care about this being classified correctly?
+- [ ] for training purposes, record a level of "importance" associated with each manual classification to use when evaluating results -- basically, how much do I care about this being classified correctly?
   - though this might also be better addressed by just improving my categories
   - the real issue is that I don't want to penalize the classifier too much for edge cases like transitions to and from commercial
 
@@ -151,13 +151,10 @@ Checkboxes key:
 
 ### Switching
 
-- [ ] !!! don't debounce if the classification reason is from OpenCV -- switch instantly
 - [ ] try to avoid sending multiple parallel/back-to-back requests to change inputs
 - [ ] if I re-enable auto-switch, immediately switch to the right state for the current classification
 
 ### UI
-
-- [ ] add a button to just save the last few screenshots
 
 - [ ] display the reason for the categorization on the UI
 - [ ] maybe use a CSS framework
