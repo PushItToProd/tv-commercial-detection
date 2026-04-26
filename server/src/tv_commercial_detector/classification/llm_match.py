@@ -13,6 +13,7 @@ from PIL import Image
 from .result import ClassificationResult
 
 SERVER_URL = os.environ.get("LLAMA_SERVER_URL", "http://localhost:3002")
+MODEL_NAME = os.environ.get("LLAMA_MODEL_NAME", "local")
 
 # Reuse a single client to avoid leaking sockets (httpx connection pool).
 # Lazily initialize to keep tests deterministic when OpenAI is patched.
@@ -129,7 +130,7 @@ def _report_racing_related(image_data: str) -> bool:
 
     with CLASSIFICATION_TIME.time():
         response = _get_client().chat.completions.create(
-            model="local",
+            model=MODEL_NAME,
             messages=messages,
             max_tokens=10,
             temperature=0.5,
@@ -158,7 +159,7 @@ def classify_by_prompt(image_data: str) -> ClassificationResult:
 
     with CLASSIFICATION_TIME.time():
         response = _get_client().chat.completions.create(
-            model="local",
+            model=MODEL_NAME,
             messages=messages,
             max_tokens=500,
             temperature=0.6,
