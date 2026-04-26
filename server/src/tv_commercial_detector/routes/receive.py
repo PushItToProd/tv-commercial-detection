@@ -162,6 +162,7 @@ class ReportWrongRequest(BaseModel):
 class FlagFrameItem(BaseModel):
     timestamp: str
     label: str
+    phash: bool = True
 
 
 class FlagFramesRequest(BaseModel):
@@ -276,6 +277,8 @@ async def flag_frames(data: FlagFramesRequest):
     frames_list = list(recent_frames)
     for item in data.frames:
         if item.label == "ignore":
+            continue
+        if not item.phash:
             continue
         for entry in frames_list:
             if entry.timestamp == item.timestamp:

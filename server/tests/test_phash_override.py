@@ -10,6 +10,7 @@ from PIL import Image
 import tv_commercial_detector.phash_override as phash_override_module
 from tv_commercial_detector.config import app_config
 from tv_commercial_detector import phash_override
+from tv_commercial_detector.state import FrameEntry, recent_frames
 
 
 # ---------------------------------------------------------------------------
@@ -132,3 +133,75 @@ def test_flag_frames_ignore_saves_nothing(client: TestClient, tmp_path):
 
     overrides_path = tmp_path / "phash_overrides.json"
     assert not overrides_path.exists()
+
+
+def test_flag_frames_skips_phash_when_unchecked(client: TestClient, tmp_path):
+    app_config.save_dir = tmp_path
+    phash_override_module.reset()
+
+    recent_frames.append(
+        FrameEntry(
+            timestamp="2099-01-01T00:00:00",
+            frame_bytes=_jpeg_bytes(color=(10, 200, 10)),
+            ext=".jpg",
+            result=None,
+            page_title="?",
+            video_title="",
+            network_name="",
+            video_offset=None,
+            state_classification=None,
+        )
+    )
+
+    payload = {
+        "frames": [
+            {
+                "timestamp": "2099-01-01T00:00:00",
+                "label": "ad",
+                "phash": False,
+            }
+        ]
+    }
+    resp = client.post("/flag_frames", json=payload)
+    assert resp.status_code == 200
+    assert resp.json() == {"saved": 0}
+
+    overrides_path = tmp_path / "phash_overrides.json"
+    assert not overrides_path.exists()
+
+
+def test_flag_frames_defaults_phash_to_true(client: TestClient, tmp_path):
+    app_config.save_dir = tmp_path
+    phash_override_module.reset()
+
+    recent_frames.append(
+        FrameEntry(
+            timestamp="2099-01-01T00:00:01",
+            frame_bytes=_jpeg_bytes(color=(200, 10, 10)),
+            ext=".jpg",
+            result=None,
+            page_title="?",
+            video_title="",
+            network_name="",
+            video_offset=None,
+            state_classification=None,
+        )
+    )
+
+    payload = {
+        "frames": [
+            {
+                "timestamp": "2099-01-01T00:00:01",
+                "label": "content",
+            }
+        ]
+    }
+    resp = client.post("/flag_frames", json=payload)
+    assert resp.status_code == 200
+    assert resp.json() == {"saved": 1}
+
+    overrides_path = tmp_path / "phash_overrides.json"
+    assert overrides_path.exists()
+    data = json.loads(overrides_path.read_text())
+    assert len(data) == 1
+    assert data[0]["label"] == "content"

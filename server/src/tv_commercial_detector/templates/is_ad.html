@@ -394,8 +394,26 @@ async function openFlagModal(correctLabel) {
       btnGroup.appendChild(btn);
     });
 
+    const phashWrap = document.createElement('div');
+    phashWrap.className = 'form-check form-switch mt-2';
+
+    const phashCheckbox = document.createElement('input');
+    phashCheckbox.type = 'checkbox';
+    phashCheckbox.className = 'form-check-input flag-phash-checkbox';
+    phashCheckbox.checked = true;
+    phashCheckbox.id = 'flag-phash-' + frame.timestamp;
+
+    const phashLabel = document.createElement('label');
+    phashLabel.className = 'form-check-label small';
+    phashLabel.htmlFor = phashCheckbox.id;
+    phashLabel.textContent = 'phash?';
+
+    phashWrap.appendChild(phashCheckbox);
+    phashWrap.appendChild(phashLabel);
+
     footer.appendChild(info);
     footer.appendChild(btnGroup);
+    footer.appendChild(phashWrap);
     card.appendChild(img);
     card.appendChild(footer);
     col.appendChild(card);
@@ -409,7 +427,11 @@ async function openFlagModal(correctLabel) {
 async function submitFlaggedFrames() {
   const frames = [...document.querySelectorAll('.flag-card')]
     .filter(c => c.dataset.label !== 'none')
-    .map(c => ({timestamp: c.dataset.timestamp, label: c.dataset.label}));
+    .map(c => ({
+      timestamp: c.dataset.timestamp,
+      label: c.dataset.label,
+      phash: c.querySelector('.flag-phash-checkbox')?.checked ?? true,
+    }));
   if (frames.length === 0) {
     bootstrap.Modal.getInstance(document.getElementById('flag-modal')).hide();
     return;
