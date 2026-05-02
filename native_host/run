@@ -8,4 +8,4 @@ if [[ ! -d "$SCRIPT_DIR/venv" ]]; then
 fi
 
 source "$SCRIPT_DIR/venv/bin/activate"
-exec "$SCRIPT_DIR/venv/bin/python" "$SCRIPT_DIR/audio_capture.py" "$@"
+exec "$SCRIPT_DIR/venv/bin/python" "$SCRIPT_DIR/audio_capture.py" "$@" 2>>"$SCRIPT_DIR/audio_capture.log"
