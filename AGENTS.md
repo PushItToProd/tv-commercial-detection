@@ -61,7 +61,7 @@ cd server
 uv sync
 
 # Run the dev server
-uv run uvicorn tv_commercial_detector.main:create_app --factory --reload --host 0.0.0.0 --port 11434
+uv run uvicorn tv_commercial_detector.main:create_app --factory --reload --host 0.0.0.0 --port 11679
 
 # Run a script / one-off command inside the venv
 uv run python -m tv_commercial_detector.classify
@@ -137,7 +137,7 @@ Running under Docker requires a .env file to be created first.
 docker compose up -d
 ```
 
-The receiver container is exposed on `RECEIVER_PORT` (default `11434`).
+The receiver container is exposed on `RECEIVER_PORT` (default `11679`).
 
 ---
 

@@ -1,5 +1,5 @@
 const DEFAULT_INTERVAL = 4; // seconds
-const DEFAULT_URL = 'http://localhost:11434/receive';
+const DEFAULT_URL = 'http://localhost:11679/receive';
 
 
 const $interval = document.getElementById('interval');
