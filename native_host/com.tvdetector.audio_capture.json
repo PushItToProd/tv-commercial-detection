@@ -1,0 +1,7 @@
+{
+  "name": "com.tvdetector.audio_capture",
+  "description": "TV Commercial Detector — audio capture native host",
+  "path": "__INSTALL_DIR__/audio_capture.py",
+  "type": "stdio",
+  "allowed_extensions": ["tv-commercial-detector@tvdetector"]
+}

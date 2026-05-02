@@ -25,6 +25,7 @@ router = APIRouter()
 @router.post("/receive")
 async def receive(
     image: UploadFile | None = File(default=None),
+    audio: UploadFile | None = File(default=None),
     is_paused: str = Form(default=""),
     is_seeking: str = Form(default=""),
     page_title: str = Form(default="?"),
@@ -58,6 +59,7 @@ async def receive(
         ext = ".jpg"
 
     frame_bytes = await image.read()
+    audio_bytes = await audio.read() if audio is not None else None
 
     # Write to a temp file so classify_image (which expects a path) can read it
     with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as tmp:
@@ -90,6 +92,7 @@ async def receive(
                 network_name=network_name,
                 video_offset=offset_secs,
                 state_classification=classification,
+                audio_bytes=audio_bytes,
             )
         )
         shutil.copy2(tmp_path, last_image_path)

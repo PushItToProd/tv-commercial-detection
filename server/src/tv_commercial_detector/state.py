@@ -19,6 +19,7 @@ class FrameEntry:
     network_name: str
     video_offset: float | None
     state_classification: str | None  # state.classification at time of receipt
+    audio_bytes: bytes | None = None  # WAV audio captured alongside this frame
 
 
 @dataclass

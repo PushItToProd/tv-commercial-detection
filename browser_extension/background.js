@@ -2,9 +2,13 @@
 
 const captureState = {
   running: false,
-  tabId: null,  // tab being monitored; capture stops if this tab is closed
-  log: []       // ring buffer of { msg, type } — replayed into popup on open
+  tabId: null,      // tab being monitored; capture stops if this tab is closed
+  audioPort: null,  // native messaging port to the audio capture host
+  log: []           // ring buffer of { msg, type } — replayed into popup on open
 };
+
+const NATIVE_HOST_ID = 'com.tvdetector.audio_capture';
+const AUDIO_DURATION_MS = 4000;
 
 const ALARM_NAME = 'frame-capture';
 const LOG_MAX = 60;
@@ -33,6 +37,21 @@ async function startCapture() {
   if (!tab) { bgLog('No active tab — cannot start.', 'err'); return; }
   captureState.tabId = tab.id;
   captureState.running = true;
+
+  // Connect to the native audio capture host
+  try {
+    const port = browser.runtime.connectNative(NATIVE_HOST_ID);
+    port.onDisconnect.addListener(() => {
+      const err = browser.runtime.lastError;
+      bgLog('Audio host disconnected' + (err ? ': ' + err.message : ''), err ? 'err' : '');
+      captureState.audioPort = null;
+    });
+    captureState.audioPort = port;
+    bgLog('Audio host connected', 'ok');
+  } catch (e) {
+    bgLog('Could not connect to audio host: ' + e.message, 'err');
+  }
+
   const periodInMinutes = await getIntervalMinutes();
   browser.alarms.create(ALARM_NAME, { periodInMinutes });
   // fire immediately so the user sees it working right away
@@ -42,6 +61,10 @@ async function startCapture() {
 function stopCapture() {
   captureState.running = false;
   captureState.tabId = null;
+  if (captureState.audioPort) {
+    captureState.audioPort.disconnect();
+    captureState.audioPort = null;
+  }
   browser.alarms.clear(ALARM_NAME);
 }
 
@@ -103,11 +126,12 @@ async function screenshotTabAsBlob(tab, videoInfo) {
   return blob;
 }
 
-function buildFormData(tab, tabState, blob) {
+function buildFormData(tab, tabState, blob, audioBlob = null) {
   const {isPaused, isSeeking, timestamp, videoTitle, networkName, videoOffset} = tabState;
 
   const form = new FormData();
   if (blob) form.append('image', blob, `frame_${timestamp}.jpg`);
+  if (audioBlob) form.append('audio', audioBlob, `audio_${timestamp}.wav`);
   form.append('is_paused', isPaused ? 'true' : 'false');
   form.append('is_seeking', isSeeking ? 'true' : 'false');
   form.append('timestamp', timestamp);
@@ -117,6 +141,32 @@ function buildFormData(tab, tabState, blob) {
   if (networkName) form.append('network_name', networkName);
   if (videoOffset != null) form.append('video_offset', videoOffset.toString());
   return form;
+}
+
+// ── audio helpers ────────────────────────────────────────────────────────────
+
+function getAudioFromPort(port, durationMs) {
+  return new Promise(resolve => {
+    const listener = msg => {
+      port.onMessage.removeListener(listener);
+      if (msg.error) {
+        bgLog('Audio host error: ' + msg.error, 'err');
+        resolve(null);
+        return;
+      }
+      try {
+        const binary = atob(msg.audio);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+        resolve(new Blob([bytes], { type: 'audio/wav' }));
+      } catch (e) {
+        bgLog('Audio decode error: ' + e.message, 'err');
+        resolve(null);
+      }
+    };
+    port.onMessage.addListener(listener);
+    port.postMessage({ command: 'get_audio', duration_ms: durationMs });
+  });
 }
 
 // ── immediate video-state POST ─────────────────────────────────────────────
@@ -216,12 +266,19 @@ async function doCapture() {
     const timestamp = new Date().toISOString();
 
     let screenshotBlob = null;
+    let audioBlob = null;
     if (!isPaused && !isSeeking) {
-      screenshotBlob = await screenshotTabAsBlob(tab, videoInfo);
+      const capturePromises = [screenshotTabAsBlob(tab, videoInfo)];
+      if (captureState.audioPort) {
+        capturePromises.push(getAudioFromPort(captureState.audioPort, AUDIO_DURATION_MS));
+      }
+      const [imgBlob, audBlob = null] = await Promise.all(capturePromises);
+      screenshotBlob = imgBlob;
+      audioBlob = audBlob;
     }
 
     const tabState = {isPaused, isSeeking, timestamp, videoTitle: videoInfo.videoTitle ?? null, networkName: videoInfo.networkName ?? null, videoOffset: videoInfo.currentTime ?? null};
-    const form = buildFormData(tab, tabState, screenshotBlob);
+    const form = buildFormData(tab, tabState, screenshotBlob, audioBlob);
 
     // 4. POST to each endpoint concurrently
     const posts = endpoints.map(async url => {

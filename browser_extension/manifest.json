@@ -13,8 +13,15 @@
     "alarms",
     "storage",
     "tabs",
-    "<all_urls>"
+    "<all_urls>",
+    "nativeMessaging"
   ],
+
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "tv-commercial-detector@tvdetector"
+    }
+  },
 
   "content_scripts": [
     {

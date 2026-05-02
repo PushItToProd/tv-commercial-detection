@@ -34,6 +34,11 @@ def save_frames_batch(
             except Exception:
                 logger.exception(f"Error saving frame {filename}")
                 continue
+            if entry.audio_bytes is not None:
+                try:
+                    (save_dir / (dest.stem + ".wav")).write_bytes(entry.audio_bytes)
+                except Exception:
+                    logger.exception(f"Error saving audio for {filename}")
             saved.append(filename)
 
             record: dict = {
