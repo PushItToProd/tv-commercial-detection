@@ -180,6 +180,9 @@ def main() -> None:
     parser.add_argument("--save-dir", metavar="DIR", help="Save .wav snapshots to this directory")
     parser.add_argument("--frequency", type=float, default=10.0, metavar="SECS", help="Seconds between saved snapshots (default: 10)")
     parser.add_argument("--duration", type=float, default=4.0, metavar="SECS", help="Duration of each saved snapshot in seconds (default: 4)")
+    # Firefox passes these two arguments when launching the native host; ignore them but allow them for compatibility.
+    parser.add_argument("app_manifest", nargs="?", help="(Firefox) Path to the native messaging host manifest JSON file")  # for compatibility with Firefox, which passes this as an argument
+    parser.add_argument("extension_id", nargs="?", help="(Firefox) The ID of the calling extension")  # for compatibility with Firefox
     args = parser.parse_args()
 
     logger.info(
