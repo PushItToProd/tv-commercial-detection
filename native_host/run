@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+if [[ ! -d "$SCRIPT_DIR/venv" ]]; then
+  echo "Virtual environment not found. Please run install.sh first." >&2
+  exit 1
+fi
+
+source "$SCRIPT_DIR/venv/bin/activate"
+exec "$SCRIPT_DIR/venv/bin/python" "$SCRIPT_DIR/audio_capture.py" "$@"

@@ -17,17 +17,17 @@ DEST_MANIFEST="$DEST_DIR/com.tvdetector.audio_capture.json"
 # Ensure the host script is executable
 chmod +x "$HOST_SCRIPT"
 
-# Ensure Python and sounddevice are available
-if ! command -v python3 &>/dev/null; then
-  echo "Error: python3 not found. Please install Python 3." >&2
-  exit 1
-fi
-if ! python3 -c "import sounddevice" 2>/dev/null; then
-  echo "sounddevice not found — installing via pip..."
-  # FIXME: use a dedicated virtual environment instead of --user, to avoid
-  # conflicts with other Python packages
-  python3 -m pip install --user sounddevice numpy
-fi
+# # Ensure Python and sounddevice are available
+# if ! command -v python3 &>/dev/null; then
+#   echo "Error: python3 not found. Please install Python 3." >&2
+#   exit 1
+# fi
+# if ! python3 -c "import sounddevice" 2>/dev/null; then
+#   echo "sounddevice not found — installing via pip..."
+#   # FIXME: use a dedicated virtual environment instead of --user, to avoid
+#   # conflicts with other Python packages
+#   python3 -m pip install --user sounddevice numpy
+# fi
 
 # Create the native-messaging-hosts directory if needed
 mkdir -p "$DEST_DIR"
