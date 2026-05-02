@@ -110,25 +110,35 @@ def _get_classification_from_response(reply: str) -> ClassificationResult:
     )
 
 
-def _report_racing_related(image_data: str) -> bool:
+def _report_racing_related(image_data: str, audio_data: str | None = None) -> bool:
     """Ask the LLM whether the image contains NASCAR racing content."""
-    messages: list[ChatCompletionMessageParam] = [
+    msg_content: list = [
         {
-            "role": "user",
-            "content": [
-                {
-                    "type": "text",
-                    "text": (
-                        "Does this image contain anything related to NASCAR racing?"
-                        " Reply with only 'yes' or 'no'."
-                    ),
-                },
-                {
-                    "type": "image_url",
-                    "image_url": {"url": f"data:image/jpeg;base64,{image_data}"},
-                },
-            ],
-        }
+            "type": "text",
+            "text": (
+                "Does this image contain anything related to NASCAR racing?"
+                " Reply with only 'yes' or 'no'."
+            ),
+        },
+        {
+            "type": "image_url",
+            "image_url": {"url": f"data:image/jpeg;base64,{image_data}"},
+        },
+    ]
+    if audio_data is not None and app_config.enable_llm_audio:
+        msg_content[0]["text"] = (
+            "This image and audio clip are from the same segment of a video. "
+            "Based on both the audio and the image, does it seem more likely than not "
+            "that this segment is from a NASCAR race broadcast (not an ad)? Reply 'Yes' or 'No'."
+        )
+        msg_content.append(
+            {
+                "type": "input_audio",
+                "input_audio": {"data": audio_data, "format": "wav"},
+            }
+        )
+    messages: list[ChatCompletionMessageParam] = [
+        {"role": "user", "content": msg_content}  # pyright: ignore[reportArgumentType]
     ]
 
     with CLASSIFICATION_TIME.time():
@@ -145,19 +155,24 @@ def _report_racing_related(image_data: str) -> bool:
     return "yes" in content.strip().lower()
 
 
-def classify_by_prompt(image_data: str) -> ClassificationResult:
+def classify_by_prompt(image_data: str, audio_data: str | None = None) -> ClassificationResult:
     """Classify using the full prompt in prompt.txt. Returns the raw LLM reply."""
-    messages: list[ChatCompletionMessageParam] = [
+    msg_content: list = [
+        {"type": "text", "text": PROMPT},
         {
-            "role": "user",
-            "content": [
-                {"type": "text", "text": PROMPT},
-                {
-                    "type": "image_url",
-                    "image_url": {"url": f"data:image/jpeg;base64,{image_data}"},
-                },
-            ],
+            "type": "image_url",
+            "image_url": {"url": f"data:image/jpeg;base64,{image_data}"},
         },
+    ]
+    if audio_data is not None and app_config.enable_llm_audio:
+        msg_content.append(
+            {
+                "type": "input_audio",
+                "input_audio": {"data": audio_data, "format": "wav"},
+            }
+        )
+    messages: list[ChatCompletionMessageParam] = [
+        {"role": "user", "content": msg_content}  # pyright: ignore[reportArgumentType]
     ]
 
     with CLASSIFICATION_TIME.time():

@@ -8,6 +8,7 @@ class AppConfig:
     llm_url: str = "http://localhost:3002"
     save_dir: Path = field(default_factory=lambda: Path("frames"))
     enable_debounce: bool = False
+    enable_llm_audio: bool = False
     output_settings: dict = field(default_factory=lambda: {"ad": {}, "content": {}})
     classifier_profile: str = "nascar_on_fox"
     phash_threshold: int = 10

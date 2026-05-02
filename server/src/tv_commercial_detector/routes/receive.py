@@ -70,7 +70,7 @@ async def receive(
     result_source = None
     result_reason = None
     try:
-        reply = classify_image(tmp_path)
+        reply = classify_image(tmp_path, audio_bytes)
         result = reply.type
         result_source = reply.source
         result_reason = reply.reason

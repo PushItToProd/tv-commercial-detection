@@ -7,7 +7,7 @@ from .config import app_config
 from .phash_override import check_override
 
 
-def classify_image(image_path: str) -> ClassificationResult:
+def classify_image(image_path: str, audio_bytes: bytes | None = None) -> ClassificationResult:
     """Dispatch to the active classifier profile."""
     override_label = check_override(image_path)
     if override_label is not None:
@@ -21,7 +21,7 @@ def classify_image(image_path: str) -> ClassificationResult:
         f".classifiers.{app_config.classifier_profile}",
         package=__package__,
     )
-    return module.classify_image(image_path)
+    return module.classify_image(image_path, audio_bytes)
 
 
 def list_profiles() -> list[str]:

@@ -1,3 +1,5 @@
+import base64
+
 import cv2
 
 from ..classification import llm_match, logo_match, rectangle_match
@@ -89,7 +91,7 @@ def has_side_by_side_logo(img: cv2.typing.MatLike, masked_logos=MASKED_SIDE_BY_S
 
 
 
-def classify_image(image_path: str) -> ClassificationResult:
+def classify_image(image_path: str, audio_bytes: bytes | None = None) -> ClassificationResult:
     """Three-pass classification: logo detection, scoreboard detection,
     then prompt-based fallback."""
     # FIXME: don't pass the image as a path to every function here. Load it once
@@ -124,8 +126,9 @@ def classify_image(image_path: str) -> ClassificationResult:
         )
 
     image_data = llm_match.load_image_b64(image_path)
+    audio_data = base64.b64encode(audio_bytes).decode("utf-8") if audio_bytes is not None else None
 
-    racing_related = llm_match._report_racing_related(image_data)
+    racing_related = llm_match._report_racing_related(image_data, audio_data)
     if not racing_related:
         return ClassificationResult(
             source="llm",
@@ -139,4 +142,4 @@ def classify_image(image_path: str) -> ClassificationResult:
     ## just toggle off the final lengthy step.)
     # return ClassificationResult(type="content", reason="assume_content", reply="")
 
-    return llm_match.classify_by_prompt(image_data)
+    return llm_match.classify_by_prompt(image_data, audio_data)
