@@ -10,22 +10,25 @@ from openai import OpenAI
 from openai.types.chat import ChatCompletionMessageParam
 from PIL import Image
 
+from ..config import app_config
 from .result import ClassificationResult
 
-SERVER_URL = os.environ.get("LLAMA_SERVER_URL", "http://localhost:3002")
 MODEL_NAME = os.environ.get("LLAMA_MODEL_NAME", "local")
 
 # Reuse a single client to avoid leaking sockets (httpx connection pool).
 # Lazily initialize to keep tests deterministic when OpenAI is patched.
 _client: OpenAI | None = None
 _client_factory = OpenAI
+_client_url: str | None = None
 
 
 def _get_client() -> OpenAI:
-    global _client, _client_factory
-    if _client is None or _client_factory is not OpenAI:
-        _client = OpenAI(base_url=f"{SERVER_URL}/v1", api_key="none")
+    global _client, _client_factory, _client_url
+    current_url = app_config.llm_url
+    if _client is None or _client_factory is not OpenAI or _client_url != current_url:
+        _client = OpenAI(base_url=f"{current_url}/v1", api_key="none")
         _client_factory = OpenAI
+        _client_url = current_url
     return _client
 
 PROMPT_DIR = Path(__file__).parent.parent / "prompt"

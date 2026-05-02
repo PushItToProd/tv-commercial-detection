@@ -33,6 +33,7 @@ async def lifespan(app: FastAPI):
     # Environment variable overrides: DETECTOR_MATRIX_URL, DETECTOR_SAVE_DIR, etc.
     env_map = {
         "DETECTOR_MATRIX_URL": "matrix_url",
+        "LLAMA_SERVER_URL": "llm_url",
         "DETECTOR_SAVE_DIR": "save_dir",
         "DETECTOR_ENABLE_DEBOUNCE": "enable_debounce",
         "DETECTOR_CLASSIFIER_PROFILE": "classifier_profile",

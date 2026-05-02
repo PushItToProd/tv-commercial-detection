@@ -5,6 +5,7 @@ from pathlib import Path
 @dataclass
 class AppConfig:
     matrix_url: str = "http://localhost:5000"
+    llm_url: str = "http://localhost:3002"
     save_dir: Path = field(default_factory=lambda: Path("frames"))
     enable_debounce: bool = False
     output_settings: dict = field(default_factory=lambda: {"ad": {}, "content": {}})
