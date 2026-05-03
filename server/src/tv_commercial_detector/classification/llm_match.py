@@ -13,7 +13,7 @@ from PIL import Image
 from ..config import app_config
 from .result import ClassificationResult
 
-MODEL_NAME = os.environ.get("LLAMA_MODEL_NAME", "local")
+# Model name is now read from app_config.llm_model_name at call time.
 
 # Reuse a single client to avoid leaking sockets (httpx connection pool).
 # Lazily initialize to keep tests deterministic when OpenAI is patched.
@@ -143,7 +143,7 @@ def _report_racing_related(image_data: str, audio_data: str | None = None) -> bo
 
     with CLASSIFICATION_TIME.time():
         response = _get_client().chat.completions.create(
-            model=MODEL_NAME,
+            model=app_config.llm_model_name,
             messages=messages,
             max_tokens=10,
             temperature=0.5,
@@ -177,7 +177,7 @@ def classify_by_prompt(image_data: str, audio_data: str | None = None) -> Classi
 
     with CLASSIFICATION_TIME.time():
         response = _get_client().chat.completions.create(
-            model=MODEL_NAME,
+            model=app_config.llm_model_name,
             messages=messages,
             max_tokens=500,
             temperature=0.6,

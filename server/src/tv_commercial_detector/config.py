@@ -1,3 +1,4 @@
+import os
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -9,6 +10,7 @@ class AppConfig:
     save_dir: Path = field(default_factory=lambda: Path("frames"))
     enable_debounce: bool = False
     enable_llm_audio: bool = False
+    llm_model_name: str = field(default_factory=lambda: os.environ.get("LLAMA_MODEL_NAME", "local"))
     output_settings: dict = field(default_factory=lambda: {"ad": {}, "content": {}})
     classifier_profile: str = "nascar_on_fox"
     phash_threshold: int = 10
