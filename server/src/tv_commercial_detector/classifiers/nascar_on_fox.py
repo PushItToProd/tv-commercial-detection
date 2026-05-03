@@ -14,6 +14,7 @@ from ..classification.result import ClassificationResult
 NETWORK_LOGO_PATHS = {
     "fox": logo_match.LOGOS_DIR / "fox_logo_crop.png",
     "fs1": logo_match.LOGOS_DIR / "fs1_logo_crop.png",
+    "fox_bars": logo_match.LOGOS_DIR / "fox_nascar_bars_logo.png"
 }
 
 # We search for these in the upper left.
