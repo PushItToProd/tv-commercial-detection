@@ -14,6 +14,8 @@ from ..classification.result import ClassificationResult
 NETWORK_LOGO_PATHS = {
     "fox": logo_match.LOGOS_DIR / "fox_logo_crop.png",
     "fs1": logo_match.LOGOS_DIR / "fs1_logo_crop.png",
+    # FIXME: this one never matches because of how we use masking. Consider just
+    # not masking?
     "fox_bars": logo_match.LOGOS_DIR / "fox_nascar_bars_logo.png"
 }
 
@@ -61,7 +63,7 @@ def _has_network_logo(img: cv2.typing.MatLike, masked_logo: cv2.typing.MatLike) 
     return (
         # TODO: add an option to override or temporarily disable checking the pixels
         True
-        and result.max_val >= 0.39
+        and result.max_val >= 0.55
         # and 110 <= tl_x <= 140
         # and 15 <= tl_y <= 35
         # and 245 <= br_x <= 290
