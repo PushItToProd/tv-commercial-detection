@@ -40,7 +40,7 @@ services:
     build: ${RECEIVER_DIR:?}
     restart: unless-stopped
     ports:
-      - "${RECEIVER_PORT:-11679}:11679"
+      - "${RECEIVER_PORT:-11679}:11434"
     environment:
       - LLAMA_SERVER_URL=http://llama:8080
       - DETECTOR_MATRIX_URL=http://hdmi-matrix-control:5000
