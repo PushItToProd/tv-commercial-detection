@@ -11,6 +11,7 @@ def test_defaults():
     assert config.matrix_url == "http://localhost:5000"
     assert config.save_dir.name == "frames"
     assert config.enable_debounce is False
+    assert config.auto_switch is True
     assert config.output_settings == {"ad": {}, "content": {}}
 
 
@@ -28,6 +29,7 @@ def test_config_json_loading(tmp_path):
     config_data = {
         "matrix_url": "http://json-matrix:9999",
         "enable_debounce": True,
+        "auto_switch": False,
         "output_settings": {"ad": {"1": 2}, "content": {"1": 1}},
     }
     config_file = tmp_path / "config.json"
@@ -41,6 +43,7 @@ def test_config_json_loading(tmp_path):
 
     assert cfg.matrix_url == "http://json-matrix:9999"
     assert cfg.enable_debounce is True
+    assert cfg.auto_switch is False
     assert cfg.output_settings == {"ad": {"1": 2}, "content": {"1": 1}}
 
 

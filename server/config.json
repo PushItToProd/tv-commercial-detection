@@ -1,6 +1,7 @@
 {
   "matrix_url": "http://192.168.1.27:5000",
   "llm_url": "http://localhost:3001",
+  "auto_switch": false,
   "llm_enable_audio": true,
   "save_dir": "frames",
   "classifier_profile": "nascar_on_fox",

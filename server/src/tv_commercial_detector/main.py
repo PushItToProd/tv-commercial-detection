@@ -48,6 +48,7 @@ async def lifespan(app: FastAPI):
     app_config.save_dir.mkdir(parents=True, exist_ok=True)
 
     state.enable_debounce = app_config.enable_debounce
+    state.auto_switch = app_config.auto_switch
 
     saver_task = asyncio.create_task(periodic_frame_saver())
     yield
