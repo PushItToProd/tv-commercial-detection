@@ -25,6 +25,7 @@ server/              FastAPI application
     main.py            App factory and lifespan startup
     matrix.py          HDMI matrix control helpers
     metrics.py         Prometheus metrics setup
+    phash_override.py  Perceptual hash override system (manual label corrections)
     state.py           In-memory application state (AppState)
     classification/    Low-level classification primitives
       llm_match.py     OpenAI-compat LLM calls (image resize, prompt, response parsing)
@@ -32,9 +33,11 @@ server/              FastAPI application
       rectangle_match.py  OpenCV contour detection for known ad-break bounding boxes
       result.py        ClassificationResult dataclass
     classifiers/       Pluggable classifier profiles (selected via classifier_profile config)
-      nascar_on_fox.py Three-pass classifier: logo → rectangle → LLM quick check → LLM prompt
+      nascar_on_fox.py Multi-pass classifier: logo → rectangle → LLM quick check → LLM prompt
+      nhra_on_fox.py   Variant for NHRA drag racing broadcasts on Fox/FS1
     routes/            FastAPI routers
     prompt/            LLM prompt text and logo images used for OpenCV matching
+    static/            Static assets (Bootstrap CSS/JS for UI templates)
     templates/         Jinja2 templates (review UI, is_ad page)
   tests/               Unit and integration tests
     classification/    Tests for logo_match and rectangle_match
@@ -106,6 +109,11 @@ Config is layered (later overrides earlier):
 
 The `config.json` also supports an `output_settings` map that defines which HDMI matrix input/output to activate per classification (`ad` or `content`).
 
+Additional `AppConfig` fields:
+- `phash_threshold` — max perceptual hash distance for override matches (default: `10`)
+- `enable_llm_audio` — enable audio-based LLM classification (default: `false`)
+- `llm_model_name` — model name sent to llama.cpp, in case we're using llama.cpp in router mode (default: `LLAMA_MODEL_NAME` env var, or `"local"`)
+
 ### Routes
 
 | Method | Path | Description |
@@ -113,6 +121,10 @@ The `config.json` also supports an `output_settings` map that defines which HDMI
 | `POST` | `/receive` | Accept a screenshot + playback state from the extension |
 | `POST` | `/video-state` | Update playback state only (no image) |
 | `POST` | `/report_wrong` | Report that the current classification is wrong |
+| `POST` | `/capture` | Save current in-memory recent frames to disk |
+| `GET` | `/recent_frames` | List in-memory recent frames with timestamps and classifications |
+| `GET` | `/recent_frames/{timestamp}/image` | Retrieve a recent in-memory frame by timestamp |
+| `POST` | `/flag_frames` | Label recent frames and store phash overrides |
 | `GET` | `/review` | Manual review UI for saved frames |
 | `POST` | `/save` | Save a frame to disk |
 | `GET` | `/frames/{filename}` | Retrieve a saved (thumbnail) frame |
@@ -127,6 +139,7 @@ The `config.json` also supports an `output_settings` map that defines which HDMI
 | `POST` | `/settings/auto_switch` | Enable/disable auto-switch |
 | `POST` | `/settings/enable_debounce` | Enable/disable debounce |
 | `GET/POST` | `/settings/classifier_profile` | Get or set the active classifier profile |
+| `POST` | `/settings/pause_auto_switch` | Temporarily pause auto-switch |
 | `POST` | `/settings/resume_auto_switch` | Clear temporary auto-switch pause and re-apply |
 
 ### Running with Docker
@@ -158,13 +171,18 @@ Configuration (server endpoint URL, capture interval) is stored via `browser.sto
 
 ## Classification
 
-`classify.py` dispatches to the active classifier profile (set via `classifier_profile` config, default `nascar_on_fox`). The `nascar_on_fox` profile uses a multi-pass pipeline:
+`classify.py` dispatches to the active classifier profile (set via `classifier_profile` config, default `nascar_on_fox`). Before invoking a profile, it checks `phash_override.py` for a stored perceptual-hash match and short-circuits with the stored label if found.
 
+The `nascar_on_fox` profile uses a multi-pass pipeline:
+
+0. **Phash override** (`phash_override.py`) — if the frame matches a stored phash entry (within `phash_threshold`), return the stored label immediately.
 1. **Network logo match** (OpenCV) — if a Fox/FS1/CW Sports logo is found in the upper right, classify as `content`.
 2. **Side-by-side logo match** (OpenCV) — if a side-by-side ad-break logo is found in the upper left, classify as `ad`.
 3. **Rectangle detection** (OpenCV) — if a known ad-break bounding box pattern is detected, classify as `ad`.
 4. **LLM quick check** — ask the LLM whether the frame contains any NASCAR-related content; if not, classify as `ad`.
 5. **LLM full prompt** — send the image and prompt to llama.cpp for a final classification decision.
+
+The `nhra_on_fox` profile follows the same structure but uses NHRA-specific logo assets.
 
 Images are resized to at most 800 px on the longest side and JPEG-encoded (quality 50) before being sent to the LLM. The prompt lives in `server/prompt/prompt.txt`.
 
