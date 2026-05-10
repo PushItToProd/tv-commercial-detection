@@ -60,6 +60,9 @@ Checkboxes key:
 - [x] enable multiple classification profiles
   - [x] only specify Fox-specific logos in `nascar_on_fox.py`
 
+- [x] multimodal classification with audio capture -- use Qwen3-Omni
+  - [x] first just find a way to record a race broadcast with video and audio
+
 #### Review
 
 - [x] `/review` can't handle the amount of image on the page (probably overwhelming the dev server) -- paginate

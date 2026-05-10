@@ -4,6 +4,3 @@
   - [ ] deduplicate images on save if possible -- at least ones with identical md5 hashes, maybe phashes too
 
 - [/] thorny question: how do I modularize this and make it configurable so this app isn't permanently hardcoded to only work on Fox?
-
-- [ ] multimodal classification with audio capture -- use Qwen3-Omni
-  - [ ] first just find a way to record a race broadcast with video and audio
