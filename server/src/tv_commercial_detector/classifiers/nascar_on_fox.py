@@ -46,16 +46,17 @@ def _extract_fox_logo_region(img: cv2.typing.MatLike) -> cv2.typing.MatLike:
     return img[0 : h // 8, w * 5 // 6 : w]
 
 
-def _has_network_logo(img: cv2.typing.MatLike, masked_logo: cv2.typing.MatLike) -> bool:
+def _has_network_logo(img: cv2.typing.MatLike, masked_logo: cv2.typing.MatLike, mask_color=True) -> bool:
     # scale to fixed size to ensure coordinates for logo match are consistent.
     # XXX: also, template matching -- all cropped logos are from 1920x1080
     # images.
     # img = cv2.resize(img, (1920, 1080))
 
     img_crop = _extract_fox_logo_region(img)
-    masked_img_crop = logo_match.mask_non_white(img_crop.copy())
+    if mask_color:
+        img_crop = logo_match.mask_non_white(img_crop.copy())
 
-    result = logo_match.match_template(masked_img_crop, masked_logo)
+    result = logo_match.match_template(img_crop, masked_logo)
 
     tl_x, tl_y = result.top_left
     br_x, br_y = result.bottom_right
@@ -72,7 +73,10 @@ def _has_network_logo(img: cv2.typing.MatLike, masked_logo: cv2.typing.MatLike) 
 
 
 def has_network_logo(img, masked_logos=MASKED_NETWORK_LOGOS):
-    return any(_has_network_logo(img, masked_logo) for masked_logo in masked_logos.values())
+    return any(
+        _has_network_logo(img, masked_logo)
+        for masked_logo in masked_logos.values()
+    )
 
 
 def _has_side_by_side_logo(img: cv2.typing.MatLike, masked_logo: cv2.typing.MatLike) -> bool:
