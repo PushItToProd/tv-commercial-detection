@@ -29,10 +29,10 @@ Checkboxes key:
 
 ## Web app
 
-- [ ] update my config to move outputs (`frames`, outputs from `check_classification.py`, etc.) in a separate folder outside this project
+- [ ] update my config to move outputs (`frames`, outputs from `check_classification.py`, etc.) into a separate folder outside my local project directory
 
 - [ ] take a path to a single folder to use for all outputs and data saved by the server
-- [ ] persist state in a better way (SQLite? Redis?) than just keeping it in a dataclass in memory
+- [ ] persist state in a better way (SQLite? Redis? JSON file on disk?) than just keeping it in a dataclass in memory
 - [ ] document expected values for `output_settings` in `AppConfig` (`config.py`)
 - [ ] use `pydantic-settings` for settings -- https://docs.pydantic.dev/latest/concepts/pydantic_settings/
 
@@ -82,6 +82,7 @@ Checkboxes key:
 #### OpenCV
 
 - [ ] can we classify based on color grade to discriminate between race content and ads? the ads that confuse the model tend to have more "cinematic" color profiles
+- [ ] the logo match gets confused when the upper right is mostly white
 
 ##### `logo_match.py`
 
