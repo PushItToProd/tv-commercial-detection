@@ -26,7 +26,7 @@ A Firefox extension periodically captures a screenshot (and optionally a short a
 
 ## Hardware
 
-This project was built around a specific HDMI matrix. The `hdmi-matrix-control` service communicates with it over a USB serial port exposed at `/dev/ttyACM0`. The matrix control API supports two outputs (`A`, `B`) and up to four inputs; the detector currently only switches between two inputs across two outputs.
+This project was built around a Portta 4x2 HDMI multiviewer. The [`hdmi-matrix-control`](https://github.com/PushItToProd/hdmi-matrix-control) service communicates with it over a USB serial port exposed at `/dev/ttyACM0`. The matrix control API supports two outputs (`A`, `B`) and up to four inputs; the detector currently only switches between two inputs across two outputs.
 
 **The HDMI matrix control component is not generic.** It will not work with other hardware without writing a compatible `hdmi-matrix-control` service that exposes the same HTTP API (`POST /set-output-input`).
 
@@ -51,16 +51,15 @@ Edit `.env`:
 | `HDMI_MATRIX_CONTROL_PORT` | Port to expose the matrix control service on |
 | `RECEIVER_PORT` | Port for the detector server (default: `11679`) |
 
-### 2. Start services
+### 2. Choose a model
 
-```bash
-docker compose up -d
-```
+The server requires a vision-capable model served by llama.cpp. Set `MODEL_FILE` and `MMPROJ_FILE` in `.env` to point to the model and its multimodal projector.
 
-This starts:
-- `llama` — llama.cpp with CUDA, serving a vision model
-- `hdmi-matrix-control` — serial bridge for the HDMI matrix
-- `receiver` — the FastAPI detector server
+Tested models:
+- **Qwen3 Omni 30B-A3B** — current recommendation; supports both images and audio, which enables `enable_llm_audio`
+- **Qwen3.5 4B (Q4_K_M)** — image-only; good results at lower VRAM cost
+
+Gemma 4 vision models were tried and produced poor classification results.
 
 ### 3. Configure the server
 
@@ -79,14 +78,27 @@ Outputs are `"A"` and `"B"`. Input values are integers (as strings). Adjust to m
 
 Also set `classifier_profile` to match the broadcast you're watching (see [Classifier Profiles](#classifier-profiles)).
 
-### 4. Load the browser extension
+### 4. Start services
+
+```bash
+docker compose up -d
+```
+
+This starts:
+- `llama` — llama.cpp with CUDA, serving a vision model
+- `hdmi-matrix-control` — serial bridge for the HDMI matrix
+- `receiver` — the FastAPI detector server
+
+### 5. Load the browser extension
 
 1. Go to `about:debugging#/runtime/this-firefox`
 2. Click "Load Temporary Add-on..."
 3. Select any file inside `browser_extension/`
-4. Open the extension popup, set the server URL to `http://localhost:11679/receive`, and start capture
+4. Open the extension popup, set the server URL to `http://localhost:11679/receive`, set the capture interval, and start capture
 
-### 5. (Optional) Install the native audio host
+The capture interval controls how often a frame is sent to the server. The right value depends on your GPU — start around 3 seconds and watch `nvtop` to check whether inference is keeping up. The extension default of 10 seconds is too slow to reliably catch the start of a break.
+
+### 6. (Optional) Install the native audio host
 
 Required only if `enable_llm_audio` is enabled in the server config.
 
@@ -109,6 +121,19 @@ Set `classifier_profile` in `server/config.json` (or `DETECTOR_CLASSIFIER_PROFIL
 
 HBO Max does not insert traditional ad breaks. Instead, TNT Sports shows either a full-screen "we'll be right back" card (classified as `ad`, triggering a switch) or a side-by-side "commercial break in progress" overlay where live racing is still visible (classified as `content`, no switch). Everything else defaults to `content`. The signals are reliable enough that an LLM fallback is unnecessary.
 
+## Status pages
+
+The server exposes two browser-accessible views useful for monitoring classification in real time:
+
+- `http://localhost:11679/is_ad` — simple status page showing the current classification; designed to be opened on a secondary device
+- `http://localhost:11679/review` — review UI for inspecting saved frames and their classifications
+
+## Perceptual hash overrides
+
+Behavior of both the OpenCV and LLM-based classification is inconsistent and sometimes produces erroneous results. The phash override system is an attempt to short-circuit this: when you flag an incorrect classification using the frontend UI (which invokes the `/flag_frames` endpoint), a perceptual hash of each labeled frame is stored with the corrected classification. On subsequent classifications, if an incoming frame's perceptual hash is within `phash_threshold` of any stored hash, the stored label is returned immediately without running the full pipeline.
+
+In practice, this has had limited effectiveness. Commercials tend to have frequent visual changes, but the phash only matches images that are nearly identical, so unless the extension happens to screenshot almost the exact same part of the ad in the future, it's unlikely to match.
+
 ## Configuration reference
 
 `server/config.json` (overrides defaults; all fields optional):
@@ -121,7 +146,7 @@ HBO Max does not insert traditional ad breaks. Instead, TNT Sports shows either 
 | `classifier_profile` | `nascar_on_fox` | Active classifier |
 | `enable_debounce` | `false` | Require two consecutive matching results before switching |
 | `auto_switch` | `true` | Enable automatic HDMI switching |
-| `enable_llm_audio` | `false` | Include audio in LLM classification requests |
+| `enable_llm_audio` | `false` | Include audio in LLM classification requests (experimental; requires a model that supports audio input, e.g. Qwen3 Omni) |
 | `phash_threshold` | `10` | Max perceptual hash distance for override matches |
 | `output_settings` | `{}` | Input/output mapping per classification (see above) |
 
@@ -150,8 +175,9 @@ Python ≥ 3.14 required.
 
 ## Known limitations
 
-- Only tested with YouTube TV in Firefox on Linux
-- HDMI matrix control is specific to one hardware model
-- Only two inputs and two outputs are used
-- Classifier logo assets are hand-tuned to specific broadcast overlays and may need updating across seasons or network rebrands
-- State is in-memory and lost on restart
+- Only tested with YouTube TV and HBO Max in Firefox on Linux (Pop OS).
+- State is in-memory and lost on restart.
+- HDMI matrix control is specific to one hardware model and only supports swapping between two mappings of inputs to outputs.
+- Classifier logo assets and LLM prompts are hand-tailored to specific sports on specific networks. Adding new sports and networks currently requires adding new classifiers or refining existing ones. Changes in graphics packages are likely to break the hand-tailored classifiers.
+- TV networks are surprisingly inconsistent with their graphics, so primitive classification can fail.
+- Classification is not fully reliable and can produce just enough errors to be frustrating. Some OpenCV classifiers produce intermittent false positives/negatives while the LLM-based approach is also prone to error. By far the hardest challenge is handling ads for the sport you're watching: e.g. some ads show images of race cars or clips of race broadcasts -- they usually have some subtle hints they're an ad, but figuring out how to detect that with OpenCV is very hard, and the LLM almost always thinks it's a race. Conversely, it's hard to correctly classify non-racing segments during a broadcast (e.g. interviews with drivers or shots of the commentators in the booth).
