@@ -2,9 +2,10 @@
 
 ## Project overview
 
-**TV Commercial Detector** — a two-component system that automatically detects TV commercials during live race broadcasts on YouTube TV and switches an HDMI matrix to a different input during ad breaks.
+**TV Commercial Detector** — a system that automatically detects TV commercials during live race broadcasts on YouTube TV and switches an HDMI matrix to a different input during ad breaks.
 
-- **`browser_extension/`** — Firefox extension (Manifest V2) that periodically captures screenshots of the active video tab and sends them to the server.
+- **`browser_extension/`** — Firefox extension (Manifest V2) that periodically captures screenshots (and optionally audio) of the active video tab and sends them to the server.
+- **`native_host/`** — Firefox native messaging host that captures system audio from a PulseAudio/PipeWire monitor source and streams it to the browser extension on demand.
 - **`server/`** — FastAPI app that classifies each screenshot using OpenCV and a local multimodal LLM (llama.cpp), tracks the current broadcast state, and controls an HDMI matrix switcher over HTTP.
 
 External services (run via Docker):
@@ -17,6 +18,12 @@ External services (run via Docker):
 
 ```
 browser_extension/   Firefox extension source (Manifest V2)
+native_host/         Firefox native messaging host for audio capture
+  audio_capture.py     Main script: rolling PCM buffer + native messaging protocol
+  com.tvdetector.audio_capture.json  Manifest template (path filled in by install.sh)
+  install.sh           One-time setup: writes manifest to ~/.mozilla/native-messaging-hosts/
+  run                  Wrapper that activates the venv and execs audio_capture.py
+  venv/                Python virtual environment (created by install.sh)
 server/              FastAPI application
   src/tv_commercial_detector/
     classify.py        Entry point for classification; dispatches to active classifier profile
@@ -168,6 +175,42 @@ The receiver container is exposed on `RECEIVER_PORT` (default `11679`).
   - `popup.html` / `popup.js` — configuration UI (server URL, capture interval, start/stop).
 
 Configuration (server endpoint URL, capture interval) is stored via `browser.storage.local`.
+
+---
+
+## Native host
+
+`native_host/audio_capture.py` is a Firefox [native messaging](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Native_messaging) host that gives the browser extension access to system audio.
+
+- **Protocol** — Firefox launches the host process and communicates via stdin/stdout using 4-byte little-endian length-prefixed JSON messages.
+- **Audio capture** — Opens a `sounddevice.InputStream` against the PulseAudio/PipeWire monitor source for the default sink (auto-detected via `pactl`). Incoming PCM is stored in a thread-safe rolling deque capped at `AUDIO_BUFFER_SECONDS` (default: 10 s).
+- **Commands** accepted from the extension:
+  - `get_audio` — returns the last `duration_ms` milliseconds of audio as a base64-encoded WAV in `{"audio": "..."}`.
+  - `ping` — responds with `{"pong": true}` (health check).
+- **Standalone mode** — pass `--save-dir DIR` to periodically write WAV snapshots to disk for testing without the extension.
+
+### Setup
+
+```bash
+cd native_host
+# Create the venv and install dependencies (sounddevice, numpy), then register the manifest
+./install.sh
+
+# Reload the extension in Firefox (about:debugging) after installing
+```
+
+`install.sh` writes a resolved copy of `com.tvdetector.audio_capture.json` (with the absolute path to `run`) into `~/.mozilla/native-messaging-hosts/`. Re-run it if the repo is moved.
+
+### Environment variables
+
+| Variable | Default | Description |
+|---|---|---|
+| `AUDIO_BUFFER_SECONDS` | `10` | Rolling buffer length in seconds |
+| `AUDIO_SAMPLE_RATE` | `44100` | Sample rate in Hz |
+| `AUDIO_CHANNELS` | `1` | Number of channels |
+| `AUDIO_DEVICE` | system default | `sounddevice` input device name or index |
+
+Logs are written to `native_host/audio_capture.log` (stderr redirected by the `run` wrapper).
 
 ---
 
