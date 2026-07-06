@@ -1,3 +1,10 @@
+"""
+HBO Max doesn't show any ads, just a "we'll be right back" message during full
+screen ads or live racing overlaid with a "commercial break in progress"
+message sometimes. The "brb" message is a full screen image with background
+music, so we want to switch away when it's showing, but otherwise we assume
+everything else is content.
+"""
 import base64
 
 import cv2
