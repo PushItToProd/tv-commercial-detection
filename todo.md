@@ -97,10 +97,11 @@ Checkboxes key:
     - [/] O'Reilly on CW
       - they keep their "CW Sports" logo visible in the upper right during side-by-side, so `classify_image` has to be rewritten to handle that
       - the logo changes to yellow when it's a caution period
-    - [ ] Cup on Amazon Prime
-    - [ ] Cup on TNT
+    - [x] Cup on Amazon Prime
+    - [x] Cup on TNT
     - [ ] Cup on NBC
-    - [ ] Trucks
+    - [x] Trucks
+  - [ ] update the prompt text
 
 - [ ] support switching between multiple prompt files
 
@@ -110,7 +111,6 @@ Checkboxes key:
 
 - [ ] update the prompt to indicate it's likely an ad unless it has race cars?
   - I guess that's kinda what the first "quick reject" prompt is for
-  - TTTT
 
 - [ ] maybe include the previous reported state in the prompt to see if that helps -- e.g. `You last reported seeing (an ad|racing).`
   - try including the previous screenshot, too
