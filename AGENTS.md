@@ -35,6 +35,7 @@ server/              FastAPI application
     classifiers/       Pluggable classifier profiles (selected via classifier_profile config)
       nascar_on_fox.py Multi-pass classifier: logo → rectangle → LLM quick check → LLM prompt
       nhra_on_fox.py   Variant for NHRA drag racing broadcasts on Fox/FS1
+      nascar_on_hbo_max.py  WIP profile for TNT Sports coverage on HBO Max; OpenCV logo checks only, no LLM pass yet
     routes/            FastAPI routers
     prompt/            LLM prompt text and logo images used for OpenCV matching
     static/            Static assets (Bootstrap CSS/JS for UI templates)
@@ -94,6 +95,7 @@ Requires Python ≥ 3.14 (see `server/pyproject.toml`).
 | `imagehash` | Perceptual image hashing |
 | `jinja2` | HTML templates for review UI and status page |
 | `prometheus-fastapi-instrumentator` | Metrics endpoint (`/metrics`) |
+| `aiofiles` | Async file I/O for saving/reading frames |
 
 ### Configuration
 
@@ -104,8 +106,8 @@ Config is layered (later overrides earlier):
    - `DETECTOR_SAVE_DIR` — directory for saved frames
    - `DETECTOR_ENABLE_DEBOUNCE` — enable debounce logic
    - `DETECTOR_CLASSIFIER_PROFILE` — which classifier profile to use (default: `nascar_on_fox`)
-3. `LLAMA_SERVER_URL` — URL for the llama.cpp server (default: `http://192.168.1.27:3002`)
-4. `PROMPT_FILE` — path to the classification prompt (default: `server/prompt/prompt.txt`)
+   - `LLAMA_SERVER_URL` — URL for the llama.cpp server (default: `http://localhost:3002`)
+3. `PROMPT_FILE` — path to the classification prompt (default: `server/src/tv_commercial_detector/prompt/prompt.txt`)
 
 The `config.json` also supports an `output_settings` map that defines which HDMI matrix input/output to activate per classification (`ad` or `content`).
 
@@ -176,13 +178,15 @@ Configuration (server endpoint URL, capture interval) is stored via `browser.sto
 The `nascar_on_fox` profile uses a multi-pass pipeline:
 
 0. **Phash override** (`phash_override.py`) — if the frame matches a stored phash entry (within `phash_threshold`), return the stored label immediately.
-1. **Network logo match** (OpenCV) — if a Fox/FS1/CW Sports logo is found in the upper right, classify as `content`.
-2. **Side-by-side logo match** (OpenCV) — if a side-by-side ad-break logo is found in the upper left, classify as `ad`.
+1. **Network logo match** (OpenCV) — if a Fox/FS1 logo is found in the upper right, classify as `content`.
+2. **Side-by-side logo match** (OpenCV) — if a side-by-side ad-break logo is found in the upper left (Fox, FS1, Truck Series, or Amazon Prime NASCAR Nonstop), classify as `ad`.
 3. **Rectangle detection** (OpenCV) — if a known ad-break bounding box pattern is detected, classify as `ad`.
 4. **LLM quick check** — ask the LLM whether the frame contains any NASCAR-related content; if not, classify as `ad`.
 5. **LLM full prompt** — send the image and prompt to llama.cpp for a final classification decision.
 
 The `nhra_on_fox` profile follows the same structure but uses NHRA-specific logo assets.
+
+The `nascar_on_hbo_max` profile is a work in progress for TNT Sports coverage on HBO Max. It only runs two OpenCV logo checks — a full-screen "we'll be back" card (`ad`) and a side-by-side "commercial break in progress" overlay (`content`, since racing is still shown side-by-side) — and falls back to `content` by default. It has no rectangle-detection or LLM pass yet.
 
 Images are resized to at most 800 px on the longest side and JPEG-encoded (quality 50) before being sent to the LLM. The prompt lives in `server/prompt/prompt.txt`.
 
