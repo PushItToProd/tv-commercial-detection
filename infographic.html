@@ -1,0 +1,828 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TV Commercial Detector — how it works</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #fbfaf8;
+    --bg-card: #ffffff;
+    --bg-sunk: #f2f0ec;
+    --ink: #16181d;
+    --ink-2: #4a5058;
+    --ink-3: #767d87;
+    --rule: #e0ddd7;
+    --rule-strong: #c8c4bc;
+    --ad: #d4402f;
+    --ad-bg: #fdeeec;
+    --content: #1f8a5c;
+    --content-bg: #e9f6ef;
+    --cv: #6b4fc4;
+    --cv-bg: #f0ecfb;
+    --llm: #b5761b;
+    --llm-bg: #fbf1de;
+    --link: #2f5fd0;
+    --shadow: 0 1px 2px rgba(20,22,26,.05), 0 8px 24px rgba(20,22,26,.06);
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Code", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #101216;
+      --bg-card: #181b21;
+      --bg-sunk: #1e222a;
+      --ink: #e9ebef;
+      --ink-2: #b0b7c1;
+      --ink-3: #838b96;
+      --rule: #2a2f38;
+      --rule-strong: #3a414c;
+      --ad: #ff7a6b;
+      --ad-bg: #2c1a19;
+      --content: #55c894;
+      --content-bg: #14261e;
+      --cv: #a894f0;
+      --cv-bg: #201d2e;
+      --llm: #e0ab55;
+      --llm-bg: #2a2114;
+      --link: #7ea4ff;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.28);
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #101216; --bg-card: #181b21; --bg-sunk: #1e222a;
+    --ink: #e9ebef; --ink-2: #b0b7c1; --ink-3: #838b96;
+    --rule: #2a2f38; --rule-strong: #3a414c;
+    --ad: #ff7a6b; --ad-bg: #2c1a19;
+    --content: #55c894; --content-bg: #14261e;
+    --cv: #a894f0; --cv-bg: #201d2e;
+    --llm: #e0ab55; --llm-bg: #2a2114;
+    --link: #7ea4ff;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.28);
+  }
+  :root[data-theme="light"] {
+    color-scheme: light;
+    --bg: #fbfaf8; --bg-card: #ffffff; --bg-sunk: #f2f0ec;
+    --ink: #16181d; --ink-2: #4a5058; --ink-3: #767d87;
+    --rule: #e0ddd7; --rule-strong: #c8c4bc;
+    --ad: #d4402f; --ad-bg: #fdeeec;
+    --content: #1f8a5c; --content-bg: #e9f6ef;
+    --cv: #6b4fc4; --cv-bg: #f0ecfb;
+    --llm: #b5761b; --llm-bg: #fbf1de;
+    --link: #2f5fd0;
+    --shadow: 0 1px 2px rgba(20,22,26,.05), 0 8px 24px rgba(20,22,26,.06);
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.55;
+    overflow-x: hidden;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px 96px; }
+
+  /* ── header ─────────────────────────────────────────────── */
+  header {
+    padding: 64px 0 40px;
+    border-bottom: 1px solid var(--rule);
+    margin-bottom: 56px;
+  }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin: 0 0 16px;
+  }
+  h1 {
+    font-size: clamp(34px, 6vw, 54px);
+    line-height: 1.05;
+    letter-spacing: -.022em;
+    margin: 0 0 18px;
+    font-weight: 700;
+  }
+  .lede {
+    font-size: clamp(17px, 2.2vw, 20px);
+    color: var(--ink-2);
+    max-width: 62ch;
+    margin: 0 0 28px;
+  }
+  .lede b { color: var(--ink); font-weight: 600; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 5px 10px;
+    border: 1px solid var(--rule);
+    border-radius: 999px;
+    color: var(--ink-2);
+    background: var(--bg-card);
+    white-space: nowrap;
+  }
+
+  h2 {
+    font-size: clamp(22px, 3.2vw, 28px);
+    letter-spacing: -.018em;
+    margin: 0 0 8px;
+    font-weight: 650;
+  }
+  .section-note { color: var(--ink-2); max-width: 66ch; margin: 0 0 28px; }
+  section { margin-bottom: 72px; }
+  .num {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink-3);
+    letter-spacing: .12em;
+    display: block;
+    margin-bottom: 10px;
+  }
+
+  /* ── diagram frame ──────────────────────────────────────── */
+  .figure {
+    background: var(--bg-card);
+    border: 1px solid var(--rule);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    padding: 8px;
+    overflow-x: auto;
+  }
+  .figure svg { display: block; min-width: 760px; width: 100%; height: auto; }
+  figcaption {
+    color: var(--ink-3);
+    font-size: 13.5px;
+    padding: 10px 14px 6px;
+    border-top: 1px dashed var(--rule);
+    margin-top: 8px;
+  }
+
+  /* SVG theming */
+  .s-box { fill: var(--bg-card); stroke: var(--rule-strong); stroke-width: 1.5; }
+  .s-box-sunk { fill: var(--bg-sunk); stroke: var(--rule); stroke-width: 1.25; }
+  .s-title { fill: var(--ink); font-weight: 650; font-size: 14px; }
+  .s-sub { fill: var(--ink-3); font-size: 11.5px; }
+  .s-mono { font-family: var(--mono); font-size: 11px; fill: var(--ink-2); }
+  .s-label { font-size: 11.5px; fill: var(--ink-3); }
+  .s-group { fill: none; stroke: var(--rule); stroke-width: 1.25; stroke-dasharray: 5 5; }
+  .s-grouplbl { font-family: var(--mono); font-size: 10.5px; letter-spacing: .1em; fill: var(--ink-3); }
+  .s-arrow { stroke: var(--rule-strong); stroke-width: 1.75; fill: none; }
+  .s-arrow-hot { stroke: var(--ad); stroke-width: 2; fill: none; }
+  .s-head { fill: var(--rule-strong); }
+  .s-head-hot { fill: var(--ad); }
+  .dot-cv { fill: var(--cv); }
+  .dot-llm { fill: var(--llm); }
+  .dot-neutral { fill: var(--ink-3); }
+  .dot-ad { fill: var(--ad); }
+  .v-ad-text { color: var(--ad); }
+  .v-content-text { color: var(--content); }
+  .callout.neutral { border-left-color: var(--ink-3); }
+  svg text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif; }
+
+  /* ── pipeline ───────────────────────────────────────────── */
+  .pipe { display: grid; gap: 12px; }
+  .stage {
+    display: grid;
+    grid-template-columns: 52px 1fr 190px;
+    gap: 18px;
+    align-items: start;
+    background: var(--bg-card);
+    border: 1px solid var(--rule);
+    border-left: 4px solid var(--rail, var(--rule-strong));
+    border-radius: 12px;
+    padding: 16px 18px;
+    box-shadow: var(--shadow);
+  }
+  .stage.cv   { --rail: var(--cv); }
+  .stage.llm  { --rail: var(--llm); }
+  .stage.hash { --rail: var(--ink-3); }
+  .stage-n {
+    font-family: var(--mono);
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--rail);
+    line-height: 1.2;
+  }
+  .stage h3 { margin: 0 0 4px; font-size: 16.5px; font-weight: 640; letter-spacing: -.01em; }
+  .stage p { margin: 0; color: var(--ink-2); font-size: 14.5px; }
+  .stage .tech {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--ink-3);
+    margin-top: 8px;
+    display: block;
+  }
+  .exit { text-align: right; }
+  .verdict {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 5px 10px;
+    border-radius: 7px;
+    white-space: nowrap;
+  }
+  .v-ad { color: var(--ad); background: var(--ad-bg); }
+  .v-content { color: var(--content); background: var(--content-bg); }
+  .v-pass { color: var(--ink-3); background: var(--bg-sunk); }
+  .exit small { display: block; color: var(--ink-3); font-size: 11.5px; margin-top: 6px; }
+  .fallthrough {
+    text-align: center;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--ink-3);
+    padding: 2px 0;
+  }
+  @media (max-width: 720px) {
+    .stage { grid-template-columns: 40px 1fr; }
+    .exit { grid-column: 2; text-align: left; }
+  }
+
+  /* ── generic cards ──────────────────────────────────────── */
+  .grid { display: grid; gap: 16px; }
+  .g3 { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+  .g2 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: var(--shadow);
+  }
+  .card h3 { margin: 0 0 8px; font-size: 16px; font-weight: 640; }
+  .card p { margin: 0; color: var(--ink-2); font-size: 14.5px; }
+  .card .kicker {
+    font-family: var(--mono); font-size: 11px; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--ink-3); display: block; margin-bottom: 10px;
+  }
+  code, .mono { font-family: var(--mono); font-size: .88em; }
+  code {
+    background: var(--bg-sunk);
+    padding: 1.5px 5px;
+    border-radius: 5px;
+    color: var(--ink);
+  }
+
+  /* ── stats ──────────────────────────────────────────────── */
+  .stats { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+  .stat { padding: 18px 20px; }
+  .stat .v {
+    font-size: 27px; font-weight: 680; letter-spacing: -.02em;
+    line-height: 1.1; font-variant-numeric: tabular-nums;
+  }
+  .stat .k { font-size: 13px; color: var(--ink-2); margin-top: 4px; }
+  .stat .why { font-size: 12px; color: var(--ink-3); margin-top: 6px; }
+
+  /* ── table ──────────────────────────────────────────────── */
+  .tablewrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: 12px; background: var(--bg-card); box-shadow: var(--shadow); }
+  table { border-collapse: collapse; width: 100%; min-width: 620px; font-size: 14.5px; }
+  th, td { text-align: left; padding: 13px 18px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  thead th {
+    font-family: var(--mono); font-size: 11px; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--ink-3); font-weight: 500;
+    background: var(--bg-sunk);
+  }
+  tbody tr:last-child td { border-bottom: 0; }
+  td .mono { color: var(--ink); }
+  td small { color: var(--ink-3); }
+
+  /* ── callout ────────────────────────────────────────────── */
+  .callout {
+    border: 1px solid var(--rule);
+    border-left: 4px solid var(--ad);
+    background: var(--bg-card);
+    border-radius: 12px;
+    padding: 20px 22px;
+    box-shadow: var(--shadow);
+  }
+  .callout h3 { margin: 0 0 8px; font-size: 16px; }
+  .callout p { margin: 0 0 10px; color: var(--ink-2); font-size: 14.5px; }
+  .callout p:last-child { margin-bottom: 0; }
+  ul.tight { margin: 0; padding-left: 20px; color: var(--ink-2); font-size: 14.5px; }
+  ul.tight li { margin-bottom: 7px; }
+  ul.tight li:last-child { margin-bottom: 0; }
+
+  footer {
+    border-top: 1px solid var(--rule);
+    padding-top: 22px;
+    color: var(--ink-3);
+    font-size: 13.5px;
+  }
+  footer a { color: var(--link); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <p class="eyebrow">Project walkthrough</p>
+  <h1>TV&nbsp;Commercial&nbsp;Detector</h1>
+  <p class="lede">
+    A home-built system that watches a <b>live race broadcast</b> streaming in a browser tab,
+    works out — several times a minute — whether what's on screen is <b>racing</b> or a
+    <b>commercial break</b>, and flips an <b>HDMI matrix</b> to a different input for the
+    duration of the break.
+  </p>
+  <div class="chips">
+    <span class="chip">Firefox extension (MV2)</span>
+    <span class="chip">FastAPI + Python 3.14</span>
+    <span class="chip">OpenCV template matching</span>
+    <span class="chip">llama.cpp vision LLM</span>
+    <span class="chip">HDMI matrix over USB serial</span>
+    <span class="chip">YouTube&nbsp;TV · HBO&nbsp;Max</span>
+  </div>
+</header>
+
+<!-- ══ 1. ARCHITECTURE ══════════════════════════════════════ -->
+<section>
+  <span class="num">01 — ARCHITECTURE</span>
+  <h2>Four processes and a piece of hardware</h2>
+  <p class="section-note">
+    Nothing leaves the local network. The browser sees the stream, a local server does the thinking,
+    a local GPU runs the model, and a serial bridge drives the matrix.
+  </p>
+
+  <figure class="figure">
+    <svg viewBox="0 0 1000 470" role="img" aria-label="Architecture diagram: Firefox extension captures frames and sends them to a FastAPI server, which classifies them using OpenCV and a local llama.cpp vision model, then drives an HDMI matrix via a serial bridge.">
+      <defs>
+        <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path class="s-head" d="M0,0 L10,5 L0,10 z"/>
+        </marker>
+        <marker id="ah-hot" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path class="s-head-hot" d="M0,0 L10,5 L0,10 z"/>
+        </marker>
+      </defs>
+
+      <!-- group: local machine -->
+      <rect class="s-group" x="14" y="30" width="576" height="420" rx="14"/>
+      <text class="s-grouplbl" x="30" y="52">ONE LINUX BOX (POP!_OS)</text>
+
+      <!-- Firefox tab -->
+      <rect class="s-box" x="38" y="72" width="212" height="86" rx="10"/>
+      <text class="s-title" x="56" y="100">Firefox tab</text>
+      <text class="s-sub" x="56" y="120">YouTube TV / HBO Max</text>
+      <text class="s-sub" x="56" y="138">live race broadcast</text>
+
+      <!-- extension -->
+      <rect class="s-box" x="38" y="196" width="212" height="112" rx="10"/>
+      <text class="s-title" x="56" y="224">browser_extension</text>
+      <text class="s-sub" x="56" y="243">alarm every ~3 s:</text>
+      <text class="s-mono" x="56" y="262">captureVisibleTab()</text>
+      <text class="s-sub" x="56" y="281">crop to &lt;video&gt; bounds</text>
+      <text class="s-sub" x="56" y="299">+ play / pause / seek state</text>
+
+      <!-- native host -->
+      <rect class="s-box" x="38" y="346" width="212" height="80" rx="10"/>
+      <text class="s-title" x="56" y="374">native_host</text>
+      <text class="s-sub" x="56" y="393">10 s rolling PCM buffer from</text>
+      <text class="s-sub" x="56" y="411">the PulseAudio monitor sink</text>
+
+      <!-- arrows into extension -->
+      <path class="s-arrow" d="M144,158 L144,192" marker-end="url(#ah)"/>
+      <path class="s-arrow" d="M144,346 L144,312" marker-end="url(#ah)"/>
+      <text class="s-label" x="152" y="180">screenshot</text>
+      <text class="s-label" x="152" y="334">WAV (native messaging)</text>
+
+      <!-- server -->
+      <rect class="s-box" x="308" y="72" width="264" height="354" rx="10"/>
+      <text class="s-title" x="328" y="100">server — FastAPI</text>
+      <text class="s-mono" x="328" y="118">:11679</text>
+
+      <rect class="s-box-sunk" x="328" y="132" width="224" height="52" rx="8"/>
+      <text class="s-mono" x="344" y="153">POST /receive</text>
+      <text class="s-sub" x="344" y="171">multipart: JPEG + WAV + state</text>
+
+      <rect class="s-box-sunk" x="328" y="194" width="224" height="70" rx="8"/>
+      <text class="s-mono" x="344" y="215">classify.py</text>
+      <text class="s-sub" x="344" y="233">phash override → profile</text>
+      <text class="s-sub" x="344" y="251">OpenCV passes → LLM passes</text>
+
+      <rect class="s-box-sunk" x="328" y="274" width="224" height="66" rx="8"/>
+      <text class="s-mono" x="344" y="295">state.py</text>
+      <text class="s-sub" x="344" y="313">in-memory: ad | content</text>
+      <text class="s-sub" x="344" y="331">debounce, auto-switch flags</text>
+
+      <rect class="s-box-sunk" x="328" y="350" width="224" height="60" rx="8"/>
+      <text class="s-mono" x="344" y="371">/is_ad · /review · /metrics</text>
+      <text class="s-sub" x="344" y="389">SSE status page, frame review UI,</text>
+      <text class="s-sub" x="344" y="404">Prometheus histograms</text>
+
+      <!-- ext -> server -->
+      <path class="s-arrow" d="M250,252 L302,160" marker-end="url(#ah)"/>
+      <text class="s-label" x="252" y="207">HTTP POST</text>
+
+      <!-- llama -->
+      <rect class="s-box" x="640" y="96" width="200" height="106" rx="10"/>
+      <text class="s-title" x="658" y="124">llama.cpp (CUDA)</text>
+      <text class="s-sub" x="658" y="144">Qwen3 Omni 30B-A3B</text>
+      <text class="s-sub" x="658" y="162">or Qwen3.5 4B Q4_K_M</text>
+      <text class="s-mono" x="658" y="184">OpenAI-compatible /v1</text>
+      <path class="s-arrow" d="M572,200 L636,152" marker-end="url(#ah)"/>
+      <path class="s-arrow" d="M636,172 L572,220" marker-end="url(#ah)"/>
+      <text class="s-label" x="580" y="255">800 px JPEG q50</text>
+
+      <!-- matrix control -->
+      <rect class="s-box" x="640" y="300" width="200" height="88" rx="10"/>
+      <text class="s-title" x="658" y="328">hdmi-matrix-control</text>
+      <text class="s-mono" x="658" y="348">POST /set-output-input</text>
+      <text class="s-sub" x="658" y="368">HTTP → serial bridge (Flask)</text>
+      <path class="s-arrow-hot" d="M572,330 L636,338" marker-end="url(#ah-hot)"/>
+      <text class="s-label" x="578" y="316">on state change</text>
+
+      <!-- portta -->
+      <rect class="s-box" x="876" y="300" width="110" height="88" rx="10"/>
+      <text class="s-title" x="892" y="330">Portta</text>
+      <text class="s-sub" x="892" y="348">4×2 HDMI</text>
+      <text class="s-sub" x="892" y="364">multiviewer</text>
+      <path class="s-arrow-hot" d="M840,344 L872,344" marker-end="url(#ah-hot)"/>
+      <text class="s-mono" x="858" y="410">/dev/ttyACM0</text>
+
+      <!-- TVs -->
+      <rect class="s-box" x="876" y="140" width="110" height="88" rx="10"/>
+      <text class="s-title" x="892" y="170">Outputs</text>
+      <text class="s-sub" x="892" y="190">A → main TV</text>
+      <text class="s-sub" x="892" y="208">B → second TV</text>
+      <path class="s-arrow-hot" d="M931,300 L931,232" marker-end="url(#ah-hot)"/>
+    </svg>
+    <figcaption>
+      Solid grey = every frame. Red = only when the committed classification actually flips.
+      The audio path is optional and off unless <code>enable_llm_audio</code> is set and the model accepts audio.
+    </figcaption>
+  </figure>
+</section>
+
+<!-- ══ 2. THE LOOP ══════════════════════════════════════════ -->
+<section>
+  <span class="num">02 — THE LOOP</span>
+  <h2>What happens every few seconds</h2>
+  <p class="section-note">
+    One pass of the loop, from pixels on screen to (maybe) a relay clicking over in the matrix.
+  </p>
+
+  <figure class="figure">
+    <svg viewBox="0 0 1000 210" role="img" aria-label="Timeline: capture, crop, POST, classify, debounce, switch.">
+      <defs>
+        <marker id="ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path class="s-head" d="M0,0 L10,5 L0,10 z"/>
+        </marker>
+      </defs>
+      <line class="s-arrow" x1="40" y1="96" x2="962" y2="96" marker-end="url(#ah2)"/>
+
+      <g>
+        <circle cx="86" cy="96" r="7" class="dot-cv"/>
+        <text class="s-title" x="52" y="66">Capture</text>
+        <text class="s-sub" x="46" y="132">alarm fires</text>
+        <text class="s-sub" x="46" y="149">PNG screenshot</text>
+      </g>
+      <g>
+        <circle cx="256" cy="96" r="7" class="dot-cv"/>
+        <text class="s-title" x="222" y="66">Crop</text>
+        <text class="s-sub" x="205" y="132">to &lt;video&gt; bounds,</text>
+        <text class="s-sub" x="205" y="149">chrome stripped out</text>
+      </g>
+      <g>
+        <circle cx="436" cy="96" r="7" class="dot-neutral"/>
+        <text class="s-title" x="404" y="66">POST</text>
+        <text class="s-sub" x="378" y="132">/receive + paused,</text>
+        <text class="s-sub" x="378" y="149">seeking, video offset</text>
+      </g>
+      <g>
+        <circle cx="616" cy="96" r="7" class="dot-llm"/>
+        <text class="s-title" x="578" y="66">Classify</text>
+        <text class="s-sub" x="556" y="132">profile pipeline →</text>
+        <text class="s-sub" x="556" y="149">ad | content | unknown</text>
+      </g>
+      <g>
+        <circle cx="790" cy="96" r="7" class="dot-neutral"/>
+        <text class="s-title" x="754" y="66">Debounce</text>
+        <text class="s-sub" x="734" y="132">two in a row before</text>
+        <text class="s-sub" x="734" y="149">the state may change</text>
+      </g>
+      <g>
+        <circle cx="930" cy="96" r="7" class="dot-ad"/>
+        <text class="s-title" x="898" y="66">Switch</text>
+        <text class="s-sub" x="874" y="132">push new input map</text>
+        <text class="s-sub" x="874" y="149">to both outputs</text>
+      </g>
+    </svg>
+    <figcaption>
+      Paused or seeking? The extension still reports playback state, but with no image attached — the server
+      updates the status page and skips classification entirely.
+    </figcaption>
+  </figure>
+
+  <div class="grid stats" style="margin-top:16px">
+    <div class="card stat">
+      <div class="v">~3 s</div>
+      <div class="k">Practical capture interval</div>
+      <div class="why">Extension default is 10 s — too slow to catch the start of a break. Real ceiling is GPU inference speed.</div>
+    </div>
+    <div class="card stat">
+      <div class="v">800 px</div>
+      <div class="k">Longest side sent to the LLM</div>
+      <div class="why">Re-encoded as JPEG quality 50 — small enough to keep inference under the frame budget.</div>
+    </div>
+    <div class="card stat">
+      <div class="v">5</div>
+      <div class="k">Frames kept in memory</div>
+      <div class="why">A rolling deque so a mislabelled moment can be captured to disk after the fact.</div>
+    </div>
+    <div class="card stat">
+      <div class="v">2</div>
+      <div class="k">HDMI outputs driven</div>
+      <div class="why">One input map for <span class="mono">ad</span>, another for <span class="mono">content</span>; the pair swaps atomically.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ 3. PIPELINE ══════════════════════════════════════════ -->
+<section>
+  <span class="num">03 — CLASSIFICATION</span>
+  <h2>A cheap-to-expensive cascade</h2>
+  <p class="section-note">
+    The <code>nascar_on_fox</code> profile runs up to five passes. Each one can end the frame early, so the
+    expensive vision model only sees frames the cheap checks couldn't settle. Ordering is the whole trick:
+    a template match costs milliseconds, a full LLM prompt costs a large fraction of the capture interval.
+  </p>
+
+  <div class="pipe">
+    <div class="stage hash">
+      <div class="stage-n">0</div>
+      <div>
+        <h3>Perceptual-hash override</h3>
+        <p>Has a human already corrected a near-identical frame? If its pHash is within distance 10 of a stored entry, return that label and stop.</p>
+        <span class="tech">phash_override.py · imagehash · threshold 10</span>
+      </div>
+      <div class="exit">
+        <span class="verdict v-pass">stored label</span>
+        <small>runs before any profile</small>
+      </div>
+    </div>
+    <div class="fallthrough">↓ no match</div>
+
+    <div class="stage cv">
+      <div class="stage-n">1</div>
+      <div>
+        <h3>Network logo, upper right</h3>
+        <p>Mask everything non-white, then template-match the Fox / FS1 bug in the top-right eighth of the frame. Broadcasters keep the bug on screen during racing and pull it during ads.</p>
+        <span class="tech">logo_match.py · cv2.matchTemplate · score ≥ 0.55</span>
+      </div>
+      <div class="exit">
+        <span class="verdict v-content">→ content</span>
+        <small>bug present = live coverage</small>
+      </div>
+    </div>
+    <div class="fallthrough">↓ no bug</div>
+
+    <div class="stage cv">
+      <div class="stage-n">2</div>
+      <div>
+        <h3>Side-by-side logo, upper left</h3>
+        <p>The distinctive "side-by-side" badge networks show when racing shrinks into a corner beside an ad. Assets exist for Fox, FS1, Truck Series and Amazon's NASCAR Nonstop.</p>
+        <span class="tech">upper-left fifth · score ≥ 0.8</span>
+      </div>
+      <div class="exit">
+        <span class="verdict v-ad">→ ad</span>
+        <small>break in progress</small>
+      </div>
+    </div>
+    <div class="fallthrough">↓ no badge</div>
+
+    <div class="stage cv">
+      <div class="stage-n">3</div>
+      <div>
+        <h3>Ad-break rectangle detection</h3>
+        <p>Contour detection for the known bounding boxes the broadcast draws around the shrunken race feed during a split-screen break — a geometry signal rather than a pixel signal.</p>
+        <span class="tech">rectangle_match.py · cv2 contours on a 1920×1080 resize</span>
+      </div>
+      <div class="exit">
+        <span class="verdict v-ad">→ ad</span>
+        <small>known box matched</small>
+      </div>
+    </div>
+    <div class="fallthrough">↓ nothing recognised — hand off to the model</div>
+
+    <div class="stage llm">
+      <div class="stage-n">4</div>
+      <div>
+        <h3>LLM quick check</h3>
+        <p>One short question to the local vision model: is there <em>any</em> racing-related content in this frame? A clean "no" is enough to call it an ad without the long prompt.</p>
+        <span class="tech">llm_match._report_racing_related() · llama.cpp</span>
+      </div>
+      <div class="exit">
+        <span class="verdict v-ad">→ ad</span>
+        <small>if nothing racing-related</small>
+      </div>
+    </div>
+    <div class="fallthrough">↓ something racing-ish is on screen</div>
+
+    <div class="stage llm">
+      <div class="stage-n">5</div>
+      <div>
+        <h3>Full prompt classification</h3>
+        <p>The hand-tuned prompt goes out with the image (and optionally the last few seconds of audio). The reply is parsed for <code>type=ad</code> / <code>type=racing</code> or a JSON classification field.</p>
+        <span class="tech">prompt/prompt.txt · regex + JSON extraction · timed into Prometheus</span>
+      </div>
+      <div class="exit">
+        <span class="verdict v-ad">ad</span>
+        <span class="verdict v-content" style="margin-left:6px">content</span>
+        <small>or <span class="mono">unknown</span> on a bad parse</small>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ 4. PROFILES ══════════════════════════════════════════ -->
+<section>
+  <span class="num">04 — PROFILES</span>
+  <h2>Every broadcast needs its own recipe</h2>
+  <p class="section-note">
+    Classifiers are pluggable modules dropped into <code>classifiers/</code> and selected at runtime by name,
+    because each network's graphics package leaks a different set of ad-break signals.
+  </p>
+
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr><th>Profile</th><th>Broadcast</th><th>How it decides</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="mono">nascar_on_fox</span></td>
+          <td>NASCAR on Fox / FS1<br><small>via YouTube TV</small></td>
+          <td>The full five-pass cascade above — OpenCV first, vision model as fallback.</td>
+        </tr>
+        <tr>
+          <td><span class="mono">nhra_on_fox</span></td>
+          <td>NHRA drag racing on Fox / FS1</td>
+          <td>Same structure, swapped logo assets. Proof the pipeline generalises within a network.</td>
+        </tr>
+        <tr>
+          <td><span class="mono">nascar_on_hbo_max</span></td>
+          <td>NASCAR on TNT Sports<br><small>via HBO Max</small></td>
+          <td>
+            No LLM at all. HBO Max doesn't insert traditional ads: TNT either shows a full-screen
+            "we'll be right back" card (<span class="mono v-ad-text">ad</span> — switch away) or
+            an overlay reading "commercial break in progress" while racing keeps playing
+            (<span class="mono v-content-text">content</span> — stay put). Everything else
+            defaults to content. Two template matches at 0.85 are reliable enough on their own.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ══ 5. STATE ═════════════════════════════════════════════ -->
+<section>
+  <span class="num">05 — COMMITTING A DECISION</span>
+  <h2>Classifying a frame ≠ switching the TV</h2>
+  <p class="section-note">
+    A single wrong frame must not yank the picture away mid-battle for the lead. The state layer between
+    classification and the matrix exists entirely to absorb the classifier's mistakes.
+  </p>
+
+  <div class="grid g3">
+    <div class="card">
+      <span class="kicker">Debounce</span>
+      <h3>Twice, or not at all</h3>
+      <p>The same label has to come back on two consecutive frames before the committed state flips — unless the
+      call came from OpenCV, which is trusted enough to act immediately.</p>
+    </div>
+    <div class="card">
+      <span class="kicker">unknown handling</span>
+      <h3>Uncertainty doesn't reset</h3>
+      <p>An <code>unknown</code> result is ignored rather than recorded, so a momentary parse failure between two
+      agreeing frames doesn't restart the debounce count.</p>
+    </div>
+    <div class="card">
+      <span class="kicker">Self-instrumenting</span>
+      <h3>Save the near-misses</h3>
+      <p>When debounce blocks a change that looked real, that frame batch is written to disk tagged
+      <code>suspicious_debounce</code> — the classifier's disagreements become the training-data pile.</p>
+    </div>
+    <div class="card">
+      <span class="kicker">Human override</span>
+      <h3>"That's wrong"</h3>
+      <p>One button on the status page corrects the label, saves the frames, switches immediately, and suppresses
+      auto-switching for 30 seconds so the next bad frame can't undo it.</p>
+    </div>
+    <div class="card">
+      <span class="kicker">Live view</span>
+      <h3>Status by SSE</h3>
+      <p><code>/is_ad</code> streams current state to any device on the network — useful as a second-screen readout
+      while you're actually watching the race.</p>
+    </div>
+    <div class="card">
+      <span class="kicker">Output map</span>
+      <h3>Two mappings, swapped</h3>
+      <p><code>ad → {A:1, B:4}</code>, <code>content → {A:4, B:1}</code>. Both outputs are written on every switch,
+      so the two screens trade sources rather than one going dark.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══ 6. HARD PARTS ════════════════════════════════════════ -->
+<section>
+  <span class="num">06 — WHAT'S ACTUALLY HARD</span>
+  <h2>The failure modes are the interesting part</h2>
+
+  <div class="grid g2">
+    <div class="callout">
+      <h3>Ads that look exactly like the race</h3>
+      <p>
+        The single hardest case. A tyre or truck commercial is full of race cars and reused broadcast footage.
+        The tells are subtle — a missing network bug, a slightly different grade, a logo lockup — and OpenCV has
+        little to grab onto.
+      </p>
+      <p><b>The LLM is confidently wrong here almost every time: it sees race cars and says "racing".</b></p>
+    </div>
+    <div class="callout">
+      <h3>Racing content that isn't racing</h3>
+      <p>
+        The mirror image: driver interviews, pit-lane walk-ups, the commentary booth. No cars on track, so the
+        naive signal says "ad" — but switching away from them is exactly wrong.
+      </p>
+    </div>
+    <div class="callout neutral">
+      <h3>Networks are inconsistent</h3>
+      <p>
+        Graphics packages change between events, and even within a broadcast the same overlay appears at
+        different sizes and positions. Template matching is tuned against 1920×1080 crops, so every frame is
+        resized to that first — and a graphics refresh can break a profile outright.
+      </p>
+    </div>
+    <div class="callout neutral">
+      <h3>pHash overrides underdeliver</h3>
+      <p>
+        The correction system stores a perceptual hash per corrected frame, but only matches near-identical
+        images. Commercials cut constantly, so the odds of screenshotting the same instant twice are low.
+        Honest verdict: <b>limited effectiveness in practice.</b>
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ══ 7. STACK ═════════════════════════════════════════════ -->
+<section>
+  <span class="num">07 — RUNNING IT</span>
+  <h2>Stack and moving parts</h2>
+
+  <div class="grid g3">
+    <div class="card">
+      <span class="kicker">Docker Compose</span>
+      <h3>Three containers</h3>
+      <p><code>llama</code> (CUDA vision model) · <code>hdmi-matrix-control</code> (serial bridge, needs the
+      <span class="mono">/dev/ttyACM0</span> device) · <code>receiver</code> (the FastAPI app, port 11679).</p>
+    </div>
+    <div class="card">
+      <span class="kicker">Server</span>
+      <h3>Python ≥ 3.14, uv</h3>
+      <p>FastAPI · OpenCV headless · Pillow · imagehash · the OpenAI client pointed at llama.cpp · Jinja2 for the
+      review UI · Prometheus instrumentation · ruff + pytest.</p>
+    </div>
+    <div class="card">
+      <span class="kicker">Config</span>
+      <h3>Layered</h3>
+      <p>Defaults, then <code>server/config.json</code>, then <code>DETECTOR_*</code> environment variables.
+      Everything is optional; the interesting knobs are the classifier profile and the output map.</p>
+    </div>
+    <div class="card">
+      <span class="kicker">Models tried</span>
+      <h3>Vision matters more than size</h3>
+      <p>Qwen3 Omni 30B-A3B is the current pick — it takes audio as well as images. Qwen3.5 4B Q4_K_M performs
+      well for far less VRAM. Gemma 4 vision classified poorly.</p>
+    </div>
+    <div class="card">
+      <span class="kicker">Observability</span>
+      <h3>Two histograms</h3>
+      <p><code>classification_time_seconds</code> and <code>switching_time_seconds</code>, so you can see whether
+      inference is keeping up with the capture interval.</p>
+    </div>
+    <div class="card">
+      <span class="kicker">Scope</span>
+      <h3>Deliberately narrow</h3>
+      <p>Firefox on Linux, one HDMI multiviewer model, state held in memory and lost on restart. It's a
+      single-household appliance, not a product.</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  Generated from the repository source — <span class="mono">browser_extension/</span>,
+  <span class="mono">native_host/</span>, <span class="mono">server/src/tv_commercial_detector/</span> — plus
+  <span class="mono">README.md</span> and <span class="mono">AGENTS.md</span>.
+  Thresholds, intervals and mappings shown here reflect the values currently in the code and
+  <span class="mono">server/config.json</span>.
+</footer>
+
+</div>
+</body>
+</html>
