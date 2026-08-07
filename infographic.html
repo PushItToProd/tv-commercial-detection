@@ -179,6 +179,22 @@
   .dot-llm { fill: var(--llm); }
   .dot-neutral { fill: var(--ink-3); }
   .dot-ad { fill: var(--ad); }
+  .s-mid { text-anchor: middle; }
+  .s-lane { fill: none; stroke: var(--rule-strong); stroke-width: 1.25; stroke-dasharray: 6 5; }
+  .s-lanelbl { font-family: var(--mono); font-size: 10.5px; letter-spacing: .11em; fill: var(--ink-3); }
+  .s-boundary { stroke: var(--rule-strong); stroke-width: 1.25; stroke-dasharray: 3 4; }
+  .s-end { text-anchor: end; }
+  .s-state { font-size: 17px; font-weight: 700; letter-spacing: .02em; }
+  .s-node-content { fill: var(--content-bg); stroke: var(--content); stroke-width: 1.75; }
+  .s-node-ad { fill: var(--ad-bg); stroke: var(--ad); stroke-width: 1.75; }
+  .s-title-content { fill: var(--content); }
+  .s-title-ad { fill: var(--ad); }
+  .s-pill { fill: var(--bg-sunk); stroke: var(--rule-strong); stroke-width: 1.25; stroke-dasharray: 5 4; }
+  .s-arrow-ad { stroke: var(--ad); stroke-width: 1.9; fill: none; }
+  .s-arrow-content { stroke: var(--content); stroke-width: 1.9; fill: none; }
+  .s-arrow-dim { stroke: var(--rule-strong); stroke-width: 1.5; fill: none; stroke-dasharray: 5 4; }
+  .s-head-ad { fill: var(--ad); }
+  .s-head-content { fill: var(--content); }
   .v-ad-text { color: var(--ad); }
   .v-content-text { color: var(--content); }
   .callout.neutral { border-left-color: var(--ink-3); }
@@ -434,7 +450,7 @@
       <text class="s-mono" x="658" y="348">POST /set-output-input</text>
       <text class="s-sub" x="658" y="368">HTTP → serial bridge (Flask)</text>
       <path class="s-arrow-hot" d="M572,330 L636,338" marker-end="url(#ah-hot)"/>
-      <text class="s-label" x="578" y="316">on state change</text>
+      <text class="s-label" x="578" y="314">on change</text>
 
       <!-- portta -->
       <rect class="s-box" x="876" y="300" width="110" height="88" rx="10"/>
@@ -467,54 +483,73 @@
   </p>
 
   <figure class="figure">
-    <svg viewBox="0 0 1000 210" role="img" aria-label="Timeline: capture, crop, POST, classify, debounce, switch.">
+    <svg viewBox="0 0 1000 264" role="img" aria-label="Timeline of one capture pass, divided into three system boundaries: the browser extension performs capture, crop and POST; the FastAPI server classifies and debounces; the hardware performs the switch.">
       <defs>
         <marker id="ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
           <path class="s-head" d="M0,0 L10,5 L0,10 z"/>
         </marker>
       </defs>
-      <line class="s-arrow" x1="40" y1="96" x2="962" y2="96" marker-end="url(#ah2)"/>
 
-      <g>
-        <circle cx="86" cy="96" r="7" class="dot-cv"/>
-        <text class="s-title" x="52" y="66">Capture</text>
-        <text class="s-sub" x="46" y="132">alarm fires</text>
-        <text class="s-sub" x="46" y="149">PNG screenshot</text>
+      <!-- system boundaries -->
+      <rect class="s-lane" x="20" y="44" width="432" height="176" rx="12"/>
+      <text class="s-lanelbl" x="24" y="34">BROWSER — browser_extension</text>
+
+      <rect class="s-lane" x="486" y="44" width="330" height="176" rx="12"/>
+      <text class="s-lanelbl" x="490" y="34">SERVER — FastAPI :11679</text>
+
+      <rect class="s-lane" x="850" y="44" width="134" height="176" rx="12"/>
+      <text class="s-lanelbl" x="854" y="34">HARDWARE</text>
+
+      <!-- boundary crossings -->
+      <line class="s-boundary" x1="469" y1="40" x2="469" y2="224"/>
+      <line class="s-boundary" x1="833" y1="40" x2="833" y2="224"/>
+      <text class="s-mono s-mid" x="469" y="244">HTTP</text>
+      <text class="s-mono s-mid" x="833" y="244">HTTP → USB serial</text>
+
+      <line class="s-arrow" x1="40" y1="112" x2="968" y2="112" marker-end="url(#ah2)"/>
+
+      <g class="s-mid">
+        <circle cx="96" cy="112" r="7" class="dot-cv"/>
+        <text class="s-title" x="96" y="78">Capture</text>
+        <text class="s-sub" x="96" y="150">alarm fires</text>
+        <text class="s-sub" x="96" y="168">PNG screenshot</text>
       </g>
-      <g>
-        <circle cx="256" cy="96" r="7" class="dot-cv"/>
-        <text class="s-title" x="222" y="66">Crop</text>
-        <text class="s-sub" x="205" y="132">to &lt;video&gt; bounds,</text>
-        <text class="s-sub" x="205" y="149">chrome stripped out</text>
+      <g class="s-mid">
+        <circle cx="238" cy="112" r="7" class="dot-cv"/>
+        <text class="s-title" x="238" y="78">Crop</text>
+        <text class="s-sub" x="238" y="150">to &lt;video&gt; bounds,</text>
+        <text class="s-sub" x="238" y="168">browser chrome removed</text>
       </g>
-      <g>
-        <circle cx="436" cy="96" r="7" class="dot-neutral"/>
-        <text class="s-title" x="404" y="66">POST</text>
-        <text class="s-sub" x="378" y="132">/receive + paused,</text>
-        <text class="s-sub" x="378" y="149">seeking, video offset</text>
+      <g class="s-mid">
+        <circle cx="380" cy="112" r="7" class="dot-neutral"/>
+        <text class="s-title" x="380" y="78">POST</text>
+        <text class="s-sub" x="380" y="150">/receive + paused,</text>
+        <text class="s-sub" x="380" y="168">seeking, video offset</text>
       </g>
-      <g>
-        <circle cx="616" cy="96" r="7" class="dot-llm"/>
-        <text class="s-title" x="578" y="66">Classify</text>
-        <text class="s-sub" x="556" y="132">profile pipeline →</text>
-        <text class="s-sub" x="556" y="149">ad | content | unknown</text>
+      <g class="s-mid">
+        <circle cx="570" cy="112" r="7" class="dot-llm"/>
+        <text class="s-title" x="570" y="78">Classify</text>
+        <text class="s-sub" x="570" y="150">profile pipeline →</text>
+        <text class="s-sub" x="570" y="168">ad | content | unknown</text>
       </g>
-      <g>
-        <circle cx="790" cy="96" r="7" class="dot-neutral"/>
-        <text class="s-title" x="754" y="66">Debounce</text>
-        <text class="s-sub" x="734" y="132">two in a row before</text>
-        <text class="s-sub" x="734" y="149">the state may change</text>
+      <g class="s-mid">
+        <circle cx="726" cy="112" r="7" class="dot-neutral"/>
+        <text class="s-title" x="726" y="78">Debounce</text>
+        <text class="s-sub" x="726" y="150">two matching frames</text>
+        <text class="s-sub" x="726" y="168">before state may change</text>
       </g>
-      <g>
-        <circle cx="930" cy="96" r="7" class="dot-ad"/>
-        <text class="s-title" x="898" y="66">Switch</text>
-        <text class="s-sub" x="874" y="132">push new input map</text>
-        <text class="s-sub" x="874" y="149">to both outputs</text>
+      <g class="s-mid">
+        <circle cx="917" cy="112" r="7" class="dot-ad"/>
+        <text class="s-title" x="917" y="78">Switch</text>
+        <text class="s-sub" x="917" y="150">new input map</text>
+        <text class="s-sub" x="917" y="168">pushed to A and B</text>
       </g>
     </svg>
     <figcaption>
-      Paused or seeking? The extension still reports playback state, but with no image attached — the server
-      updates the status page and skips classification entirely.
+      Two process boundaries and one network hop each way. Everything left of the first divider runs inside
+      Firefox; the middle lane is the FastAPI process; the right lane is the matrix itself. Paused or seeking?
+      The extension still reports playback state, but with no image attached — the server updates the status
+      page and skips classification entirely.
     </figcaption>
   </figure>
 
@@ -688,6 +723,94 @@
     A single wrong frame must not yank the picture away mid-battle for the lead. The state layer between
     classification and the matrix exists entirely to absorb the classifier's mistakes.
   </p>
+
+  <figure class="figure" style="margin-bottom:28px">
+    <svg viewBox="0 0 1000 560" role="img" aria-label="State machine: content and ad are the two committed states. A single opposing LLM frame moves the machine into a pending state; a second confirms it and switches the matrix, while a contradicting frame cancels and saves the frames. An OpenCV verdict commits immediately, bypassing the pending states. Manual correction forces either state.">
+      <defs>
+        <marker id="sm-grey" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path class="s-head" d="M0,0 L10,5 L0,10 z"/>
+        </marker>
+        <marker id="sm-ad" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path class="s-head-ad" d="M0,0 L10,5 L0,10 z"/>
+        </marker>
+        <marker id="sm-content" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path class="s-head-content" d="M0,0 L10,5 L0,10 z"/>
+        </marker>
+      </defs>
+
+      <!-- committed states -->
+      <rect class="s-node-content" x="110" y="240" width="200" height="90" rx="12"/>
+      <text class="s-state s-title-content s-mid" x="210" y="278">CONTENT</text>
+      <text class="s-sub s-mid" x="210" y="299">matrix → Race view</text>
+      <text class="s-mono s-mid" x="210" y="317">A:4  B:1</text>
+
+      <rect class="s-node-ad" x="690" y="240" width="200" height="90" rx="12"/>
+      <text class="s-state s-title-ad s-mid" x="790" y="278">AD</text>
+      <text class="s-sub s-mid" x="790" y="299">matrix → Alt view</text>
+      <text class="s-mono s-mid" x="790" y="317">A:1  B:4</text>
+
+      <!-- pending states -->
+      <rect class="s-pill" x="400" y="120" width="200" height="70" rx="10"/>
+      <text class="s-title s-mid" x="500" y="148">pending → ad</text>
+      <text class="s-mono s-mid" x="500" y="169">last_result=ad</text>
+
+      <rect class="s-pill" x="400" y="380" width="200" height="70" rx="10"/>
+      <text class="s-title s-mid" x="500" y="408">pending → content</text>
+      <text class="s-mono s-mid" x="500" y="429">last_result=content</text>
+
+      <!-- cold start -->
+      <circle cx="150" cy="180" r="8" class="dot-neutral"/>
+      <text class="s-label s-mid" x="150" y="164">cold start · state = None</text>
+      <path class="s-arrow" d="M150,190 L150,232" marker-end="url(#sm-grey)"/>
+
+      <!-- top path: content -> ad -->
+      <path class="s-arrow-ad" d="M310,258 C346,238 372,196 393,168" marker-end="url(#sm-ad)"/>
+      <text class="s-label" x="372" y="224">1st ad frame</text>
+
+      <path class="s-arrow-ad" d="M607,168 C628,196 654,238 684,258" marker-end="url(#sm-ad)"/>
+      <text class="s-label s-end" x="628" y="224">2nd ad frame ⇒ switch</text>
+
+      <path class="s-arrow-dim" d="M500,117 C420,60 250,60 210,232" marker-end="url(#sm-grey)"/>
+      <text class="s-label s-mid" x="358" y="52">content instead → cancel, save frames</text>
+
+      <!-- bottom path: ad -> content -->
+      <path class="s-arrow-content" d="M690,312 C654,332 628,374 607,402" marker-end="url(#sm-content)"/>
+      <text class="s-label s-end" x="640" y="346">1st content frame</text>
+
+      <path class="s-arrow-content" d="M393,402 C372,374 346,332 316,312" marker-end="url(#sm-content)"/>
+      <text class="s-label" x="372" y="346">2nd content frame ⇒ switch</text>
+
+      <path class="s-arrow-dim" d="M500,453 C580,510 740,510 790,338" marker-end="url(#sm-grey)"/>
+      <text class="s-label s-mid" x="645" y="530">ad instead → cancel, save frames</text>
+
+      <!-- opencv bypass -->
+      <path class="s-arrow" d="M322,285 L678,285" marker-start="url(#sm-grey)" marker-end="url(#sm-grey)"/>
+      <text class="s-label s-mid" x="500" y="272">OpenCV verdict — commits immediately, skips the pending step</text>
+
+      <!-- self loops -->
+      <path class="s-arrow-dim" d="M110,262 C62,240 62,320 106,306" marker-end="url(#sm-grey)"/>
+      <text class="s-label s-mid" x="78" y="342">same label,</text>
+      <text class="s-label s-mid" x="78" y="357">or unknown</text>
+
+      <path class="s-arrow-dim" d="M890,262 C938,240 938,320 894,306" marker-end="url(#sm-grey)"/>
+      <text class="s-label s-mid" x="922" y="342">same label,</text>
+      <text class="s-label s-mid" x="922" y="357">or unknown</text>
+
+      <!-- manual override -->
+      <rect class="s-pill" x="60" y="452" width="272" height="86" rx="10"/>
+      <text class="s-title" x="78" y="478">Manual correction</text>
+      <text class="s-mono" x="78" y="498">POST /report_wrong</text>
+      <text class="s-sub" x="78" y="518">forces either state, switches now,</text>
+      <text class="s-sub" x="78" y="532">suspends auto-switch for 30 s</text>
+      <path class="s-arrow-dim" d="M196,448 L196,336" marker-end="url(#sm-grey)"/>
+    </svg>
+    <figcaption>
+      Only <span class="mono">ad</span> and <span class="mono">content</span> are ever committed —
+      <span class="mono">unknown</span> is discarded rather than recorded, so it can't reset a pending transition.
+      The pending states only exist while <code>enable_debounce</code> is on; with it off, every arrow through the
+      middle collapses into the direct one.
+    </figcaption>
+  </figure>
 
   <div class="grid g3">
     <div class="card">
