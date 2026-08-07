@@ -339,7 +339,7 @@
 
 <header>
   <p class="eyebrow">Project walkthrough</p>
-  <h1>TV&nbsp;Commercial&nbsp;Detector</h1>
+  <h1>TV Commercial Detector</h1>
   <p class="lede">
     A home-built system that watches a <b>live race broadcast</b> streaming in a browser tab,
     works out — several times a minute — whether what's on screen is <b>racing</b> or a
@@ -377,8 +377,8 @@
       </defs>
 
       <!-- group: local machine -->
-      <rect class="s-group" x="14" y="30" width="576" height="420" rx="14"/>
-      <text class="s-grouplbl" x="30" y="52">ONE LINUX BOX (POP!_OS)</text>
+      <rect class="s-group" x="14" y="30" width="832" height="420" rx="14"/>
+      <text class="s-grouplbl" x="30" y="52">ONE LINUX BOX (POP!_OS) — SERVER + DOCKER SERVICES</text>
 
       <!-- Firefox tab -->
       <rect class="s-box" x="38" y="72" width="212" height="86" rx="10"/>
@@ -432,7 +432,7 @@
 
       <!-- ext -> server -->
       <path class="s-arrow" d="M250,252 L302,160" marker-end="url(#ah)"/>
-      <text class="s-label" x="252" y="207">HTTP POST</text>
+      <text class="s-label s-mid" x="279" y="200">HTTP</text>
 
       <!-- llama -->
       <rect class="s-box" x="640" y="96" width="200" height="106" rx="10"/>
@@ -450,7 +450,7 @@
       <text class="s-mono" x="658" y="348">POST /set-output-input</text>
       <text class="s-sub" x="658" y="368">HTTP → serial bridge (Flask)</text>
       <path class="s-arrow-hot" d="M572,330 L636,338" marker-end="url(#ah-hot)"/>
-      <text class="s-label" x="578" y="314">on change</text>
+      <text class="s-label s-mid" x="606" y="314">on change</text>
 
       <!-- portta -->
       <rect class="s-box" x="876" y="300" width="110" height="88" rx="10"/>
@@ -468,8 +468,10 @@
       <path class="s-arrow-hot" d="M931,300 L931,232" marker-end="url(#ah-hot)"/>
     </svg>
     <figcaption>
-      Solid grey = every frame. Red = only when the committed classification actually flips.
-      The audio path is optional and off unless <code>enable_llm_audio</code> is set and the model accepts audio.
+      Everything inside the dashed boundary runs on one machine — llama.cpp and the matrix bridge as Docker
+      containers alongside the server. Only the multiviewer and the TVs are separate hardware, reached over USB
+      serial. Solid grey = every frame; red = only when the committed classification actually flips. The audio
+      path is optional and off unless <code>enable_llm_audio</code> is set and the model accepts audio.
     </figcaption>
   </figure>
 </section>
@@ -483,7 +485,7 @@
   </p>
 
   <figure class="figure">
-    <svg viewBox="0 0 1000 264" role="img" aria-label="Timeline of one capture pass, divided into three system boundaries: the browser extension performs capture, crop and POST; the FastAPI server classifies and debounces; the hardware performs the switch.">
+    <svg viewBox="0 0 1000 226" role="img" aria-label="Timeline of one capture pass, divided into three system boundaries: the browser extension performs capture, crop and POST; the FastAPI server classifies and debounces; the hardware performs the switch.">
       <defs>
         <marker id="ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
           <path class="s-head" d="M0,0 L10,5 L0,10 z"/>
@@ -491,20 +493,20 @@
       </defs>
 
       <!-- system boundaries -->
-      <rect class="s-lane" x="20" y="44" width="432" height="176" rx="12"/>
+      <rect class="s-lane" x="20" y="44" width="432" height="140" rx="12"/>
       <text class="s-lanelbl" x="24" y="34">BROWSER — browser_extension</text>
 
-      <rect class="s-lane" x="486" y="44" width="330" height="176" rx="12"/>
+      <rect class="s-lane" x="486" y="44" width="330" height="140" rx="12"/>
       <text class="s-lanelbl" x="490" y="34">SERVER — FastAPI :11679</text>
 
-      <rect class="s-lane" x="850" y="44" width="134" height="176" rx="12"/>
+      <rect class="s-lane" x="850" y="44" width="134" height="140" rx="12"/>
       <text class="s-lanelbl" x="854" y="34">HARDWARE</text>
 
       <!-- boundary crossings -->
-      <line class="s-boundary" x1="469" y1="40" x2="469" y2="224"/>
-      <line class="s-boundary" x1="833" y1="40" x2="833" y2="224"/>
-      <text class="s-mono s-mid" x="469" y="244">HTTP</text>
-      <text class="s-mono s-mid" x="833" y="244">HTTP → USB serial</text>
+      <line class="s-boundary" x1="469" y1="40" x2="469" y2="188"/>
+      <line class="s-boundary" x1="833" y1="40" x2="833" y2="188"/>
+      <text class="s-mono s-mid" x="469" y="208">HTTP</text>
+      <text class="s-mono s-mid" x="833" y="208">HTTP → USB serial</text>
 
       <line class="s-arrow" x1="40" y1="112" x2="968" y2="112" marker-end="url(#ah2)"/>
 
@@ -768,7 +770,7 @@
       <text class="s-label" x="372" y="224">1st ad frame</text>
 
       <path class="s-arrow-ad" d="M607,168 C628,196 654,238 684,258" marker-end="url(#sm-ad)"/>
-      <text class="s-label s-end" x="628" y="224">2nd ad frame ⇒ switch</text>
+      <text class="s-label s-end" x="628" y="224">2nd ⇒ commit + switch</text>
 
       <path class="s-arrow-dim" d="M500,117 C420,60 250,60 210,232" marker-end="url(#sm-grey)"/>
       <text class="s-label s-mid" x="358" y="52">content instead → cancel, save frames</text>
@@ -778,14 +780,15 @@
       <text class="s-label s-end" x="640" y="346">1st content frame</text>
 
       <path class="s-arrow-content" d="M393,402 C372,374 346,332 316,312" marker-end="url(#sm-content)"/>
-      <text class="s-label" x="372" y="346">2nd content frame ⇒ switch</text>
+      <text class="s-label" x="372" y="346">2nd ⇒ commit + switch</text>
 
       <path class="s-arrow-dim" d="M500,453 C580,510 740,510 790,338" marker-end="url(#sm-grey)"/>
       <text class="s-label s-mid" x="645" y="530">ad instead → cancel, save frames</text>
 
       <!-- opencv bypass -->
       <path class="s-arrow" d="M322,285 L678,285" marker-start="url(#sm-grey)" marker-end="url(#sm-grey)"/>
-      <text class="s-label s-mid" x="500" y="272">OpenCV verdict — commits immediately, skips the pending step</text>
+      <text class="s-label s-mid" x="500" y="258">OpenCV verdict — commits immediately,</text>
+      <text class="s-label s-mid" x="500" y="272">skipping the pending step</text>
 
       <!-- self loops -->
       <path class="s-arrow-dim" d="M110,262 C62,240 62,320 106,306" marker-end="url(#sm-grey)"/>
