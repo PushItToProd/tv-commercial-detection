@@ -141,6 +141,23 @@ uv run python scripts/migrate_frames_to_subdirs.py           # dry run
 uv run python scripts/migrate_frames_to_subdirs.py --apply
 ```
 
+Bursts of saved frames and repeated commercials leave the save dir roughly 40%
+redundant. `scripts/dedupe_frames.py` groups frames by perceptual hash and keeps
+one representative of each group, pruning the metadata files to match. It never
+removes a frame carrying a label or feature record, and leaves `audio/` alone
+unless `--include-audio` is passed, since identical images can carry different
+commentary.
+
+```bash
+uv run python scripts/dedupe_frames.py                     # dry run
+uv run python scripts/dedupe_frames.py --report-conflicts  # audit labels only
+uv run python scripts/dedupe_frames.py --apply --include-audio --drop-blank
+```
+
+Thresholds above 11 start merging frames with differing manual labels; see
+`notes/frame-deduplication.md` for the measurements behind the default of 10 and
+for why grouping is deliberately non-transitive.
+
 Additional `AppConfig` fields:
 - `phash_threshold` — max perceptual hash distance for override matches (default: `10`)
 - `enable_llm_audio` — enable audio-based LLM classification (default: `false`)
