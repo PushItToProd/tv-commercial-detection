@@ -189,7 +189,7 @@ query param, so any view is linkable and bookmarkable.
 | `logo_position` | any `VALID_LOGO_POSITIONS` value / `__unset__` | Stored feature |
 | `scoreboard_position` | any `VALID_SCOREBOARD_POSITIONS` value / `__unset__` | Stored feature |
 | `q` | substring | Case-insensitive filename match |
-| `start` / `end` | `YYYY-MM-DD` | Inclusive date bounds, compared against the filename's date prefix |
+| `start` / `end` | `YYYY-MM-DD`, `YYYY-MM-DDTHH:MM`, or `YYYY-MM-DDTHH:MM:SS` | Inclusive bounds on capture time (a space may replace the `T`) |
 | `incomplete` | bool | Only frames missing a label or any feature |
 | `step` | index or `last` | Opens the step view at that offset within the page |
 
@@ -203,14 +203,21 @@ The step view walks the current page and rolls onto the neighbouring page at
 either end. "Prev/next incomplete" only scans the current page — use
 `incomplete=1` to sweep the whole set.
 
-Ordering uses `frame_sort_key()` rather than a raw filename sort, because two
-naming conventions are in play: `2026-03-11_15-34-05.jpg` from `/save` and
-`2026-03-11T20-24-30-765665_0.jpg` from the frame saver. Sorting on the name
-puts every `_` file after every `T` file from the same date (`_` > `T` in
-ASCII), and orders batch suffixes as text so `_10` lands before `_9`. The key
-parses the timestamp and compares its components numerically; names that don't
-parse sort last. `start`/`end` still compare the filename's first 10
-characters, which both conventions share.
+Two naming conventions are in play: `2026-03-11_15-34-05.jpg` from `/save` and
+`2026-03-11T20-24-30-765665_0.jpg` from the frame saver. `frame_timestamp()`
+parses either into a comparable tuple, and both ordering and the `start`/`end`
+bounds go through it:
+
+- `frame_sort_key()` wraps it for sorting. A raw filename sort puts every `_`
+  file after every `T` file from the same date (`_` > `T` in ASCII) and orders
+  batch suffixes as text, so `_10` lands before `_9`. Names that don't parse
+  sort last.
+- `parse_time_bound()` turns a `start`/`end` value into the same shape.
+  Components the bound leaves out widen it: `end=2026-01-01` runs through
+  23:59:59 that day and `end=2026-01-01T14:30` through the end of that minute,
+  so a bare date still means the whole day. Frames whose names carry no
+  timestamp are excluded whenever a bound is set, since they can't be placed in
+  time. A malformed bound is a 400.
 
 ### Running with Docker
 

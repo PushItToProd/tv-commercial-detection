@@ -68,6 +68,7 @@ Checkboxes key:
 - [x] `/review` can't handle the amount of image on the page (probably overwhelming the dev server) -- paginate
 - [x] update `/review` to let me categorize images based on additional features
 - [x] record the broadcast name, network, page URL, and seek time with each image
+- [x] make `/review` paginated and filterable
 
 #### Accuracy
 

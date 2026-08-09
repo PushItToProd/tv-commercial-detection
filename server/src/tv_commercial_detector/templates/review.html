@@ -32,12 +32,12 @@
         <input type="search" class="form-control form-control-sm" id="f-q" name="q">
       </div>
       <div class="filter-cell">
-        <label class="filter-label" for="f-start">From date</label>
-        <input type="date" class="form-control form-control-sm" id="f-start" name="start">
+        <label class="filter-label" for="f-start">From</label>
+        <input type="datetime-local" class="form-control form-control-sm" id="f-start" name="start" step="1">
       </div>
       <div class="filter-cell">
-        <label class="filter-label" for="f-end">To date</label>
-        <input type="date" class="form-control form-control-sm" id="f-end" name="end">
+        <label class="filter-label" for="f-end">To</label>
+        <input type="datetime-local" class="form-control form-control-sm" id="f-end" name="end" step="1">
       </div>
       <div class="filter-cell">
         <label class="filter-label" for="f-label">Label</label>
@@ -145,7 +145,7 @@ function buildUrl(overrides) {
     if (value === null || value === '' || value === undefined) params.delete(key);
     else params.set(key, value);
   }
-  const qs = params.toString();
+  const qs = queryString(params);
   return location.pathname + (qs ? '?' + qs : '');
 }
 
@@ -221,6 +221,26 @@ async function navigateTo(url) {
 
 // ── Filter form ──────────────────────────────────────────────────────────────
 
+// <input type="datetime-local"> only accepts a full YYYY-MM-DDTHH:MM:SS, but a
+// bound in the URL may be just a date (older links, hand-written ones). Widen
+// it the same way the server does — start to 00:00:00, end to 23:59:59 — so
+// the box shows the range that was actually applied and re-submitting is a
+// no-op rather than a silent narrowing.
+function toDateTimeLocal(value, upper) {
+  if (!value) return '';
+  const m = /^(\d{4}-\d{2}-\d{2})(?:[T ](\d{2}):(\d{2})(?::(\d{2}))?)?$/.exec(value.trim());
+  if (!m) return '';
+  const [, date, hh, mm, ss] = m;
+  const fill = upper ? ['23', '59', '59'] : ['00', '00', '00'];
+  return `${date}T${hh ?? fill[0]}:${mm ?? fill[1]}:${ss ?? fill[2]}`;
+}
+
+// URLSearchParams percent-encodes ":", which is legal unencoded in a query
+// value and makes timestamps unreadable in the address bar.
+function queryString(params) {
+  return params.toString().replace(/%3A/g, ':');
+}
+
 function buildSelect(sel, options, current) {
   const blank = document.createElement('option');
   blank.value = '';
@@ -259,8 +279,8 @@ function buildFilterForm() {
   });
 
   document.getElementById('f-q').value = FILTERS.q || '';
-  document.getElementById('f-start').value = FILTERS.start || '';
-  document.getElementById('f-end').value = FILTERS.end || '';
+  document.getElementById('f-start').value = toDateTimeLocal(FILTERS.start, false);
+  document.getElementById('f-end').value = toDateTimeLocal(FILTERS.end, true);
   document.getElementById('f-sort').value = FILTERS.sort || 'asc';
   document.getElementById('f-per-page').value = PAGINATION.per_page;
   document.getElementById('f-incomplete').checked = !!FILTERS.incomplete;
@@ -276,7 +296,7 @@ document.getElementById('filter-form').addEventListener('submit', e => {
   });
   if (params.get('sort') === 'asc') params.delete('sort');
   if (params.get('per_page') === String(DEFAULT_PER_PAGE)) params.delete('per_page');
-  const qs = params.toString();
+  const qs = queryString(params);
   location.href = '/review' + (qs ? '?' + qs : '');
 });
 

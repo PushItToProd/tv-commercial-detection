@@ -149,6 +149,110 @@ def test_review_filters_by_date_range(client, frames_dir):
     assert names == ["2026-01-02T00-00-00.jpg"]
 
 
+def test_review_bare_date_bounds_cover_the_whole_day(client, frames_dir):
+    """A date with no time keeps meaning 00:00:00–23:59:59, as it always did."""
+    for hour in ("00", "12", "23"):
+        _save_jpeg(f"2026-01-02T{hour}-30-00-000001_0.jpg")
+    _save_jpeg("2026-01-03T00-00-00-000001_0.jpg")
+    names = _rendered_filenames(client.get("/review?start=2026-01-02&end=2026-01-02"))
+    assert names == [
+        "2026-01-02T00-30-00-000001_0.jpg",
+        "2026-01-02T12-30-00-000001_0.jpg",
+        "2026-01-02T23-30-00-000001_0.jpg",
+    ]
+
+
+def test_review_filters_by_time_of_day(client, frames_dir):
+    for hour in ("08", "09", "10", "11"):
+        _save_jpeg(f"2026-01-02T{hour}-00-00-000001_0.jpg")
+    names = _rendered_filenames(
+        client.get("/review?start=2026-01-02T09:00&end=2026-01-02T10:00")
+    )
+    assert names == [
+        "2026-01-02T09-00-00-000001_0.jpg",
+        "2026-01-02T10-00-00-000001_0.jpg",
+    ]
+
+
+def test_review_time_bounds_span_midnight(client, frames_dir):
+    for stamp in (
+        "2026-01-02T23-00-00",
+        "2026-01-02T23-59-59",
+        "2026-01-03T00-00-01",
+        "2026-01-03T02-00-00",
+    ):
+        _save_jpeg(f"{stamp}-000001_0.jpg")
+    names = _rendered_filenames(
+        client.get("/review?start=2026-01-02T23:30&end=2026-01-03T01:00")
+    )
+    assert names == [
+        "2026-01-02T23-59-59-000001_0.jpg",
+        "2026-01-03T00-00-01-000001_0.jpg",
+    ]
+
+
+def test_review_end_bound_without_seconds_covers_the_whole_minute(client, frames_dir):
+    for second in ("00", "30", "59"):
+        _save_jpeg(f"2026-01-02T09-15-{second}-000001_0.jpg")
+    _save_jpeg("2026-01-02T09-16-00-000001_0.jpg")
+    names = _rendered_filenames(
+        client.get("/review?start=2026-01-02T09:15&end=2026-01-02T09:15")
+    )
+    assert names == [
+        "2026-01-02T09-15-00-000001_0.jpg",
+        "2026-01-02T09-15-30-000001_0.jpg",
+        "2026-01-02T09-15-59-000001_0.jpg",
+    ]
+
+
+def test_review_accepts_seconds_in_time_bounds(client, frames_dir):
+    for second in ("00", "30", "59"):
+        _save_jpeg(f"2026-01-02T09-15-{second}-000001_0.jpg")
+    names = _rendered_filenames(
+        client.get("/review?start=2026-01-02T09:15:30&end=2026-01-02T09:15:30")
+    )
+    assert names == ["2026-01-02T09-15-30-000001_0.jpg"]
+
+
+def test_review_time_bounds_apply_across_filename_formats(client, frames_dir):
+    """Both naming conventions are placed in time by the same parser."""
+    _save_jpeg("2026-01-02_09-30-00.jpg")
+    _save_jpeg("2026-01-02T09-45-00-000001_0.jpg")
+    _save_jpeg("2026-01-02_11-00-00.jpg")
+    names = _rendered_filenames(
+        client.get("/review?start=2026-01-02T09:00&end=2026-01-02T10:00")
+    )
+    assert names == [
+        "2026-01-02_09-30-00.jpg",
+        "2026-01-02T09-45-00-000001_0.jpg",
+    ]
+
+
+def test_review_time_bounds_exclude_untimestamped_names(client, frames_dir):
+    _save_jpeg("2026-01-02T09-30-00-000001_0.jpg")
+    _save_jpeg("no_timestamp_here.jpg")
+    names = _rendered_filenames(client.get("/review?start=2026-01-01"))
+    assert names == ["2026-01-02T09-30-00-000001_0.jpg"]
+
+
+def test_review_rejects_malformed_time_bounds(client):
+    for bad in ("nonsense", "2026-13", "01-02-2026", "2026-01-02T09", "2026-01-02 9:5"):
+        resp = client.get("/review", params={"start": bad})
+        assert resp.status_code == 400, f"{bad!r} should be rejected"
+        resp = client.get("/review", params={"end": bad})
+        assert resp.status_code == 400, f"{bad!r} should be rejected"
+
+
+def test_review_accepts_space_separated_time_bound(client, frames_dir):
+    """A space instead of "T" saves percent-encoding in a hand-written URL."""
+    _save_jpeg("2026-01-02T09-30-00-000001_0.jpg")
+    _save_jpeg("2026-01-02T11-30-00-000001_0.jpg")
+    names = _rendered_filenames(
+        client.get("/review", params={"start": "2026-01-02 10:00"})
+    )
+    assert names == ["2026-01-02T11-30-00-000001_0.jpg"]
+
+
 def test_review_incomplete_filter_excludes_fully_labeled(client, frames_dir):
     _seed_frames(2)
     done = "2026-01-01T00-00-00.jpg"

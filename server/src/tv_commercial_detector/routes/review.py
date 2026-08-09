@@ -238,20 +238,19 @@ FRAME_TIMESTAMP_RE = re.compile(
 )
 
 
-def frame_sort_key(name: str) -> tuple:
-    """Chronological sort key for a frame filename.
+def frame_timestamp(name: str) -> tuple[int, ...] | None:
+    """When a frame was captured, as
+    (year, month, day, hour, minute, second, microsecond, batch_index).
 
-    Sorting on the raw name interleaves the two conventions wrongly: "_" (0x5F)
-    sorts after "T" (0x54), so every `_`-style name lands after all `T`-style
-    names from the same date. Comparing the parsed timestamp fixes that.
-    Unparseable names sort last, among themselves by name.
+    Returns None for names that carry no parseable timestamp. Components the
+    filename omits — seconds on the oldest `/save` files, microseconds and the
+    batch index on everything from `/save` — read as 0.
     """
     m = FRAME_TIMESTAMP_RE.match(name)
     if m is None:
-        return (1, 0, 0, 0, 0, 0, 0, 0, 0, name)
+        return None
     year, month, day, hour, minute, second, micros, index = m.groups()
     return (
-        0,
         int(year),
         int(month),
         int(day),
@@ -260,8 +259,21 @@ def frame_sort_key(name: str) -> tuple:
         int(second or 0),
         int(micros or 0),
         int(index or 0),
-        name,
     )
+
+
+def frame_sort_key(name: str) -> tuple:
+    """Chronological sort key for a frame filename.
+
+    Sorting on the raw name interleaves the two conventions wrongly: "_" (0x5F)
+    sorts after "T" (0x54), so every `_`-style name lands after all `T`-style
+    names from the same date. Comparing the parsed timestamp fixes that.
+    Unparseable names sort last, among themselves by name.
+    """
+    timestamp = frame_timestamp(name)
+    if timestamp is None:
+        return (1, (), name)
+    return (0, timestamp, name)
 
 
 def list_frame_names() -> list[str]:
@@ -285,6 +297,45 @@ def list_frame_names() -> list[str]:
 def _validate_choice(name: str, value: str, allowed: frozenset[str]) -> None:
     if value and value != UNSET and value not in allowed:
         raise HTTPException(status_code=400, detail=f"Invalid {name} filter: {value!r}")
+
+
+# Accepts a date, a date and time, or a date and time with seconds. The "T" is
+# what <input type="datetime-local"> submits; a space is allowed so a
+# hand-written URL doesn't need percent-encoding.
+TIME_BOUND_RE = re.compile(
+    r"^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2})(?::(\d{2}))?)?$"
+)
+
+
+def parse_time_bound(name: str, value: str, *, upper: bool) -> tuple[int, ...] | None:
+    """Turn a `start`/`end` filter into a comparable (Y, M, D, h, m, s) tuple.
+
+    Unspecified components widen the bound to cover everything the user did not
+    narrow: `end=2026-01-01` runs through 23:59:59 that day, and
+    `end=2026-01-01T14:30` through the end of that minute. So a bare date still
+    means the whole day, as it did before times were accepted.
+    """
+    if not value:
+        return None
+    m = TIME_BOUND_RE.match(value.strip())
+    if m is None:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Invalid {name} filter: {value!r} "
+                "(expected YYYY-MM-DD, YYYY-MM-DDTHH:MM, or YYYY-MM-DDTHH:MM:SS)"
+            ),
+        )
+    year, month, day, hour, minute, second = m.groups()
+    fill = (23, 59, 59) if upper else (0, 0, 0)
+    return (
+        int(year),
+        int(month),
+        int(day),
+        int(hour) if hour is not None else fill[0],
+        int(minute) if minute is not None else fill[1],
+        int(second) if second is not None else fill[2],
+    )
 
 
 def _matches(value: str | None, wanted: str) -> bool:
@@ -328,6 +379,8 @@ def review(
     _validate_choice("label", label, VALID_LABELS)
     for field_name, value in feature_filters.items():
         _validate_choice(field_name, value, FILTERABLE_FEATURES[field_name])
+    start_bound = parse_time_bound("start", start, upper=False)
+    end_bound = parse_time_bound("end", end, upper=True)
 
     labels = load_labels()
     features = load_features()
@@ -336,17 +389,22 @@ def review(
     if sort == "desc":
         names.reverse()
 
-    # Filenames are timestamp-prefixed (YYYY-MM-DD...), so date bounds are a
-    # plain lexicographic comparison on the leading 10 characters.
     q_lower = q.lower()
+    filtering_by_time = start_bound is not None or end_bound is not None
     matched = []
     for name in names:
         if q_lower and q_lower not in name.lower():
             continue
-        if start and name[:10] < start:
-            continue
-        if end and name[:10] > end:
-            continue
+        if filtering_by_time:
+            # Compare down to the second; the microsecond and batch index that
+            # frame_timestamp also returns are finer than any bound can express.
+            captured_at = frame_timestamp(name)
+            if captured_at is None:
+                continue  # no timestamp to place it in the range
+            if start_bound is not None and captured_at[:6] < start_bound:
+                continue
+            if end_bound is not None and captured_at[:6] > end_bound:
+                continue
         item_label = labels.get(name)
         if not _matches(item_label, label):
             continue
