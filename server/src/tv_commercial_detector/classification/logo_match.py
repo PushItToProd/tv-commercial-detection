@@ -70,14 +70,23 @@ def match_template(img: MatLike, template: MatLike, method=TEMPLATE_MATCH_METHOD
     return MatchResult(res, top_left, bottom_right, max_val, min_val, elapsed_time)
 
 
-def mask_non_white(img: MatLike, min_thresh=200):
+def mask_non_white(img: MatLike, min_thresh=200) -> MatLike:
+    """
+    Return a copy of `img` with every pixel below the white threshold zeroed.
+
+    The argument is left untouched. Callers hand in frames that later passes
+    (rectangle detection, the LLM) still need in their original form, and the
+    crops they pass are usually numpy views onto a larger frame, so masking in
+    place would reach back into it.
+    """
     non_white_mask = (
         (img[:, :, 0] < min_thresh)
         | (img[:, :, 1] < min_thresh)
         | (img[:, :, 2] < min_thresh)
     )
-    img[non_white_mask] = [0, 0, 0]
-    return img
+    masked = img.copy()
+    masked[non_white_mask] = [0, 0, 0]
+    return masked
 
 
 class ImageLoadError(Exception):

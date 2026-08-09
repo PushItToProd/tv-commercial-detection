@@ -114,3 +114,31 @@ def test_side_by_side_logo_detected(logo_path):
     masked = load_masked(str(logo_path))
     frame = frame_with_logo_at(masked, SIDE_BY_SIDE_LOGO_ABS_X, SIDE_BY_SIDE_LOGO_ABS_Y)
     assert has_side_by_side_logo(frame, {"logo": masked}) is True
+
+
+# ---------------------------------------------------------------------------
+# The logo checks run before rectangle detection in classify_image, which needs
+# the untouched frame — white-masking it would wipe out the edges Canny looks
+# for. A mid-grey frame is entirely below the white threshold, so any masking
+# that leaked back into the caller's frame would show up as zeroes.
+# ---------------------------------------------------------------------------
+
+
+def grey_bgr(width: int = 1920, height: int = 1080) -> np.ndarray:
+    return np.full((height, width, 3), 100, dtype=np.uint8)
+
+
+def test_has_network_logo_leaves_frame_unmasked():
+    small_logos = {
+        "fox": load_masked(str(LOGOS_DIR / "fox_logo_crop.png")),
+        "fs1": load_masked(str(LOGOS_DIR / "fs1_logo_crop.png")),
+    }
+    frame = grey_bgr()
+    has_network_logo(frame, small_logos)
+    assert np.all(frame == 100)
+
+
+def test_has_side_by_side_logo_leaves_frame_unmasked():
+    frame = grey_bgr()
+    has_side_by_side_logo(frame)
+    assert np.all(frame == 100)

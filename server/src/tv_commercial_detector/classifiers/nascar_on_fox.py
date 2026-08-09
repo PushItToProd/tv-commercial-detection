@@ -56,7 +56,7 @@ def _has_network_logo(img: cv2.typing.MatLike, masked_logo: cv2.typing.MatLike, 
 
     img_crop = _extract_fox_logo_region(img)
     if mask_color:
-        img_crop = logo_match.mask_non_white(img_crop.copy())
+        img_crop = logo_match.mask_non_white(img_crop)
 
     result = logo_match.match_template(img_crop, masked_logo)
 
@@ -85,10 +85,10 @@ def _has_side_by_side_logo(img: cv2.typing.MatLike, masked_logo: cv2.typing.MatL
     # scale to fixed size to ensure coordinates for logo match are consistent
     # img = cv2.resize(img, (1920, 1080))
 
-    masked_img = logo_match.mask_non_white(img)
-
-    h, w = masked_img.shape[:2]
-    masked_img_crop = masked_img[0 : h // 5, 0 : w // 5]
+    # Crop before masking: masking is per-pixel, so the result is the same, but
+    # this only copies the corner instead of the whole frame.
+    h, w = img.shape[:2]
+    masked_img_crop = logo_match.mask_non_white(img[0 : h // 5, 0 : w // 5])
 
     result = logo_match.match_template(masked_img_crop, masked_logo)
 
