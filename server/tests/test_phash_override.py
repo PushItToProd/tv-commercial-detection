@@ -3,15 +3,13 @@
 import io
 import json
 
-import pytest
 from fastapi.testclient import TestClient
 from PIL import Image
 
 import tv_commercial_detector.phash_override as phash_override_module
-from tv_commercial_detector.config import app_config
 from tv_commercial_detector import phash_override
+from tv_commercial_detector.config import app_config
 from tv_commercial_detector.state import FrameEntry, recent_frames
-
 
 # ---------------------------------------------------------------------------
 # Helpers

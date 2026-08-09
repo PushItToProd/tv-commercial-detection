@@ -5,13 +5,11 @@ message sometimes. The "brb" message is a full screen image with background
 music, so we want to switch away when it's showing, but otherwise we assume
 everything else is content.
 """
-import base64
 
 import cv2
 
-from ..classification import llm_match, logo_match, rectangle_match
+from ..classification import logo_match
 from ..classification.result import ClassificationResult
-
 
 # full screen ad breaks
 WELL_BE_BACK_LOGO = logo_match.LOGOS_DIR / "tnt-sports-full-screen-brb.png"
