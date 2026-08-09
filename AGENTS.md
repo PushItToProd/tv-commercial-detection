@@ -134,7 +134,7 @@ Additional `AppConfig` fields:
 | `GET` | `/recent_frames` | List in-memory recent frames with timestamps and classifications |
 | `GET` | `/recent_frames/{timestamp}/image` | Retrieve a recent in-memory frame by timestamp |
 | `POST` | `/flag_frames` | Label recent frames and store phash overrides |
-| `GET` | `/review` | Manual review UI for saved frames |
+| `GET` | `/review` | Manual review UI for saved frames (paginated + filterable; see below) |
 | `POST` | `/save` | Save a frame to disk |
 | `GET` | `/frames/{filename}` | Retrieve a saved (thumbnail) frame |
 | `GET` | `/frames/full/{filename}` | Retrieve a full-size saved frame |
@@ -150,6 +150,36 @@ Additional `AppConfig` fields:
 | `GET/POST` | `/settings/classifier_profile` | Get or set the active classifier profile |
 | `POST` | `/settings/pause_auto_switch` | Temporarily pause auto-switch |
 | `POST` | `/settings/resume_auto_switch` | Clear temporary auto-switch pause and re-apply |
+
+#### `/review` query params
+
+The save dir holds tens of thousands of frames, so `/review` filters and pages
+server-side and only embeds the current page in the HTML. Every option is a
+query param, so any view is linkable and bookmarkable.
+
+| Param | Values | Description |
+|---|---|---|
+| `page` | ≥ 1 (default `1`) | 1-based page number; clamped to the last page |
+| `per_page` | 1–500 (default `100`) | Frames per page |
+| `sort` | `asc` (default) / `desc` | Filename order — i.e. oldest or newest first |
+| `label` | `ad` / `content` / `ignore` / `__unset__` | Stored label |
+| `network_logo` | any `VALID_NETWORK_LOGOS` value / `__unset__` | Stored feature |
+| `logo_position` | any `VALID_LOGO_POSITIONS` value / `__unset__` | Stored feature |
+| `scoreboard_position` | any `VALID_SCOREBOARD_POSITIONS` value / `__unset__` | Stored feature |
+| `q` | substring | Case-insensitive filename match |
+| `start` / `end` | `YYYY-MM-DD` | Inclusive date bounds, compared against the filename's date prefix |
+| `incomplete` | bool | Only frames missing a label or any feature |
+| `step` | index or `last` | Opens the step view at that offset within the page |
+
+`__unset__` is the "no value recorded" sentinel; it can't be spelled `none`
+because both `network_logo` and `scoreboard_position` accept a literal `none`.
+An unrecognized filter value returns 400, and an out-of-range `page`/`per_page`
+returns 422, so a bad bookmark fails loudly rather than silently showing
+everything.
+
+The step view walks the current page and rolls onto the neighbouring page at
+either end. "Prev/next incomplete" only scans the current page — use
+`incomplete=1` to sweep the whole set.
 
 ### Running with Docker
 

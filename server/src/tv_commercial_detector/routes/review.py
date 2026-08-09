@@ -1,9 +1,10 @@
 import json
 import logging
+import os
 from datetime import datetime
 from pathlib import Path
 
-from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
+from fastapi import APIRouter, File, Form, HTTPException, Query, Request, UploadFile
 from fastapi.responses import FileResponse
 from fastapi.templating import Jinja2Templates
 from PIL import Image
@@ -38,11 +39,37 @@ VALID_NETWORK_LOGOS = frozenset(
     {"Fox", "FS1", "FS2", "NBC", "CW", "USA", "Prime", "TNT", "other", "none"}
 )
 VALID_LOGO_POSITIONS = frozenset(
-    {"upper_left", "upper_right", "lower_left", "lower_right", "center", "not_visible", "unknown"}
+    {
+        "upper_left",
+        "upper_right",
+        "lower_left",
+        "lower_right",
+        "center",
+        "not_visible",
+        "unknown",
+    }
 )
 VALID_SCOREBOARD_POSITIONS = frozenset(
     {"top", "bottom", "left", "upper_left", "right", "none", "unknown"}
 )
+
+VALID_LABELS = frozenset({"ad", "content", "ignore"})
+
+# Feature fields that /review can filter on, mapped to their allowed values.
+FILTERABLE_FEATURES = {
+    "network_logo": VALID_NETWORK_LOGOS,
+    "logo_position": VALID_LOGO_POSITIONS,
+    "scoreboard_position": VALID_SCOREBOARD_POSITIONS,
+}
+
+# Filter sentinel meaning "field has no value recorded". It can't collide with a
+# real value the way "none" would (both network_logo and scoreboard_position
+# accept a literal "none").
+UNSET = "__unset__"
+
+IMAGE_SUFFIXES = (".png", ".jpg", ".jpeg")
+DEFAULT_PER_PAGE = 100
+MAX_PER_PAGE = 500
 
 
 def load_features() -> dict:
@@ -206,20 +233,134 @@ def handle_features(data: FeaturesRequest):
     return {"saved": filename}
 
 
+def list_frame_names() -> list[str]:
+    """All reviewable frame filenames in the save dir, sorted by name.
+
+    Uses os.scandir rather than Path.glob: the save dir holds tens of thousands
+    of frames and scandir avoids building a Path object per entry.
+    """
+    try:
+        entries = os.scandir(app_config.save_dir)
+    except FileNotFoundError:
+        return []
+    with entries:
+        return sorted(
+            e.name
+            for e in entries
+            if e.name.endswith(IMAGE_SUFFIXES)
+            and not e.name.startswith("compressed_")
+            and e.is_file()
+        )
+
+
+def _validate_choice(name: str, value: str, allowed: frozenset[str]) -> None:
+    if value and value != UNSET and value not in allowed:
+        raise HTTPException(status_code=400, detail=f"Invalid {name} filter: {value!r}")
+
+
+def _matches(value: str | None, wanted: str) -> bool:
+    """Whether a stored field value satisfies a filter selection."""
+    if not wanted:
+        return True
+    if wanted == UNSET:
+        return not value
+    return value == wanted
+
+
+def _is_incomplete(label: str | None, feats: dict) -> bool:
+    return not label or not all(feats.get(f) for f in FILTERABLE_FEATURES)
+
+
 @router.get("/review")
-def review(request: Request):
-    save_dir = app_config.save_dir
+def review(
+    request: Request,
+    page: int = Query(1, ge=1),
+    per_page: int = Query(DEFAULT_PER_PAGE, ge=1, le=MAX_PER_PAGE),
+    sort: str = Query("asc", pattern="^(asc|desc)$"),
+    label: str = "",
+    network_logo: str = "",
+    logo_position: str = "",
+    scoreboard_position: str = "",
+    q: str = "",
+    start: str = "",
+    end: str = "",
+    incomplete: bool = False,
+):
+    """Paginated, filterable frame review UI.
+
+    Every filter and the page number live in query params so any view is
+    linkable and bookmarkable.
+    """
+    feature_filters = {
+        "network_logo": network_logo,
+        "logo_position": logo_position,
+        "scoreboard_position": scoreboard_position,
+    }
+    _validate_choice("label", label, VALID_LABELS)
+    for field_name, value in feature_filters.items():
+        _validate_choice(field_name, value, FILTERABLE_FEATURES[field_name])
+
     labels = load_labels()
     features = load_features()
-    images = sorted(
-        p.name
-        for p in [*save_dir.glob("*.png"), *save_dir.glob("*.jpg")]
-        if not p.name.startswith("compressed_")
-    )
+
+    names = list_frame_names()
+    if sort == "desc":
+        names.reverse()
+
+    # Filenames are timestamp-prefixed (YYYY-MM-DD...), so date bounds are a
+    # plain lexicographic comparison on the leading 10 characters.
+    q_lower = q.lower()
+    matched = []
+    for name in names:
+        if q_lower and q_lower not in name.lower():
+            continue
+        if start and name[:10] < start:
+            continue
+        if end and name[:10] > end:
+            continue
+        item_label = labels.get(name)
+        if not _matches(item_label, label):
+            continue
+        feats = features.get(name, {})
+        if not all(
+            _matches(feats.get(f), wanted) for f, wanted in feature_filters.items()
+        ):
+            continue
+        if incomplete and not _is_incomplete(item_label, feats):
+            continue
+        matched.append((name, item_label, feats))
+
+    total = len(matched)
+    total_pages = max(1, -(-total // per_page))
+    page = min(page, total_pages)
+    offset = (page - 1) * per_page
     image_data = [
-        {"filename": f, "label": labels.get(f), "features": features.get(f, {})}
-        for f in images
+        {"filename": name, "label": item_label, "features": feats}
+        for name, item_label, feats in matched[offset : offset + per_page]
     ]
+
     return templates.TemplateResponse(
-        request, "review.html", {"image_data": image_data}
+        request,
+        "review.html",
+        {
+            "image_data": image_data,
+            "filters": {
+                "label": label,
+                **feature_filters,
+                "q": q,
+                "start": start,
+                "end": end,
+                "incomplete": incomplete,
+                "sort": sort,
+            },
+            "pagination": {
+                "page": page,
+                "per_page": per_page,
+                "total": total,
+                "total_pages": total_pages,
+                "offset": offset,
+            },
+            "unset_value": UNSET,
+            "default_per_page": DEFAULT_PER_PAGE,
+        },
     )
