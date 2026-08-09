@@ -53,7 +53,14 @@ server/              FastAPI application
     integration/       Integration tests (require a live llama.cpp server)
   scripts/             Utility scripts (find_dupes.py, view_classification_results.py, etc.)
   config.json          Optional local config (gitignored; overrides defaults)
-  frames/              Saved frames and labels (runtime, gitignored)
+  frames/              Save dir (runtime, gitignored)
+    images/              Full-size frames
+    thumbnails/          Review-UI thumbnails, generated on demand
+    audio/               Audio clips, same stem as their frame
+    labels.json          Manual labels, keyed by frame filename
+    features.jsonl       Manual feature annotations
+    classifications.jsonl  Metadata written by the frame saver
+    phash_overrides.json   Perceptual-hash label overrides
 docker-compose.yml   Orchestrates llama, hdmi-matrix-control, and receiver containers
 example.env          Template — copy to .env and fill in values before running Docker
 ```
@@ -110,13 +117,28 @@ Config is layered (later overrides earlier):
 1. `server/config.json` (optional; path overridden by `CONFIG_FILE` env var)
 2. Environment variables:
    - `DETECTOR_MATRIX_URL` — HDMI matrix URL
-   - `DETECTOR_SAVE_DIR` — directory for saved frames
+   - `DETECTOR_SAVE_DIR` — save dir root (frames go in its `images/` subdir)
    - `DETECTOR_ENABLE_DEBOUNCE` — enable debounce logic
    - `DETECTOR_CLASSIFIER_PROFILE` — which classifier profile to use (default: `nascar_on_fox`)
    - `LLAMA_SERVER_URL` — URL for the llama.cpp server (default: `http://localhost:3002`)
 3. `PROMPT_FILE` — path to the classification prompt (default: `server/src/tv_commercial_detector/prompt/prompt.txt`)
 
 The `config.json` also supports an `output_settings` map that defines which HDMI matrix input/output to activate per classification (`ad` or `content`).
+
+Media is split into subdirectories of `save_dir` — `images/`, `thumbnails/`,
+`audio/` — so that listing frames doesn't have to walk the thumbnails and audio
+too. Use the `images_dir()` / `thumbnails_dir()` / `audio_dir()` helpers in
+`config.py` rather than joining the paths by hand; they resolve `save_dir` on
+each call, which matters because it's assigned during startup. Metadata files
+stay at the `save_dir` root, and the records inside them key on bare filenames.
+
+A save dir predating this layout (frames loose at the root, thumbnails under a
+`compressed_` prefix) needs a one-time migration:
+
+```bash
+uv run python scripts/migrate_frames_to_subdirs.py           # dry run
+uv run python scripts/migrate_frames_to_subdirs.py --apply
+```
 
 Additional `AppConfig` fields:
 - `phash_threshold` — max perceptual hash distance for override matches (default: `10`)
@@ -161,7 +183,7 @@ query param, so any view is linkable and bookmarkable.
 |---|---|---|
 | `page` | ≥ 1 (default `1`) | 1-based page number; clamped to the last page |
 | `per_page` | 1–500 (default `100`) | Frames per page |
-| `sort` | `asc` (default) / `desc` | Filename order — i.e. oldest or newest first |
+| `sort` | `asc` (default) / `desc` | Chronological order — oldest or newest first |
 | `label` | `ad` / `content` / `ignore` / `__unset__` | Stored label |
 | `network_logo` | any `VALID_NETWORK_LOGOS` value / `__unset__` | Stored feature |
 | `logo_position` | any `VALID_LOGO_POSITIONS` value / `__unset__` | Stored feature |
@@ -180,6 +202,15 @@ everything.
 The step view walks the current page and rolls onto the neighbouring page at
 either end. "Prev/next incomplete" only scans the current page — use
 `incomplete=1` to sweep the whole set.
+
+Ordering uses `frame_sort_key()` rather than a raw filename sort, because two
+naming conventions are in play: `2026-03-11_15-34-05.jpg` from `/save` and
+`2026-03-11T20-24-30-765665_0.jpg` from the frame saver. Sorting on the name
+puts every `_` file after every `T` file from the same date (`_` > `T` in
+ASCII), and orders batch suffixes as text so `_10` lands before `_9`. The key
+parses the timestamp and compares its components numerically; names that don't
+parse sort last. `start`/`end` still compare the filename's first 10
+characters, which both conventions share.
 
 ### Running with Docker
 

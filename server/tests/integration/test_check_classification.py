@@ -82,8 +82,11 @@ def llama_server():
 
 
 def _get_image_files(base_dir: Path) -> list[Path]:
-    files = list(base_dir.glob("*.png")) + list(base_dir.glob("*.jpg"))
-    return sorted(f for f in files if not f.name.startswith("compressed_"))
+    """Frames from base_dir/images/, falling back to base_dir for flat layouts."""
+    images = base_dir / "images"
+    search_dir = images if images.is_dir() else base_dir
+    files = list(search_dir.glob("*.png")) + list(search_dir.glob("*.jpg"))
+    return sorted(files)
 
 
 def _classify_all(

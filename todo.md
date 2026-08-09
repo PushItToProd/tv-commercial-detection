@@ -69,7 +69,7 @@ Checkboxes key:
 #### Review
 
 - [ ] I keep wanting to add new label types or update existing ones -- e.g. now I want to just tag every image that's a Fox side-by-side ad break -- maybe support custom tags of some kind
-- [ ] support better filtering of images based on classifications and things (like `view_classification_results.py`)
+- [x] support better filtering of images based on classifications and things (like `view_classification_results.py`)
 - [ ] I want like a timeline view that shows all the images captured in a given broadcast (or at least a given timeframe) in chronological order
 
 #### Accuracy

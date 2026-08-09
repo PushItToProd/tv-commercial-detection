@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import re
 from datetime import datetime
 from pathlib import Path
 
@@ -10,7 +11,7 @@ from fastapi.templating import Jinja2Templates
 from PIL import Image
 from pydantic import BaseModel
 
-from ..config import app_config
+from ..config import app_config, images_dir, thumbnails_dir
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -114,8 +115,9 @@ async def save(
     if ext not in (".jpg", ".jpeg", ".png"):
         ext = ".png"
     filename = dt.strftime("%Y-%m-%d_%H-%M-%S") + ext
-    save_dir = app_config.save_dir
-    save_path = save_dir / filename
+    target_dir = images_dir()
+    target_dir.mkdir(parents=True, exist_ok=True)
+    save_path = target_dir / filename
     save_path.write_bytes(await image.read())
 
     logger.info(f"Saved: {save_path}  |  page: {page_title}")
@@ -131,25 +133,21 @@ def serve_frame(filename: str):
     ):
         raise HTTPException(status_code=400, detail="Invalid filename")
 
-    save_dir = app_config.save_dir
-
-    if filename.startswith("compressed_"):
-        raise HTTPException(status_code=404, detail="File not found")
-
-    original_path = save_dir / filename
-    compressed_path = save_dir / f"compressed_{filename}"
-    if not compressed_path.exists():
+    original_path = images_dir() / filename
+    thumbnail_path = thumbnails_dir() / filename
+    if not thumbnail_path.exists():
         try:
+            thumbnails_dir().mkdir(parents=True, exist_ok=True)
             with Image.open(original_path) as img:
                 img.thumbnail((400, 400))
-                img.save(compressed_path)
+                img.save(thumbnail_path)
         except Exception:
             logger.exception(f"Error compressing image {original_path}")
             if not original_path.exists():
                 raise HTTPException(status_code=404, detail="File not found")
             return FileResponse(original_path)
 
-    return FileResponse(compressed_path)
+    return FileResponse(thumbnail_path)
 
 
 @router.get("/frames/full/{filename}")
@@ -159,9 +157,7 @@ def serve_frame_full(filename: str):
         (".jpg", ".jpeg", ".png")
     ):
         raise HTTPException(status_code=400, detail="Invalid filename")
-    if filename.startswith("compressed_"):
-        raise HTTPException(status_code=404, detail="File not found")
-    path = app_config.save_dir / filename
+    path = images_dir() / filename
     if not path.exists():
         raise HTTPException(status_code=404, detail="File not found")
     return FileResponse(path)
@@ -233,24 +229,57 @@ def handle_features(data: FeaturesRequest):
     return {"saved": filename}
 
 
-def list_frame_names() -> list[str]:
-    """All reviewable frame filenames in the save dir, sorted by name.
+# Matches both filename conventions in use:
+#   2026-03-11_15-34-05.jpg            — from /save (seconds optional on old files)
+#   2026-03-11T20-24-30-765665_0.jpg   — from the frame saver (isoformat with
+#                                        ":" and "." replaced, plus a batch index)
+FRAME_TIMESTAMP_RE = re.compile(
+    r"(\d{4})-(\d{2})-(\d{2})[T_](\d{2})-(\d{2})(?:-(\d{2}))?(?:-(\d+))?(?:_(\d+))?"
+)
 
-    Uses os.scandir rather than Path.glob: the save dir holds tens of thousands
-    of frames and scandir avoids building a Path object per entry.
+
+def frame_sort_key(name: str) -> tuple:
+    """Chronological sort key for a frame filename.
+
+    Sorting on the raw name interleaves the two conventions wrongly: "_" (0x5F)
+    sorts after "T" (0x54), so every `_`-style name lands after all `T`-style
+    names from the same date. Comparing the parsed timestamp fixes that.
+    Unparseable names sort last, among themselves by name.
+    """
+    m = FRAME_TIMESTAMP_RE.match(name)
+    if m is None:
+        return (1, 0, 0, 0, 0, 0, 0, 0, 0, name)
+    year, month, day, hour, minute, second, micros, index = m.groups()
+    return (
+        0,
+        int(year),
+        int(month),
+        int(day),
+        int(hour),
+        int(minute),
+        int(second or 0),
+        int(micros or 0),
+        int(index or 0),
+        name,
+    )
+
+
+def list_frame_names() -> list[str]:
+    """All reviewable frame filenames, in chronological order.
+
+    Uses os.scandir rather than Path.glob: the images dir holds tens of
+    thousands of frames and scandir avoids building a Path object per entry.
     """
     try:
-        entries = os.scandir(app_config.save_dir)
+        entries = os.scandir(images_dir())
     except FileNotFoundError:
         return []
     with entries:
-        return sorted(
-            e.name
-            for e in entries
-            if e.name.endswith(IMAGE_SUFFIXES)
-            and not e.name.startswith("compressed_")
-            and e.is_file()
-        )
+        names = [
+            e.name for e in entries if e.name.endswith(IMAGE_SUFFIXES) and e.is_file()
+        ]
+    names.sort(key=frame_sort_key)
+    return names
 
 
 def _validate_choice(name: str, value: str, allowed: frozenset[str]) -> None:

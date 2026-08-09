@@ -6,7 +6,7 @@ import json
 import pytest
 from PIL import Image
 
-from tv_commercial_detector.config import app_config
+from tv_commercial_detector.config import app_config, images_dir, thumbnails_dir
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -21,8 +21,9 @@ def _jpeg_bytes(color=(128, 128, 128), size=(64, 64)) -> bytes:
 
 
 def _save_jpeg(filename: str) -> None:
-    """Write a small test JPEG into app_config.save_dir."""
-    path = app_config.save_dir / filename
+    """Write a small test JPEG into the images dir."""
+    path = images_dir() / filename
+    path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(_jpeg_bytes())
 
 
@@ -166,10 +167,68 @@ def test_review_incomplete_filter_excludes_fully_labeled(client, frames_dir):
     assert "2026-01-01T00-00-01.jpg" in names
 
 
-def test_review_excludes_compressed_thumbnails(client, frames_dir):
+def test_review_excludes_thumbnails(client, frames_dir):
+    """Thumbnails live in their own dir, so listing frames never sees them."""
     _save_jpeg("2026-01-01T00-00-00.jpg")
-    _save_jpeg("compressed_2026-01-01T00-00-00.jpg")
+    client.get("/frames/2026-01-01T00-00-00.jpg")  # generates the thumbnail
+    assert (thumbnails_dir() / "2026-01-01T00-00-00.jpg").exists()
     assert _rendered_filenames(client.get("/review")) == ["2026-01-01T00-00-00.jpg"]
+
+
+def test_review_sorts_chronologically_across_filename_formats(client, frames_dir):
+    """`_`-style names must interleave with `T`-style ones by timestamp.
+
+    Sorting on the raw name would put every `_` name after every `T` name from
+    the same date, since "_" > "T" in ASCII.
+    """
+    for name in (
+        "2026-01-01T10-00-00-000001_0.jpg",
+        "2026-01-01_09-30-00.jpg",
+        "2026-01-01T08-00-00-000001_0.jpg",
+        "2026-01-01_11-15.jpg",  # older format: no seconds
+    ):
+        _save_jpeg(name)
+    assert _rendered_filenames(client.get("/review")) == [
+        "2026-01-01T08-00-00-000001_0.jpg",
+        "2026-01-01_09-30-00.jpg",
+        "2026-01-01T10-00-00-000001_0.jpg",
+        "2026-01-01_11-15.jpg",
+    ]
+
+
+def test_review_sorts_batch_index_numerically(client, frames_dir):
+    """Batch suffixes are numbers, so _10 must follow _9, not precede it."""
+    for i in (0, 2, 9, 10, 11):
+        _save_jpeg(f"2026-01-01T08-00-00-000001_{i}.jpg")
+    assert _rendered_filenames(client.get("/review")) == [
+        f"2026-01-01T08-00-00-000001_{i}.jpg" for i in (0, 2, 9, 10, 11)
+    ]
+
+
+def test_review_unparseable_names_sort_last(client, frames_dir):
+    _save_jpeg("aaa_not_a_timestamp.jpg")
+    _save_jpeg("2026-01-01T08-00-00-000001_0.jpg")
+    assert _rendered_filenames(client.get("/review")) == [
+        "2026-01-01T08-00-00-000001_0.jpg",
+        "aaa_not_a_timestamp.jpg",
+    ]
+
+
+def test_review_ignores_files_outside_images_dir(client, frames_dir):
+    """Metadata and audio at the save_dir root must not appear as frames."""
+    _save_jpeg("2026-01-01T08-00-00-000001_0.jpg")
+    (frames_dir / "stray.jpg").write_bytes(_jpeg_bytes())
+    assert _rendered_filenames(client.get("/review")) == [
+        "2026-01-01T08-00-00-000001_0.jpg"
+    ]
+
+
+def test_serve_frame_writes_thumbnail_to_thumbnails_dir(client, frames_dir):
+    _save_jpeg("thumb_me.jpg")
+    resp = client.get("/frames/thumb_me.jpg")
+    assert resp.status_code == 200
+    assert (thumbnails_dir() / "thumb_me.jpg").exists()
+    assert not (images_dir() / "compressed_thumb_me.jpg").exists()
 
 
 # ---------------------------------------------------------------------------
@@ -249,7 +308,7 @@ def test_save_stores_image(client):
     resp = client.post("/save", data=data, files=files)
     assert resp.status_code == 200
     saved = resp.json()["saved"]
-    assert (app_config.save_dir / saved).exists()
+    assert (images_dir() / saved).exists()
 
 
 # ---------------------------------------------------------------------------

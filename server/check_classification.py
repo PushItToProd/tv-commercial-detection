@@ -6,16 +6,15 @@ from pathlib import Path
 
 from tv_commercial_detector.classify import classify_image
 
-IMAGES_DIR = Path(__file__).parent / "frames"
-LABELS_PATH = IMAGES_DIR / "labels.json"
+FRAMES_DIR = Path(__file__).parent / "frames"
+IMAGES_DIR = FRAMES_DIR / "images"
+LABELS_PATH = FRAMES_DIR / "labels.json"
 
 
 def get_images(base_dir: str | Path = IMAGES_DIR) -> list[Path]:
     base_dir = Path(base_dir)
     image_files = list(base_dir.glob("*.png")) + list(base_dir.glob("*.jpg"))
-    image_files = sorted(image_files, key=lambda p: p.name)
-    image_files = [f for f in image_files if not f.name.startswith("compressed_")]
-    return image_files
+    return sorted(image_files, key=lambda p: p.name)
 
 
 # get all images in frames/ and classify them, then print out any that were

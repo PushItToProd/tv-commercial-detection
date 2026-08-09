@@ -18,3 +18,29 @@ class AppConfig:
 
 
 app_config = AppConfig()
+
+
+# Media lives in per-type subdirectories of save_dir so that listing frames
+# doesn't have to walk tens of thousands of thumbnails and audio clips.
+# Metadata (labels.json, features.jsonl, classifications.jsonl) stays at the
+# save_dir root.
+IMAGES_SUBDIR = "images"
+THUMBNAILS_SUBDIR = "thumbnails"
+AUDIO_SUBDIR = "audio"
+
+
+# Resolved on each call rather than cached, since save_dir is set during app
+# startup and reassigned by tests.
+def images_dir() -> Path:
+    """Full-size frames."""
+    return app_config.save_dir / IMAGES_SUBDIR
+
+
+def thumbnails_dir() -> Path:
+    """Thumbnails generated on demand by the review UI."""
+    return app_config.save_dir / THUMBNAILS_SUBDIR
+
+
+def audio_dir() -> Path:
+    """Audio clips captured alongside a frame; same stem as the image."""
+    return app_config.save_dir / AUDIO_SUBDIR

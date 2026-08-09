@@ -6,7 +6,7 @@ from pathlib import Path
 import imagehash
 from PIL import Image
 
-IMAGE_DIR = Path(__file__).parent.parent / "frames"
+IMAGE_DIR = Path(__file__).parent.parent / "frames" / "images"
 HASH_THRESHOLD = 10                   # hamming distance; lower = stricter
 
 
@@ -67,7 +67,7 @@ def find_phash_duplicates(unique_paths: list[Path], threshold):
 def find_duplicates(directory, threshold=HASH_THRESHOLD):
     image_paths = [
         p for p in Path(directory).iterdir()
-        if p.suffix.lower() in {".jpg", ".jpeg", ".png"} and not p.name.startswith('compressed_')
+        if p.suffix.lower() in {".jpg", ".jpeg", ".png"}
     ]
     print(json.dumps({
         "type": "info",

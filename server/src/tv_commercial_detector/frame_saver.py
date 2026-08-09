@@ -3,7 +3,7 @@ import json
 import logging
 from datetime import datetime
 
-from .config import app_config
+from .config import app_config, audio_dir, images_dir
 from .state import FrameEntry, recent_frames, state
 
 logger = logging.getLogger(__name__)
@@ -21,6 +21,8 @@ def save_frames_batch(
     """
     save_dir = app_config.save_dir
     save_dir.mkdir(parents=True, exist_ok=True)
+    frames_out = images_dir()
+    frames_out.mkdir(parents=True, exist_ok=True)
     classifications_file = save_dir / CLASSIFICATIONS_FILE
 
     saved: list[str] = []
@@ -28,7 +30,7 @@ def save_frames_batch(
         for i, entry in enumerate(frames):
             safe_ts = entry.timestamp.replace(":", "-").replace(".", "-")
             filename = f"{safe_ts}_{i}{entry.ext}"
-            dest = save_dir / filename
+            dest = frames_out / filename
             try:
                 dest.write_bytes(entry.frame_bytes)
             except Exception:
@@ -36,7 +38,9 @@ def save_frames_batch(
                 continue
             if entry.audio_bytes is not None:
                 try:
-                    (save_dir / (dest.stem + ".wav")).write_bytes(entry.audio_bytes)
+                    audio_out = audio_dir()
+                    audio_out.mkdir(parents=True, exist_ok=True)
+                    (audio_out / (dest.stem + ".wav")).write_bytes(entry.audio_bytes)
                 except Exception:
                     logger.exception(f"Error saving audio for {filename}")
             saved.append(filename)
