@@ -43,6 +43,7 @@ server/              FastAPI application
       nascar_on_fox.py Multi-pass classifier: logo → rectangle → LLM quick check → LLM prompt
       nhra_on_fox.py   Variant for NHRA drag racing broadcasts on Fox/FS1
       nascar_on_hbo_max.py  WIP profile for TNT Sports coverage on HBO Max; OpenCV logo checks only, no LLM pass yet
+      nascar_on_nbc.py  Cup coverage on NBC; colour-matched peacock bug, then LLM fallback
     routes/            FastAPI routers
     prompt/            LLM prompt text and logo images used for OpenCV matching
     static/            Static assets (Bootstrap CSS/JS for UI templates)
@@ -299,7 +300,14 @@ The `nhra_on_fox` profile follows the same structure but uses NHRA-specific logo
 
 The `nascar_on_hbo_max` profile is a work in progress for TNT Sports coverage on HBO Max. It only runs two OpenCV logo checks — a full-screen "we'll be back" card (`ad`) and a side-by-side "commercial break in progress" overlay (`content`, since racing is still shown side-by-side) — and falls back to `content` by default. It has no rectangle-detection or LLM pass yet.
 
-Images are resized to at most 800 px on the longest side and JPEG-encoded (quality 50) before being sent to the LLM. The prompt lives in `server/prompt/prompt.txt`.
+The `nascar_on_nbc` profile covers Cup coverage on NBC. It checks the "NASCAR NON STOP" side-by-side banner in the upper left (`ad`), then the NBC peacock bug in the upper right (`content`), then falls through to the LLM quick check and `prompt_nbc.txt`. Two details are load-bearing:
+
+- The peacock is matched **in colour**. `load_masked` / `mask_non_white` zero out everything that isn't near-white and would erase a six-colour logo entirely, so this template is loaded with a plain `cv2.imread`.
+- Its search window is tight (`x 1740–1880, y 40–140` at 1920×1080). Over the wide upper-right region the Fox profile uses, the weakest true positive scores below the strongest false positive and the match is unusable.
+
+The peacock threshold (`0.55`) was measured against the labelled NBC frames and 3000 random non-NBC frames. The side-by-side half is **unvalidated** — no NBC ad-break frame exists in the dataset — and is guarded by `ENABLE_SIDE_BY_SIDE_CHECK`.
+
+Images are resized to at most 800 px on the longest side and JPEG-encoded (quality 50) before being sent to the LLM. The default prompt lives in `server/prompt/prompt.txt`; profiles can supply their own by passing `prompt=` to `llm_match.classify_by_prompt`.
 
 Classification labels: `ad`, `content` (racing), `unknown`.
 

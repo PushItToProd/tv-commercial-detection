@@ -34,9 +34,19 @@ def _get_client() -> OpenAI:
 PROMPT_DIR = Path(__file__).parent.parent / "prompt"
 PROMPT_FILE = os.environ.get("PROMPT_FILE", PROMPT_DIR / "prompt.txt")
 
-# TODO: Support multiple prompts. This prompt is hardcoded and assumes Fox
-# specifically, so it's probably less accurate for other TV networks.
+# Default prompt, used when a classifier profile doesn't supply its own. It
+# assumes a Fox broadcast, so profiles for other networks should pass their own
+# prompt to classify_by_prompt.
 PROMPT = Path(PROMPT_FILE).read_text()
+
+
+def load_prompt(name: str) -> str:
+    """Read a prompt file from the prompt directory by filename.
+
+    Profiles call this at import time so a missing prompt fails at startup
+    rather than on the first frame of a live broadcast.
+    """
+    return (PROMPT_DIR / name).read_text()
 
 MAX_DIMENSION = 800
 
@@ -155,10 +165,15 @@ def _report_racing_related(image_data: str, audio_data: str | None = None) -> bo
     return "yes" in content.strip().lower()
 
 
-def classify_by_prompt(image_data: str, audio_data: str | None = None) -> ClassificationResult:
-    """Classify using the full prompt in prompt.txt. Returns the raw LLM reply."""
+def classify_by_prompt(
+    image_data: str, audio_data: str | None = None, prompt: str | None = None
+) -> ClassificationResult:
+    """Classify using a full prompt. Returns the raw LLM reply.
+
+    Defaults to the Fox-oriented prompt.txt; pass *prompt* to override.
+    """
     msg_content: list = [
-        {"type": "text", "text": PROMPT},
+        {"type": "text", "text": prompt if prompt is not None else PROMPT},
         {
             "type": "image_url",
             "image_url": {"url": f"data:image/jpeg;base64,{image_data}"},

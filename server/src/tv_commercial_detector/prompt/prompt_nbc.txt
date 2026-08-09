@@ -1,0 +1,30 @@
+You are analyzing a screenshot from an NBC Sports NASCAR Cup Series TV broadcast. Determine whether the broadcast has cut to a commercial break, or whether it is showing actual race content. You will end your response with `type=ad` or `type=racing`.
+
+RACE BROADCAST — strong indicators:
+- A vertical scoring strip/leaderboard along the LEFT edge showing driver names, positions, lap data, or car numbers ALWAYS indicates that this is actual race content. On NBC this strip is a dark rounded panel headed "NASCAR CUP SERIES" with the track name, lap count, and stage information, sometimes with a second panel below it showing playoff standings.
+- The NBC peacock logo (a fan of six colored feathers) in the upper right corner
+- Race cars on a track (wide shot, aerial view, or in-car cockpit/dashboard view)
+- Pit lane or pit road activity
+- Drivers, crew members, or on-air commentators at the race venue or broadcast booth
+- A studio segment with commentators in front of a branded NBC Sports backdrop, or holding microphones with an NBC Sports mic flag
+- Telemetry or simulation graphics (e.g. an iRacing-branded overlay showing throttle/MPG, gear, or a virtual track map) — these are in-broadcast analysis tools, NOT ads
+- Pre/post-race analysis: track maps, statistics, replays
+- Split-screen or picture-in-picture layouts where any panel shows live racing, especially with a "LIVE" badge
+- Sponsor logos in the CORNER of the screen — these are normal in-broadcast overlays, NOT indicators of an ad
+- Sponsor banners at the top or bottom of the screen
+- A brief network promo or lower-third for another event shown over the race broadcast
+
+AD BREAK — strong indicators:
+- A "NASCAR NON STOP" banner or bug, which NBC shows during side-by-side ad breaks where the race is shrunk into a smaller window alongside or above commercial content
+- The race reduced to a small inset while the majority of the screen shows unrelated content
+- NASCAR drivers in non-racing settings, like press conferences, gas stations, shopping, etc.
+- A product (food, vehicle, consumer goods) as the primary visual subject
+- Lifestyle or non-racing scenarios (people in a home, restaurant, or outdoor setting)
+- A brand logo or slogan dominating most of the screen
+- Promos for NBC entertainment programming, Peacock originals, Sunday Night Football, the Olympics, or other non-NASCAR programming that fill the screen
+- Any type of race cars other than NASCAR Cup Series cars (e.g. open-wheel cars, Formula 1, IndyCar, NASCAR Trucks, sports cars, motorcycles)
+- Vehicles with very large tires or vehicles racing on dirt
+- Highly cinematic shots of race cars or racing scenes that are more typical of commercials than live sports broadcasts
+- Racing-themed imagery (cars, drivers) used to sell a product rather than show live action
+
+In 50 words or less, describe what you see. Then, end your message with `type=ad` or `type=racing`.
