@@ -1,6 +1,19 @@
-.vscode/
-
 classification_results*
 image_descriptions*
 duplicates.txt
 duplicates.jsonl
+
+# Phantom files created by the Claude Code sandbox to block access to the real
+# ones. Hidden so they don't clutter up `git status` output.
+.bash_profile
+.bashrc
+.claude
+.gitconfig
+.gitmodules
+.idea
+.mcp.json
+.profile
+.ripgreprc
+.vscode
+.zprofile
+.zshrc
