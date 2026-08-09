@@ -43,7 +43,7 @@ server/              FastAPI application
       nascar_on_fox.py Multi-pass classifier: logo → rectangle → LLM quick check → LLM prompt
       nhra_on_fox.py   Variant for NHRA drag racing broadcasts on Fox/FS1
       nascar_on_hbo_max.py  WIP profile for TNT Sports coverage on HBO Max; OpenCV logo checks only, no LLM pass yet
-      nascar_on_nbc.py  Cup coverage on NBC; colour-matched peacock bug, then LLM fallback
+      nascar_on_nbc.py  NBC Sports Cup coverage on NBC and USA; peacock/USA bug checks, then LLM fallback
     routes/            FastAPI routers
     prompt/            LLM prompt text and logo images used for OpenCV matching
     static/            Static assets (Bootstrap CSS/JS for UI templates)
@@ -317,12 +317,16 @@ The `nhra_on_fox` profile follows the same structure but uses NHRA-specific logo
 
 The `nascar_on_hbo_max` profile is a work in progress for TNT Sports coverage on HBO Max. It only runs two OpenCV logo checks — a full-screen "we'll be back" card (`ad`) and a side-by-side "commercial break in progress" overlay (`content`, since racing is still shown side-by-side) — and falls back to `content` by default. It has no rectangle-detection or LLM pass yet.
 
-The `nascar_on_nbc` profile covers Cup coverage on NBC. It checks the "NASCAR NON STOP" side-by-side banner in the upper left (`ad`), then the NBC peacock bug in the upper right (`content`), then falls through to the LLM quick check and `prompt_nbc.txt`. Two details are load-bearing:
+The `nascar_on_nbc` profile covers NBC Sports Cup coverage on **both NBC and USA Network** — the same production and the same "NASCAR NON STOP" break, only the corner bug differs. It checks the side-by-side banner in the upper left (`ad`), then either network bug in the upper right (`content`), then falls through to the LLM quick check and `prompt_nbc.txt`.
 
-- The peacock is matched **in colour**. `load_masked` / `mask_non_white` zero out everything that isn't near-white and would erase a six-colour logo entirely, so this template is loaded with a plain `cv2.imread`.
-- Its search window is tight (`x 1740–1880, y 40–140` at 1920×1080). Over the wide upper-right region the Fox profile uses, the weakest true positive scores below the strongest false positive and the match is unusable.
+The two bugs need different matching and are not interchangeable:
 
-The peacock threshold (`0.55`) was measured against the labelled NBC frames and 3000 random non-NBC frames. The side-by-side half is **unvalidated** — no NBC ad-break frame exists in the dataset — and is guarded by `ENABLE_SIDE_BY_SIDE_CHECK`.
+- **NBC peacock** — opaque and coloured, so matched **in colour**. `load_masked` / `mask_non_white` zero out everything that isn't near-white and would erase a six-colour logo entirely, so this template is loaded with a plain `cv2.imread`. Its search window is tight (`x 1740–1880, y 40–140` at 1920×1080); over the wide upper-right region the Fox profile uses, the weakest true positive scores below the strongest false positive and the match is unusable. Threshold `0.55`, measured at 21/21 recall with 0/3000 false positives.
+- **USA wordmark** — white, so white-masked like the Fox logo, but *translucent*. Over a blown-out sky it fades to a near-invisible ghost and the masked region saturates into a uniform patch, where `TM_CCOEFF_NORMED` divides by zero and can report a perfect `1.0`. The mask-fraction guard in `usa_score` is what makes the check safe; without it every bright sky reads as `content`. Those ghost frames are deliberately not chased — they carry too little signal to reach without wrecking precision, and fall through to the LLM. Threshold `0.65`, measured at ~82% recall with 0/3000 false positives.
+
+The side-by-side half is **unvalidated** — no NBC or USA ad-break frame with the banner exists in the dataset — and is guarded by `ENABLE_SIDE_BY_SIDE_CHECK`. Each bug check has its own toggle (`ENABLE_PEACOCK_CHECK`, `ENABLE_USA_CHECK`).
+
+Note that the LLM fallback is weak on pre-race paddock and driver-intro content, which `_report_racing_related` tends to reject as an ad. The corner-bug checks run first specifically because they are far more reliable for that material.
 
 Images are resized to at most 800 px on the longest side and JPEG-encoded (quality 50) before being sent to the LLM. The default prompt lives in `server/prompt/prompt.txt`; profiles can supply their own by passing `prompt=` to `llm_match.classify_by_prompt`.
 

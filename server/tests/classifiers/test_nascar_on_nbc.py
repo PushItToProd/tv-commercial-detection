@@ -19,9 +19,13 @@ from tv_commercial_detector.classification.logo_match import LOGOS_DIR, load_mas
 from tv_commercial_detector.classifiers.nascar_on_nbc import (
     PEACOCK_REGION,
     PEACOCK_TEMPLATE,
+    USA_TEMPLATE,
+    has_network_logo,
     has_peacock_logo,
     has_side_by_side_logo,
+    has_usa_logo,
     peacock_score,
+    usa_score,
 )
 
 # Where the peacock actually sits in a 1920x1080 frame.
@@ -125,3 +129,49 @@ def test_side_by_side_check_does_not_mutate_caller_frame():
 def test_peacock_template_matches_its_own_file():
     on_disk = cv2.imread(str(LOGOS_DIR / "nbc_peacock_logo.png"))
     assert np.array_equal(PEACOCK_TEMPLATE, on_disk)
+
+
+# --- USA Network bug -------------------------------------------------------
+
+USA_ABS_X = 1784
+USA_ABS_Y = 76
+
+
+def test_usa_detected_at_expected_position():
+    frame = frame_with_logo_at(USA_TEMPLATE, USA_ABS_X, USA_ABS_Y, fill=0)
+    assert has_usa_logo(frame) is True
+
+
+@pytest.mark.parametrize("fill", [0, 128], ids=["black", "grey"])
+def test_no_usa_in_blank_frame(fill):
+    assert has_usa_logo(blank_bgr(fill=fill)) is False
+
+
+def test_usa_score_is_zero_on_blown_out_frame():
+    """A saturated upper right must score 0, not a degenerate 1.0.
+
+    White-masking an all-white region keeps every pixel, leaving a uniform
+    patch; TM_CCOEFF_NORMED divides by zero there and can report a perfect
+    match. That would turn every blown-out sky into a false `content`.
+    """
+    assert usa_score(blank_bgr(fill=255)) == 0.0
+    assert has_usa_logo(blank_bgr(fill=255)) is False
+
+
+def test_usa_template_is_white_masked():
+    """Unlike the peacock, the USA bug is white and does survive masking."""
+    assert USA_TEMPLATE.any()
+    assert np.array_equal(USA_TEMPLATE, load_masked(LOGOS_DIR / "usa_network_logo.png"))
+
+
+def test_either_bug_satisfies_has_network_logo():
+    peacock = frame_with_logo_at(PEACOCK_TEMPLATE, PEACOCK_ABS_X, PEACOCK_ABS_Y)
+    usa = frame_with_logo_at(USA_TEMPLATE, USA_ABS_X, USA_ABS_Y, fill=0)
+    assert has_network_logo(peacock) is True
+    assert has_network_logo(usa) is True
+    assert has_network_logo(blank_bgr(fill=60)) is False
+
+
+def test_usa_outside_search_window_is_ignored():
+    frame = frame_with_logo_at(USA_TEMPLATE, 400, 600, fill=0)
+    assert has_usa_logo(frame) is False

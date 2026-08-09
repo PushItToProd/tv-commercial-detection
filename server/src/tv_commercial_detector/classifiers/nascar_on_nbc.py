@@ -1,9 +1,17 @@
 """
-NASCAR Cup Series on NBC / NBC Sports.
+NASCAR Cup Series on NBC Sports — both the NBC and USA Network feeds.
 
-NBC keeps the peacock bug in the upper right during race content and drops it
-during full-screen ads, so the peacock is the primary `content` signal — the
-same role the Fox logo plays in `nascar_on_fox`.
+NBC Sports carries Cup races on NBC proper and on USA. It's the same production
+with the same "NASCAR NON STOP" side-by-side break, but the corner bug differs,
+so this profile checks for either one. Whichever bug is present means the
+broadcast is live, the same role the Fox logo plays in `nascar_on_fox`.
+
+The two bugs need genuinely different matching and are NOT interchangeable:
+
+- The NBC peacock is opaque and coloured -> matched in colour.
+- The USA wordmark is translucent white -> matched on a white mask.
+
+See each section below.
 
 Two things differ from the Fox profile and matter if you edit this:
 
@@ -29,6 +37,7 @@ costs a missed break; a miss only falls through to the LLM, which will most
 likely reach the same verdict for a few hundred ms. Prefer missing.
 """
 import base64
+import math
 
 import cv2
 
@@ -46,6 +55,35 @@ PEACOCK_TEMPLATE = cv2.imread(str(PEACOCK_LOGO))
 # without reopening the false-positive rate.
 PEACOCK_REGION = (1740, 1880, 40, 140)  # x0, x1, y0, y1
 PEACOCK_THRESHOLD = 0.55
+
+# --- USA Network wordmark (network bug, upper right) -> content -------------
+#
+# The USA bug is white, so unlike the peacock it takes the same white-masked
+# match the Fox profile uses. What it does not tolerate is an unguarded match:
+# the bug is translucent, so over a blown-out sky it becomes a near-invisible
+# ghost and the masked region saturates to a uniform patch. TM_CCOEFF_NORMED
+# divides by zero on a uniform patch and can report a perfect 1.0, which would
+# turn every bright sky into a false `content`. The mask-fraction guard below
+# is what makes this check safe, and it matters more than the mask threshold —
+# dropping the threshold to 160 to chase the faint frames measured slightly
+# WORSE than the stock 200 (79.0% vs 79.8% recall), so this uses the default.
+#
+# The ghost frames are not worth chasing at all: they carry almost no signal,
+# and reaching them costs far more precision than the recall is worth. They
+# fall through to the LLM instead.
+#
+# Measured over 188 frames from the USA broadcast against 3000 archive frames:
+# ~80% recall with 0/3000 false positives, strongest false positive 0.419.
+USA_LOGO = logo_match.LOGOS_DIR / "usa_network_logo.png"
+USA_TEMPLATE = logo_match.load_masked(USA_LOGO)
+USA_REGION = (1750, 1890, 50, 140)  # x0, x1, y0, y1
+USA_THRESHOLD = 0.65
+
+# A white mask only carries information when it isolates something. An empty
+# mask has nothing to match; a saturated one has no structure to separate the
+# glyph from its background. Treat either as "no detection".
+USA_MIN_MASK_FRACTION = 0.01
+USA_MAX_MASK_FRACTION = 0.90
 
 # --- "NASCAR NON STOP" (side-by-side ad break, upper left) -> ad ------------
 #
@@ -67,6 +105,7 @@ SIDE_BY_SIDE_THRESHOLD = 0.8
 # code change, via `/settings/classifier_profile` swapping to a known-good
 # profile or by editing these at the console.
 ENABLE_PEACOCK_CHECK = True
+ENABLE_USA_CHECK = True
 ENABLE_SIDE_BY_SIDE_CHECK = True
 
 PROMPT = llm_match.load_prompt("prompt_nbc.txt")
@@ -88,6 +127,40 @@ def has_peacock_logo(
     threshold: float = PEACOCK_THRESHOLD,
 ) -> bool:
     return peacock_score(img, template) >= threshold
+
+
+def usa_score(img: cv2.typing.MatLike, template: cv2.typing.MatLike = USA_TEMPLATE) -> float:
+    """Best match score for the USA wordmark within its search window.
+
+    Returns 0.0 when the white mask is empty or saturated; see
+    USA_MIN_MASK_FRACTION. *img* must already be resized to 1920x1080.
+    """
+    x0, x1, y0, y1 = USA_REGION
+    masked = logo_match.mask_non_white(img[y0:y1, x0:x1].copy())
+
+    mask_fraction = masked.any(axis=2).mean()
+    if not USA_MIN_MASK_FRACTION <= mask_fraction <= USA_MAX_MASK_FRACTION:
+        return 0.0
+
+    score = logo_match.match_template(masked, template).max_val
+    # Guard anyway: a uniform patch that slips past the fraction check still
+    # produces a divide-by-zero inside matchTemplate.
+    return float(score) if math.isfinite(score) else 0.0
+
+
+def has_usa_logo(
+    img: cv2.typing.MatLike,
+    template: cv2.typing.MatLike = USA_TEMPLATE,
+    threshold: float = USA_THRESHOLD,
+) -> bool:
+    return usa_score(img, template) >= threshold
+
+
+def has_network_logo(img: cv2.typing.MatLike) -> bool:
+    """True if either NBC Sports corner bug is present."""
+    if ENABLE_PEACOCK_CHECK and has_peacock_logo(img):
+        return True
+    return ENABLE_USA_CHECK and has_usa_logo(img)
 
 
 def _has_side_by_side_logo(img: cv2.typing.MatLike, masked_logo: cv2.typing.MatLike) -> bool:
@@ -117,7 +190,7 @@ def classify_image(image_path: str, audio_bytes: bytes | None = None) -> Classif
             reply="NASCAR NON STOP side-by-side logo match (opencv)",
         )
 
-    if ENABLE_PEACOCK_CHECK and has_peacock_logo(cv_img_1080p):
+    if has_network_logo(cv_img_1080p):
         return ClassificationResult(
             source="opencv", type="content", reason="network_logo", reply="(opencv)"
         )

@@ -1,8 +1,8 @@
-You are analyzing a screenshot from an NBC Sports NASCAR Cup Series TV broadcast. Determine whether the broadcast has cut to a commercial break, or whether it is showing actual race content. You will end your response with `type=ad` or `type=racing`.
+You are analyzing a screenshot from an NBC Sports NASCAR Cup Series TV broadcast, carried either on NBC or on USA Network. Determine whether the broadcast has cut to a commercial break, or whether it is showing actual race content. You will end your response with `type=ad` or `type=racing`.
 
 RACE BROADCAST — strong indicators:
 - A vertical scoring strip/leaderboard along the LEFT edge showing driver names, positions, lap data, or car numbers ALWAYS indicates that this is actual race content. On NBC this strip is a dark rounded panel headed "NASCAR CUP SERIES" with the track name, lap count, and stage information, sometimes with a second panel below it showing playoff standings.
-- The NBC peacock logo (a fan of six colored feathers) in the upper right corner
+- A network bug in the upper right corner: either the NBC peacock (a fan of six colored feathers) or the USA Network wordmark ("USA" in white lowercase-styled letters, often faint and semi-transparent)
 - Race cars on a track (wide shot, aerial view, or in-car cockpit/dashboard view)
 - Pit lane or pit road activity
 - Drivers, crew members, or on-air commentators at the race venue or broadcast booth
