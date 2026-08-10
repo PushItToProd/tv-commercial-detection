@@ -43,7 +43,7 @@ def main():
         sys.stdout.flush()
         actual = labels.get(f.name, None)
         if actual is None:
-            print(json.dumps({"file": f.name, "status": "unlabeled"}))
+            # print(json.dumps({"file": f.name, "status": "unlabeled"}))
             num_unlabeled += 1
             continue
         elif actual == "ignore":

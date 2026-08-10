@@ -156,7 +156,7 @@ def _report_racing_related(image_data: str, audio_data: str | None = None) -> bo
             model=app_config.llm_model_name,
             messages=messages,
             max_tokens=10,
-            temperature=0.5,
+            temperature=0.2,
         )
 
     content = response.choices[0].message.content
@@ -195,7 +195,7 @@ def classify_by_prompt(
             model=app_config.llm_model_name,
             messages=messages,
             max_tokens=500,
-            temperature=0.6,
+            temperature=0.2,
         )
 
     content = response.choices[0].message.content

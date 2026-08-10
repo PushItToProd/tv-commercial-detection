@@ -39,7 +39,7 @@ def get_image_description(image_path: str, server_url: str = classify.SERVER_URL
         model="local",
         messages=messages,
         max_tokens=500,
-        temperature=0.6,
+        temperature=0.2,
     )
 
     content = response.choices[0].message.content

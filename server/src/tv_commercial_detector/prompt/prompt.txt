@@ -22,4 +22,4 @@ AD BREAK — strong indicators:
 - Highly cinematic shots of race cars or racing scenes that are more typical of commercials than live sports broadcasts
 - Racing-themed imagery (cars, drivers) used to sell a product rather than show live action
 
-In 50 words or less, describe what you see. Then, end your message with `type=ad` or `type=racing`.
+In 15 words or less, describe what you see. Then, end your message with `type=ad` or `type=racing`.
