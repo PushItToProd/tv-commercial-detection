@@ -42,7 +42,7 @@ server/              FastAPI application
     classifiers/       Pluggable classifier profiles (selected via classifier_profile config)
       nascar_on_fox.py Multi-pass classifier: logo → rectangle → LLM quick check → LLM prompt
       nhra_on_fox.py   Variant for NHRA drag racing broadcasts on Fox/FS1
-      nascar_on_hbo_max.py  WIP profile for TNT Sports coverage on HBO Max; OpenCV logo checks only, no LLM pass yet
+      nascar_on_hbo_max.py  TNT Sports coverage on HBO Max; OpenCV logo checks only, no LLM pass needed
       nascar_on_nbc.py  NBC Sports Cup coverage on NBC and USA; peacock/USA bug checks, then LLM fallback
     routes/            FastAPI routers
     prompt/            LLM prompt text and logo images used for OpenCV matching
@@ -315,7 +315,7 @@ The `nascar_on_fox` profile uses a multi-pass pipeline:
 
 The `nhra_on_fox` profile follows the same structure but uses NHRA-specific logo assets.
 
-The `nascar_on_hbo_max` profile is a work in progress for TNT Sports coverage on HBO Max. It only runs two OpenCV logo checks — a full-screen "we'll be back" card (`ad`) and a side-by-side "commercial break in progress" overlay (`content`, since racing is still shown side-by-side) — and falls back to `content` by default. It has no rectangle-detection or LLM pass yet.
+The `nascar_on_hbo_max` profile covers TNT Sports coverage on HBO Max. It runs two OpenCV logo checks — a full-screen "we'll be back" card (`ad`) and a side-by-side "commercial break in progress" overlay (`content`, since racing is still shown side-by-side) — and falls back to `content` by default. HBO Max doesn't insert traditional ad breaks, so those two cards are the only break signals there are; they're reliable enough that the rectangle-detection and LLM passes the other profiles need aren't necessary here.
 
 The `nascar_on_nbc` profile covers NBC Sports Cup coverage on **both NBC and USA Network** — the same production and the same "NASCAR NON STOP" break, only the corner bug differs. It checks the side-by-side banner in the upper left (`ad`), then either network bug in the upper right (`content`), then falls through to the LLM quick check and `prompt_nbc.txt`.
 

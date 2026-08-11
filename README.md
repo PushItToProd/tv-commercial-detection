@@ -46,10 +46,13 @@ Edit `.env`:
 | `MODELS_HOST_DIR` | Host path containing `.gguf` model files |
 | `MODEL_FILE` | Vision model filename (relative to `MODELS_HOST_DIR`) |
 | `MMPROJ_FILE` | Multimodal projector filename |
+| `LLAMA_EXTRA_ARGS` | Extra args passed to llama.cpp (context size, batch size, offload, etc.) |
 | `HDMI_MATRIX_CONTROL_DIR` | Path to the `hdmi-matrix-control` project |
-| `HDMI_SERIAL_PORT` | Serial device for the matrix (e.g., `/dev/ttyACM0`) |
+| `HDMI_MATRIX_SERIAL_PORT` | Serial device for the matrix (e.g., `/dev/ttyACM0`) |
 | `HDMI_MATRIX_CONTROL_PORT` | Port to expose the matrix control service on |
+| `RECEIVER_DIR` | Path to `server/` (built and bind-mounted into the receiver container) |
 | `RECEIVER_PORT` | Port for the detector server (default: `11679`) |
+| `RECEIVER_ENABLE_DEBOUNCE` | Sets `DETECTOR_ENABLE_DEBOUNCE` in the receiver container |
 
 ### 2. Choose a model
 
@@ -117,7 +120,24 @@ Set `classifier_profile` in `server/config.json` (or `DETECTOR_CLASSIFIER_PROFIL
 |---|---|---|
 | `nascar_on_fox` | NASCAR on Fox/FS1 | Logo detection → rectangle detection → LLM quick check → LLM full prompt |
 | `nhra_on_fox` | NHRA drag racing on Fox/FS1 | Same pipeline as `nascar_on_fox` with NHRA-specific logo assets |
+| `nascar_on_nbc` | NASCAR Cup on NBC and USA Network | Corner-bug and side-by-side logo detection → LLM quick check → NBC-specific prompt |
 | `nascar_on_hbo_max` | NASCAR on TNT Sports/HBO Max | OpenCV only; no LLM pass needed |
+
+`nascar_on_nbc` covers both NBC and USA, since it's the same production with the
+same "NASCAR NON STOP" break and only the corner bug differs. The two bugs need
+different matching: the peacock is opaque and coloured, so it's matched in
+colour over a tight upper-right window, while the USA wordmark is white and
+matched against a white mask like the Fox logo — but it's translucent, so a
+mask-fraction guard is needed to stop a blown-out sky from scoring a false
+match. Frames where the bug fades out entirely fall through to the LLM rather
+than being chased with a looser threshold.
+
+The corner-bug checks run ahead of the LLM on purpose: the LLM's
+racing-related quick check tends to reject pre-race paddock material, driver
+intros and garage interviews as ads, and the bug is far more reliable for that
+content. The side-by-side ad-break banner is implemented but unvalidated (no
+labelled NBC/USA ad-break frame exists yet) and can be turned off, along with
+each bug check, via the `ENABLE_*_CHECK` flags in the profile.
 
 HBO Max does not insert traditional ad breaks. Instead, TNT Sports shows either a full-screen "we'll be right back" card (classified as `ad`, triggering a switch) or a side-by-side "commercial break in progress" overlay where live racing is still visible (classified as `content`, no switch). Everything else defaults to `content`. The signals are reliable enough that an LLM fallback is unnecessary.
 
@@ -126,7 +146,14 @@ HBO Max does not insert traditional ad breaks. Instead, TNT Sports shows either 
 The server exposes two browser-accessible views useful for monitoring classification in real time:
 
 - `http://localhost:11679/is_ad` — simple status page showing the current classification; designed to be opened on a secondary device
-- `http://localhost:11679/review` — review UI for inspecting saved frames and their classifications
+- `http://localhost:11679/review` — review UI for inspecting and labelling saved frames
+
+The save dir grows to tens of thousands of frames, so `/review` pages and
+filters server-side. Every option is a query param — `page`, `per_page`,
+`sort`, `label`, the feature filters, a filename substring (`q`), a capture-time
+range (`start`/`end`, taking a date or a date and time of day), and
+`incomplete=1` for frames still missing a label or feature — so any view is
+linkable and bookmarkable. See AGENTS.md for the full parameter table.
 
 ## Perceptual hash overrides
 
@@ -142,15 +169,42 @@ In practice, this has had limited effectiveness. Commercials tend to have freque
 |---|---|---|
 | `matrix_url` | `http://localhost:5000` | URL for the `hdmi-matrix-control` service |
 | `llm_url` | `http://localhost:3002` | URL for the llama.cpp server |
-| `save_dir` | `frames` | Directory for saved frames |
-| `classifier_profile` | `nascar_on_fox` | Active classifier |
+| `save_dir` | `frames` | Root directory for saved media and metadata (see below) |
+| `classifier_profile` | `nascar_on_fox` | Active classifier (the checked-in `config.json` sets `nascar_on_nbc`) |
 | `enable_debounce` | `false` | Require two consecutive matching results before switching |
 | `auto_switch` | `true` | Enable automatic HDMI switching |
 | `enable_llm_audio` | `false` | Include audio in LLM classification requests (experimental; requires a model that supports audio input, e.g. Qwen3 Omni) |
 | `phash_threshold` | `10` | Max perceptual hash distance for override matches |
+| `llm_model_name` | `LLAMA_MODEL_NAME` env var, else `local` | Model name sent to llama.cpp (matters when it runs in router mode) |
 | `output_settings` | `{}` | Input/output mapping per classification (see above) |
 
 Environment variables (`DETECTOR_MATRIX_URL`, `DETECTOR_SAVE_DIR`, `DETECTOR_ENABLE_DEBOUNCE`, `DETECTOR_CLASSIFIER_PROFILE`, `LLAMA_SERVER_URL`) override `config.json`.
+
+## Save directory
+
+Media is split into per-type subdirectories of `save_dir` — `images/` for
+full-size frames, `thumbnails/` for the review UI, and `audio/` for clips
+sharing a stem with their frame — so listing frames doesn't have to walk the
+thumbnails and audio too. Metadata files (`labels.json`, `features.jsonl`,
+`classifications.jsonl`, `phash_overrides.json`) stay at the root and key on
+bare filenames.
+
+Two maintenance scripts live in `server/scripts/`. Both are dry runs unless
+given `--apply`.
+
+```bash
+# One-time migration for a save dir predating the subdirectory layout
+uv run python scripts/migrate_frames_to_subdirs.py --apply
+
+# Prune near-duplicate frames (bursts and repeated commercials leave the save
+# dir roughly 40% redundant); never drops a labelled or annotated frame
+uv run python scripts/dedupe_frames.py --apply
+```
+
+`dedupe_frames.py` groups by perceptual hash and keeps one representative per
+group. It leaves `audio/` alone unless `--include-audio` is passed, since
+identical images can carry different commentary. `notes/frame-deduplication.md`
+has the measurements behind the default threshold.
 
 ## Development
 
