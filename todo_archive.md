@@ -103,6 +103,9 @@ Checkboxes key:
 
 #### Future ideas
 
+- [-] to improve the prompt further, grab closed captions/subtitles and include them with the screenshot when sending to the LLM
+  - [x] can we grab subtitles/captions from the `<video>` tag? -> looks like no
+
 ### Switching
 
 - [x] debounce -- require multiple consecutive classifications as ad or racing before switching
@@ -128,3 +131,5 @@ Checkboxes key:
 - [x] change "Wrong!" to "Report"
 - [x] add UI toggle to enable/disable debounce
 - [x] add a button to just save the last few screenshots
+- [x] maybe use a CSS framework
+- [x] mobile-friendly UI so I can use it on my phone (another argument for using a CSS framework -- something like Bootstrap would probably make this easier)

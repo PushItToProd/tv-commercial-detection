@@ -55,7 +55,7 @@ Checkboxes key:
 - [ ] elegantly handle timeouts from both the llama.cpp server and the HDMI Matrix control server
 
 - [/] review jpg support one last time -- some places still assume png
-- [ ] don't save compressed images into the same directory as their originals
+- [x] don't save compressed images into the same directory as their originals
 - [ ] build an abstraction layer for accessing image files and associated data
 
 - [ ] the receiver saves the received image as a file, but then `_classify_image` takes the file path and reads it as base64 -- maybe that can be cut out
@@ -72,6 +72,10 @@ Checkboxes key:
 - [x] support better filtering of images based on classifications and things (like `view_classification_results.py`)
 - [ ] I want like a timeline view that shows all the images captured in a given broadcast (or at least a given timeframe) in chronological order
 - [ ] replace date range filters with custom ones that will use YYYY-MM-DD date formats
+
+- [ ] for training/eval purposes, record a level of "importance" associated with each manual classification to use when evaluating results -- basically, how much do I care about this being classified correctly?
+  - though this might also be better addressed by just improving my categories
+  - the real issue is that I don't want to penalize the classifier too much for edge cases like transitions to and from commercial
 
 #### Accuracy
 
@@ -91,7 +95,7 @@ Checkboxes key:
 
 #### Prompt
 
-- [ ] right now I have my prompt, image, etc. hardcoded for just Cup on Fox/FS1 -- I'll need to add separate prompts, logos, etc. for the other series and broadcasters too
+- [/] right now I have my prompt, image, etc. hardcoded for just Cup on Fox/FS1 -- I'll need to add separate prompts, logos, etc. for the other series and broadcasters too
   - [x] add a dropdown to the UI that lets you pick from multiple prompt presets
   - [ ] eventually: detect which series I'm watching using YTTV and/or live feed data (if a race is live)
   - series/networks to handle:
@@ -100,18 +104,15 @@ Checkboxes key:
       - the logo changes to yellow when it's a caution period
     - [x] Cup on Amazon Prime
     - [x] Cup on TNT
-    - [ ] Cup on NBC
+    - [x] Cup on NBC
     - [x] Trucks
   - [ ] update the prompt text
 
 - [ ] support switching between multiple prompt files
 
-- [ ] for training purposes, record a level of "importance" associated with each manual classification to use when evaluating results -- basically, how much do I care about this being classified correctly?
-  - though this might also be better addressed by just improving my categories
-  - the real issue is that I don't want to penalize the classifier too much for edge cases like transitions to and from commercial
-
 - [ ] update the prompt to indicate it's likely an ad unless it has race cars?
   - I guess that's kinda what the first "quick reject" prompt is for
+  - feels like this would probably exacerbate the current misclassifications
 
 - [ ] maybe include the previous reported state in the prompt to see if that helps -- e.g. `You last reported seeing (an ad|racing).`
   - try including the previous screenshot, too
@@ -142,12 +143,11 @@ Checkboxes key:
     - -> ask it to grade each image and then react based on the percentages (moving average?) of the last several images. If we go (100, 90, 100, 30), maybe don't switch right away, but if we go (100, 75, 75, 30), then maybe do switch right away.
 
 - [ ] could I just give Claude or some agent access to my `check_classification.py` script and prompt it to iterate on the prompt until we end up with an optimal one?
+- [ ] capture an entire race broadcast (or multiple broadcasts) as frames+audio, then have Claude just iterate on ways to consistently and quickly detect ads -- let it churn overnight or w/e and see what it comes up with
 
 #### Future ideas
 
-- [ ] to improve the prompt further, grab closed captions/subtitles and include them with the screenshot when sending to the LLM
-  - [ ] can we grab subtitles/captions from the `<video>` tag?
-- [ ] somehow capture the broadcast audio and use whisper or something with speaker diarization to check if one of the Fox hosts is talking
+- [ ] somehow capture the broadcast audio and use whisper or something with speaker diarization to check if one of the current network's hosts is talking
   - or try using some kind of audio classification model
   - maybe volume and dynamic range would be a viable signal?
 
@@ -158,9 +158,8 @@ Checkboxes key:
 
 ### UI
 
-- [ ] display the reason for the categorization on the UI
-- [ ] maybe use a CSS framework
-- [ ] mobile-friendly UI so I can use it on my phone (another argument for using a CSS framework -- something like Bootstrap would probably make this easier)
+- [x] display the reason for the categorization on the UI
+  - [ ] display the LLM's output
 - [ ] seems like the `/is_ad` SSE channel gets disconnected if the server is down for too long (more than a few seconds) or if I SIGTERM it -- the page should detect if the connection is closed, show a "connection lost" message, and fall back on polling
 - [ ] kinda wish I had hot reload on the frontend when I make UI changes
 - [ ] right now, the client requests `/is_ad/last_frame?t=${Date.now}` every time it receives a message from the server, even if there's no new image. this should be updated to avoid a pointless fetch if the image hasn't changed
