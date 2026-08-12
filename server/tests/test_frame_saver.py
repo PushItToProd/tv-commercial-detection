@@ -24,6 +24,7 @@ def _entry(timestamp="2026-01-01T08:00:00.000001", audio=None) -> FrameEntry:
         ext=".jpg",
         result=None,
         page_title="Test",
+        page_url="https://tv.youtube.com/watch/abc",
         video_title="",
         network_name="",
         video_offset=None,
@@ -63,6 +64,7 @@ def test_writes_classifications_metadata_at_save_dir_root(save_dir):
     # invisible to labels.json / features.jsonl lookups.
     assert records[0]["filename"] == saved[0]
     assert records[0]["save_reason"] == "periodic"
+    assert records[0]["page_url"] == "https://tv.youtube.com/watch/abc"
     assert records[0]["note"] == "hi"
 
 

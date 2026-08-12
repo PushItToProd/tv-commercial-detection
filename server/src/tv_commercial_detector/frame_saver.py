@@ -50,6 +50,7 @@ def save_frames_batch(
                 "timestamp": entry.timestamp,
                 "save_reason": save_reason,
                 "page_title": entry.page_title,
+                "page_url": entry.page_url,
                 "video_title": entry.video_title,
                 "network_name": entry.network_name,
                 "video_offset": entry.video_offset,

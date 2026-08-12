@@ -63,6 +63,23 @@ def test_receive_classifies_as_content(client, mocker):
     assert state_module.state.classification == "content"
 
 
+def test_receive_records_page_metadata_on_the_frame(client, mocker):
+    # page_url is what identifies the source site once a frame is on disk;
+    # nothing else in the record says which service the broadcast came from.
+    _post_frame(
+        client,
+        "content",
+        mocker,
+        page_title="Home - YouTube TV",
+        page_url="https://tv.youtube.com/watch/abc",
+        video_title="Autotrader 400",
+        network_name="Oregon's FOX",
+    )
+    entry = state_module.recent_frames[-1]
+    assert entry.page_url == "https://tv.youtube.com/watch/abc"
+    assert entry.page_title == "Home - YouTube TV"
+
+
 def test_receive_no_image_paused(client):
     resp = client.post("/receive", data={"is_paused": "true", "is_seeking": "false"})
     assert resp.status_code == 200
@@ -156,6 +173,7 @@ def test_get_recent_frames_populated(client):
             ext=".jpg",
             result=ClassificationResult(source="opencv", type="ad", reason="x", reply=None),
             page_title="",
+            page_url="",
             video_title="",
             network_name="",
             video_offset=None,
@@ -184,6 +202,7 @@ def test_get_recent_frames_no_result_is_null(client):
             ext=".jpg",
             result=None,
             page_title="",
+            page_url="",
             video_title="",
             network_name="",
             video_offset=None,
@@ -212,6 +231,7 @@ def test_get_recent_frame_image_found(client):
             ext=".jpg",
             result=None,
             page_title="",
+            page_url="",
             video_title="",
             network_name="",
             video_offset=None,

@@ -15,6 +15,7 @@ class FrameEntry:
     ext: str  # ".jpg" or ".png"
     result: Any  # ClassificationResult | None
     page_title: str
+    page_url: str
     video_title: str
     network_name: str
     video_offset: float | None
