@@ -52,7 +52,7 @@ server/              FastAPI application
     classification/    Tests for logo_match and rectangle_match
     routes/            Tests for each route
     integration/       Integration tests (require a live llama.cpp server)
-  scripts/             Utility scripts (find_dupes.py, view_classification_results.py, etc.)
+  scripts/             Utility scripts (record_broadcast.py, find_dupes.py, view_classification_results.py, etc.)
   config.json          Optional local config (gitignored; overrides defaults)
   frames/              Save dir (runtime, gitignored)
     images/              Full-size frames
@@ -157,6 +157,33 @@ uv run python scripts/dedupe_frames.py --apply --include-audio --drop-blank
 Thresholds above 11 start merging frames with differing manual labels; see
 `notes/frame-deduplication.md` for the measurements behind the default of 10 and
 for why grouping is deliberately non-transitive.
+
+### Recording a whole broadcast
+
+`scripts/record_broadcast.py` is a standalone receiver that archives every frame
+and audio clip it's sent, with no classification, matrix switching or debounce.
+The extension posts to every endpoint in its list, so it can run alongside the
+detector — add its `/receive` URL as a second endpoint in the popup.
+
+```bash
+uv run python scripts/record_broadcast.py -d /mnt/data/tv-commercial-detector/full_broadcast_frames
+```
+
+Each broadcast gets its own directory under `-d`, named from the page hostname,
+the network name (only YouTube TV reports one) and the video title — falling
+back to the page title on sites that don't report a video title:
+
+```
+<out-dir>/tv.youtube.com/Oregon-s_FOX_Autotrader_400/
+<out-dir>/play.hbomax.com/eero_400_-_HBO_Max/
+```
+
+Those directories use the same layout as `save_dir` (`images/`, `audio/`,
+`classifications.jsonl`) and the frame saver's filename convention, so a
+recording can be reviewed by pointing `DETECTOR_SAVE_DIR` at it or fed to
+`dedupe_frames.py`. A title change mid-stream (pre-race show → race) opens a new
+directory; returning to a title already seen resumes appending to its directory.
+`GET /status` reports what's been written so far, and Ctrl-C prints a summary.
 
 Additional `AppConfig` fields:
 - `phash_threshold` — max perceptual hash distance for override matches (default: `10`)
