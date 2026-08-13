@@ -143,6 +143,13 @@ until Save. Ruling and note move independently, each defaulting to "leave
 alone", so a note can be swept across a run without disturbing rulings already
 made frame by frame.
 
+A swept note usually records something about the run as a whole, which should
+not cost the per-frame observations already written there, so it can *replace*,
+fill *only where empty*, or *append* after a ` || ` divider. The editor counts
+how many of the selection already carry a note and a ruling, and spells out what
+the chosen mode will do to them; typing a note picks append over replace
+whenever there is something to lose.
+
 Two filters find the frames actually worth a human's time:
 
 - **Anchor conflicts** (27) — the USA/peacock bug was detected but the frame is

@@ -311,6 +311,24 @@ class BulkVerdict(BaseModel):
     verdict: str | None = None  # None leaves existing rulings alone
     clear_verdict: bool = False  # explicit "remove the ruling"
     note: str | None = None  # None leaves existing notes alone
+    note_mode: str = "replace"  # see NOTE_MODES
+
+
+# How a swept note meets a note already on the frame. Sweeping a run usually
+# means recording something about the run as a whole, which should not cost the
+# per-frame observations already written there - hence `fill` and `append`.
+NOTE_MODES = ("replace", "fill", "append")
+NOTE_JOIN = " || "
+
+
+def apply_note(existing: str, incoming: str, mode: str) -> str:
+    if mode == "replace":
+        return incoming
+    if not incoming:  # nothing to fill or append with
+        return existing
+    if mode == "fill":
+        return existing or incoming
+    return f"{existing}{NOTE_JOIN}{incoming}" if existing else incoming
 
 
 def ruling_agrees(v: dict | None, gt: str) -> bool | None:
@@ -478,6 +496,8 @@ def app_factory(default_dataset: str) -> FastAPI:
             raise HTTPException(404, f"unknown dataset {v.dataset!r}")
         if v.verdict is not None and v.verdict not in VERDICT_LABELS:
             raise HTTPException(400, f"verdict must be one of {VERDICT_LABELS}")
+        if v.note_mode not in NOTE_MODES:
+            raise HTTPException(400, f"note_mode must be one of {NOTE_MODES}")
         known = POSITIONS.get(v.dataset, {})
         unknown = [f for f in v.filenames if f not in known]
         if unknown:
@@ -501,7 +521,11 @@ def app_factory(default_dataset: str) -> FastAPI:
                 rec["verdict"] = v.verdict
                 rec["judged"] = rows[fn]["gt"]
             if v.note is not None:
-                rec["note"] = v.note
+                note = apply_note(rec.get("note", ""), v.note, v.note_mode)
+                if note:
+                    rec["note"] = note
+                else:
+                    rec.pop("note", None)
             # A record holding neither a ruling nor a note carries nothing.
             if not rec.get("verdict") and not rec.get("note"):
                 if ds.pop(fn, None) is not None:
@@ -538,6 +562,7 @@ def app_factory(default_dataset: str) -> FastAPI:
             out.append({
                 "filename": r["filename"], "i": r["i"], "gt": r["gt"],
                 "ruling": rec.get("verdict"),
+                "has_note": bool(rec.get("note")),
                 "conflict": r["conflict"] or r["cross_conflict"],
                 "contradiction": r.get("contradiction", False),
                 "model_wrong": r.get("pred_agrees") is False,
@@ -859,9 +884,15 @@ _HTML = r"""<!DOCTYPE html>
     </div>
     <div class="bulkrow" style="align-items:flex-start">
       <span class="lbl">note</span>
-      <div style="flex:1;min-width:20rem">
-        <label class="muted"><input type="checkbox" id="bulknoteon"> replace the note on every selected frame</label>
-        <textarea id="bulknote" placeholder="left alone unless the box above is ticked"></textarea>
+      <div style="flex:1;min-width:22rem">
+        <div class="choice" id="bulknotemode">
+          <button data-m="">leave as is</button>
+          <button data-m="replace">replace</button>
+          <button data-m="fill">only where empty</button>
+          <button data-m="append">append</button>
+        </div>
+        <textarea id="bulknote" placeholder="typing here switches off &quot;leave as is&quot;"></textarea>
+        <div class="muted" id="bulknotehint"></div>
       </div>
     </div>
     <div class="bulkrow" style="justify-content:flex-end">
@@ -1315,20 +1346,30 @@ async function note(idx, text) {
 // Nothing here is written until Save, unlike a card where a click is the write.
 // A sweep can touch hundreds of frames, so it gets a chance to be looked at
 // first, and Cancel has to be a real way out.
-let BULK_V = "";   // "" leave as is · ad/content/other · __clear__
+let BULK_V = "";      // "" leave as is · ad/content/other · __clear__
+let BULK_NOTE = "";   // "" leave as is · replace/fill/append
+
+// Sheet rows carry a flag, cards carry the whole stored record; one question.
+function hasNote(f) {
+  return f.has_note !== undefined ? !!f.has_note : !!(f.verdict && f.verdict.note);
+}
 
 function openBulk() {
   const frames = rangeFrames();
   if (!frames.length) return;
   stopBlink();
   BULK_V = "";
-  $("#bulknoteon").checked = false;
+  BULK_NOTE = "";
   $("#bulknote").value = "";
   $("#bulkcount").textContent = frames.length;
   $("#bulkrange").textContent = `i=${frames[0].i} … ${frames[frames.length - 1].i}`;
   const ruled = frames.filter(f => (f.ruling ?? f.verdict?.verdict)).length;
-  $("#bulkwarn").textContent = ruled
-    ? `${ruled} of these already carry a ruling` : "";
+  const noted = frames.filter(hasNote).length;
+  BULK_NOTED = noted;
+  $("#bulkwarn").textContent = [
+    ruled ? `${ruled} already ruled` : "",
+    noted ? `${noted} already have a note` : "",
+  ].filter(Boolean).join(" · ");
   $("#bulkstrip").innerHTML = frames.map(f => {
     const ruling = f.ruling ?? f.verdict?.verdict ?? null;
     return `<div class="th ${f.gt}" style="width:88px;height:50px"
@@ -1341,23 +1382,39 @@ function openBulk() {
   $("#bulk").classList.add("open");
 }
 
+let BULK_NOTED = 0;   // how many of the selection already carry a note
+
 function paintBulkChoice() {
   document.querySelectorAll("#bulkchoice button").forEach(b =>
     b.classList.toggle("on", b.dataset.v === BULK_V));
+  document.querySelectorAll("#bulknotemode button").forEach(b =>
+    b.classList.toggle("on", b.dataset.m === BULK_NOTE));
+  // Spell out what the chosen mode will do to the notes already there, since
+  // that is the part a sweep can quietly destroy.
+  const n = BULK_NOTED, total = rangeFrames().length;
+  const hint = {
+    "": "notes left untouched",
+    replace: n ? `overwrites the note on ${n} frame${n === 1 ? "" : "s"}`
+                : "sets the note on all of them",
+    fill: `writes only to the ${total - n} with no note; leaves ${n} as ${n === 1 ? "it is" : "they are"}`,
+    append: n ? `adds after " || " on ${n}; sets it plain on the other ${total - n}`
+              : "sets the note on all of them",
+  }[BULK_NOTE];
+  $("#bulknotehint").textContent = hint || "";
 }
 
 function closeBulk() { $("#bulk").classList.remove("open"); }
 
 async function saveBulk() {
   const frames = rangeFrames();
-  const noteOn = $("#bulknoteon").checked;
-  if (!frames.length || (BULK_V === "" && !noteOn)) return closeBulk();
+  if (!frames.length || (BULK_V === "" && BULK_NOTE === "")) return closeBulk();
   const body = {
     dataset: DATASET,
     filenames: frames.map(f => f.filename),
     verdict: (BULK_V && BULK_V !== "__clear__") ? BULK_V : null,
     clear_verdict: BULK_V === "__clear__",
-    note: noteOn ? $("#bulknote").value : null,
+    note: BULK_NOTE ? $("#bulknote").value : null,
+    note_mode: BULK_NOTE || "replace",
   };
   const r = await fetch("/api/verdict/bulk", {
     method: "POST", headers: { "Content-Type": "application/json" },
@@ -1423,8 +1480,16 @@ $("#bulksave").onclick = saveBulk;
 $("#bulk").onclick = (e) => { if (e.target.id === "bulk") closeBulk(); };
 document.querySelectorAll("#bulkchoice button").forEach(b =>
   b.onclick = () => { BULK_V = b.dataset.v; paintBulkChoice(); });
-// Typing a note is the intent to set one; no need to tick the box as well.
-$("#bulknote").oninput = () => { if ($("#bulknote").value) $("#bulknoteon").checked = true; };
+document.querySelectorAll("#bulknotemode button").forEach(b =>
+  b.onclick = () => { BULK_NOTE = b.dataset.m; paintBulkChoice(); });
+// Typing a note is the intent to set one. Default to append where notes already
+// exist: it is the one mode that cannot lose what is written there.
+$("#bulknote").oninput = () => {
+  if ($("#bulknote").value && BULK_NOTE === "") {
+    BULK_NOTE = BULK_NOTED ? "append" : "replace";
+    paintBulkChoice();
+  }
+};
 $("#dataset").onchange = (e) => {
   DATASET = e.target.value; PAGE = 1; FOCUS = null; syncUrl(true); load();
 };
