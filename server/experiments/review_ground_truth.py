@@ -25,6 +25,16 @@ Usage:
     uv run python experiments/review_ground_truth.py
     uv run python experiments/review_ground_truth.py --port 8766 --dataset structure
 
+Two views. Cards carry every signal for one frame at a time and is where rulings
+are made; the contact sheet drops to bordered thumbnails of the whole selection,
+for finding the odd ones out by eye. Clicking a thumbnail opens the cards page
+holding it, with that frame selected - which works because both views order the
+selection identically, so position divided by page size is the page.
+
+Every option is a query param (`dataset`, `filter`, `view`, `page`, `per_page`,
+`thumb`, `frame`), so any view is linkable and survives a reload, and back and
+forward move between views.
+
 Review order matters more than volume. Three filters carry most of the value:
 
 - `conflict` — an OpenCV anchor contradicts the label. Objectively suspect, and
@@ -441,6 +451,38 @@ def app_factory(default_dataset: str) -> FastAPI:
             "elsewhere": rulings_elsewhere(v.dataset, v.filename, store),
         })
 
+    @app.get("/api/sheet")
+    def sheet(dataset: str = "structure", filter: str = "conflict") -> JSONResponse:
+        """Every frame matching the filter, in capture order, stripped to the bone.
+
+        The contact sheet exists to be scanned in bulk, so it takes the whole
+        selection rather than a page - the position in this list is what tells
+        the client which page a frame lands on when jumping back to the cards.
+        """
+        rows = DATASETS.get(dataset)
+        if rows is None:
+            raise HTTPException(404, f"unknown dataset {dataset!r}")
+        pred = FILTERS.get(filter)
+        if pred is None:
+            raise HTTPException(400, f"unknown filter {filter!r}")
+        store = load_verdicts()
+        verdicts = store.get(dataset, {})
+        annotate_rulings(dataset, rows, store)
+        out = []
+        for r in rows:
+            if not pred(r, verdicts.get(r["filename"])):
+                continue
+            rec = verdicts.get(r["filename"]) or {}
+            out.append({
+                "filename": r["filename"], "i": r["i"], "gt": r["gt"],
+                "ruling": rec.get("verdict"),
+                "conflict": r["conflict"] or r["cross_conflict"],
+                "contradiction": r.get("contradiction", False),
+                "model_wrong": r.get("pred_agrees") is False,
+            })
+        return JSONResponse({"rows": out, "total": len(out),
+                             "counts": counts_for(rows, verdicts)})
+
     @app.get("/api/context")
     def context(dataset: str, filename: str, radius: int = 10) -> JSONResponse:
         """The frames either side of this one, in capture order.
@@ -545,7 +587,8 @@ _HTML = r"""<!DOCTYPE html>
   .stat.bad .val { color: #f55; }
   .stat.good .val { color: #4d4; }
 
-  #controls { margin-bottom: 0.75rem; display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
+  #controls { margin-bottom: 0.4rem; display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
+  #controls2 { margin-bottom: 0.6rem; display: flex; gap: 0.75rem; align-items: center; }
   button, select {
     padding: 0.28rem 0.7rem; border: 2px solid #444; border-radius: 4px;
     background: transparent; color: #ccc; cursor: pointer; font-size: 0.8rem;
@@ -608,6 +651,27 @@ _HTML = r"""<!DOCTYPE html>
   .sf.cur     { border-color: #7ab; box-shadow: 0 0 0 2px #7ab; }
   .sf .mark { position: absolute; top: 1px; right: 2px; font-size: .6rem;
               background: #000a; border-radius: 2px; padding: 0 2px; }
+
+  /* Contact sheet: the whole selection at a glance, for picking out oddities.
+     Border carries the stored label, the corner dot carries a ruling. */
+  #sheet { display: flex; flex-wrap: wrap; gap: 2px; }
+  .th { position: relative; cursor: pointer; border: 2px solid #333;
+        border-radius: 3px; overflow: hidden; background: #111; line-height: 0; }
+  .th img { display: block; width: 100%; height: 100%; object-fit: cover; }
+  .th.ad      { border-color: #a02; }
+  .th.content { border-color: #060; }
+  .th.conflict      { outline: 1px solid #fa0; outline-offset: -3px; }
+  .th.contradiction { outline: 2px solid #d0f; outline-offset: -4px; }
+  .th.focus { border-color: #7ab; box-shadow: 0 0 0 2px #7ab; }
+  .th .dot { position: absolute; top: 2px; right: 2px; width: 7px; height: 7px;
+             border-radius: 50%; border: 1px solid #000a; }
+  .th .dot.ad { background: #f44; } .th .dot.content { background: #4d4; }
+  .th .dot.other { background: #fb3; }
+  .th .idx { position: absolute; bottom: 0; left: 0; right: 0; font-size: .5rem;
+             text-align: center; background: #000a; color: #ddd; line-height: 1.3; }
+  #size { width: 8rem; }
+  .legend { font-size: .68rem; opacity: .45; display: flex; gap: .9rem; flex-wrap: wrap;
+            margin-bottom: .5rem; }
 </style>
 </head>
 <body>
@@ -635,14 +699,28 @@ _HTML = r"""<!DOCTYPE html>
   <button id="reload" title="Re-read the experiment files">⟳</button>
   <span id="counter"></span>
 </div>
+<div id="controls2">
+  <button id="viewtoggle" title="Switch between review cards and a scannable contact sheet"></button>
+  <label id="sizewrap" style="font-size:.75rem;opacity:.6;display:none">
+    thumb <input type="range" id="size" min="48" max="240" step="8" value="112">
+  </label>
+</div>
 <div class="hint">
   Say what the frame <i>is</i>, not whether the label is right — agreement is worked out from that.
-  <b>a</b> ad · <b>c</b> content · <b>o</b> other (bumper, sponsor billboard, undecidable) ·
+  <b>a</b> ad · <b>r</b> content/racing · <b>o</b> other (bumper, sponsor billboard, undecidable) ·
   <b>x</b> clear · <b>j/k</b> or arrows to move · <b>Enter</b> or click a frame to open it in context.
   In context view, <b>←/→</b> walk the broadcast and <b>space</b> plays the clip.
   Rulings save to <code>experiments/review_verdicts.json</code>.
 </div>
+<div class="legend" id="legend" style="display:none">
+  <span>border: <b style="color:#f55">red</b> label ad · <b style="color:#4d4">green</b> label content</span>
+  <span>dot: your ruling (red ad, green content, amber other)</span>
+  <span><b style="color:#fa0">amber outline</b> conflicts with a signal or the other pass</span>
+  <span><b style="color:#d0f">magenta</b> ruled two ways</span>
+  <span>click a thumbnail to open its page in the cards view</span>
+</div>
 <div class="grid" id="grid"></div>
+<div id="sheet" style="display:none"></div>
 <div id="pager" style="margin-top:1rem;display:flex;gap:.5rem;align-items:center"></div>
 <div id="lightbox">
   <span id="lb-close" title="Close (Esc)">&times;</span>
@@ -656,8 +734,40 @@ _HTML = r"""<!DOCTYPE html>
 let DATASET = __DEFAULT_DATASET__;
 let FILTER = "conflict";
 let PAGE = 1;
-let ROWS = [];
+let VIEW = "cards";      // "cards" | "sheet"
+let PER_PAGE = 60;
+let THUMB = 112;
+let FOCUS = null;        // filename to highlight after a jump from the sheet
+let ROWS = [];           // the current cards page
+let SHEET = [];          // the whole filtered selection, contact-sheet view
 let SEL = 0;
+
+// ── URL state ───────────────────────────────────────────────────────────────
+// Every option lives in the query string, so any view is linkable and survives
+// a reload - the same contract /review keeps.
+
+function readUrl() {
+  const q = new URLSearchParams(location.search);
+  DATASET = q.get("dataset") || DATASET;
+  FILTER = q.get("filter") || FILTER;
+  PAGE = Math.max(1, parseInt(q.get("page") || "1", 10) || 1);
+  VIEW = q.get("view") === "sheet" ? "sheet" : "cards";
+  PER_PAGE = Math.min(500, Math.max(1, parseInt(q.get("per_page") || "60", 10) || 60));
+  THUMB = Math.min(240, Math.max(48, parseInt(q.get("thumb") || "112", 10) || 112));
+  FOCUS = q.get("frame");
+}
+
+function syncUrl(push) {
+  const q = new URLSearchParams();
+  q.set("dataset", DATASET);
+  q.set("filter", FILTER);
+  q.set("view", VIEW);
+  if (VIEW === "cards") { q.set("page", PAGE); q.set("per_page", PER_PAGE); }
+  else q.set("thumb", THUMB);
+  if (FOCUS) q.set("frame", FOCUS);
+  const url = location.pathname + "?" + q.toString();
+  if (push) history.pushState(null, "", url); else history.replaceState(null, "", url);
+}
 
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? "").replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
@@ -669,15 +779,61 @@ function badge(v) {
 }
 
 async function load() {
-  const r = await fetch(`/api/frames?dataset=${DATASET}&filter=${FILTER}&page=${PAGE}&per_page=60`);
+  syncUrl(false);
+  $("#viewtoggle").textContent = VIEW === "sheet" ? "▤ Cards view" : "▦ Contact sheet";
+  $("#sizewrap").style.display = VIEW === "sheet" ? "" : "none";
+  $("#legend").style.display = VIEW === "sheet" ? "" : "none";
+  $("#grid").style.display = VIEW === "sheet" ? "none" : "";
+  $("#sheet").style.display = VIEW === "sheet" ? "" : "none";
+  if (VIEW === "sheet") return loadSheet();
+
+  const r = await fetch(`/api/frames?dataset=${DATASET}&filter=${FILTER}&page=${PAGE}&per_page=${PER_PAGE}`);
   if (!r.ok) { $("#grid").innerHTML = `<p class="warn">${esc(await r.text())}</p>`; return; }
   const d = await r.json();
-  ROWS = d.rows; SEL = 0;
+  ROWS = d.rows;
+  // A jump from the sheet names a frame; land on it rather than the top.
+  const at = FOCUS ? ROWS.findIndex(x => x.filename === FOCUS) : -1;
+  SEL = at >= 0 ? at : 0;
   render(d);
+  if (at >= 0) document.querySelectorAll(".card")[at]
+    ?.scrollIntoView({ block: "center", behavior: "smooth" });
 }
 
-function render(d) {
-  const c = d.counts;
+async function loadSheet() {
+  const r = await fetch(`/api/sheet?dataset=${DATASET}&filter=${FILTER}`);
+  if (!r.ok) { $("#sheet").innerHTML = `<p class="warn">${esc(await r.text())}</p>`; return; }
+  const d = await r.json();
+  SHEET = d.rows;
+  stats(d.counts);
+  document.querySelectorAll("#controls button[data-f]").forEach(b =>
+    b.classList.toggle("active", b.dataset.f === FILTER));
+  $("#counter").textContent = `${d.total} frames`;
+  $("#pager").innerHTML = "";
+  const w = THUMB, h = Math.round(THUMB * 9 / 16);
+  $("#sheet").innerHTML = SHEET.map((n, k) => `
+    <div class="th ${n.gt} ${n.conflict ? "conflict" : ""} ${n.contradiction ? "contradiction" : ""} ${n.filename === FOCUS ? "focus" : ""}"
+         style="width:${w}px;height:${h}px" onclick="jumpTo(${k})"
+         title="i=${n.i} · label ${esc(n.gt)}${n.ruling ? " · ruled " + esc(n.ruling) : ""}">
+      <img src="/image/${DATASET}/${encodeURIComponent(n.filename)}" loading="lazy">
+      ${n.ruling ? `<span class="dot ${n.ruling}"></span>` : ""}
+      <span class="idx">${n.i}</span>
+    </div>`).join("");
+  if (FOCUS) document.querySelector(".th.focus")
+    ?.scrollIntoView({ block: "center", behavior: "smooth" });
+}
+
+// Position within the filtered selection decides which cards page holds it.
+function jumpTo(k) {
+  const n = SHEET[k];
+  if (!n) return;
+  FOCUS = n.filename;
+  PAGE = Math.floor(k / PER_PAGE) + 1;
+  VIEW = "cards";
+  syncUrl(true);
+  load();
+}
+
+function stats(c) {
   $("#bar").innerHTML = [
     ["conflict", "anchor", "bad"], ["cross_conflict", "cross-pass", "bad"],
     ["unanchored", "unanchored", ""],
@@ -686,8 +842,11 @@ function render(d) {
     ["disputed", "label wrong", "bad"], ["contradicts", "contradictions", "bad"],
     ["all", "frames", ""],
   ].map(([k, lbl, cls]) => `<div class="stat ${cls}"><span class="val">${c[k] ?? 0}</span><span class="lbl">${lbl}</span></div>`).join("");
+}
 
-  document.querySelectorAll("#controls button").forEach(b =>
+function render(d) {
+  stats(d.counts);
+  document.querySelectorAll("#controls button[data-f]").forEach(b =>
     b.classList.toggle("active", b.dataset.f === FILTER));
   $("#counter").textContent = `${d.total} frames · page ${d.page}/${d.pages}`;
 
@@ -766,7 +925,7 @@ function paint() {
 }
 
 function select(i) { SEL = i; paint(); }
-function go(p) { PAGE = p; load(); }
+function go(p) { PAGE = p; FOCUS = null; syncUrl(true); load(); }
 
 // ── Lightbox: one frame in the context of its neighbours ────────────────────
 let CTX = [];      // the neighbouring frames, in capture order
@@ -849,6 +1008,8 @@ async function note(idx, text) {
 
 document.addEventListener("keydown", (e) => {
   if (e.target.tagName === "INPUT") return;
+  // Never shadow a browser shortcut: cmd-c / ctrl-a and friends must still work.
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
   // While the lightbox is open the arrows walk the broadcast, not the grid.
   if ($("#lightbox").classList.contains("open")) {
     if (e.key === "Escape") return closeLightbox();
@@ -862,7 +1023,10 @@ document.addEventListener("keydown", (e) => {
     }
     return;
   }
-  const keys = { a: "ad", c: "content", o: "other" };
+  if (VIEW !== "cards") return;
+  // `r` for racing, not `c`: `c` collided with cmd-c. The modifier guard above
+  // now stops that anyway, but the binding is not worth reclaiming.
+  const keys = { a: "ad", r: "content", o: "other" };
   if (keys[e.key]) { mark(SEL, keys[e.key]); SEL = Math.min(SEL + 1, ROWS.length - 1); paint(); }
   else if (e.key === "x") mark(SEL, null);
   else if (e.key === "j" || e.key === "ArrowDown" || e.key === "ArrowRight") { SEL = Math.min(SEL + 1, ROWS.length - 1); paint(); }
@@ -873,12 +1037,34 @@ document.addEventListener("keydown", (e) => {
 // Only the backdrop closes — clicks on the image, strip or player must not.
 $("#lightbox").onclick = (e) => { if (e.target.id === "lightbox") closeLightbox(); };
 $("#lb-close").onclick = closeLightbox;
-$("#dataset").onchange = (e) => { DATASET = e.target.value; PAGE = 1; load(); };
+$("#dataset").onchange = (e) => {
+  DATASET = e.target.value; PAGE = 1; FOCUS = null; syncUrl(true); load();
+};
 document.querySelectorAll("#controls button[data-f]").forEach(b =>
-  b.onclick = () => { FILTER = b.dataset.f; PAGE = 1; load(); });
+  b.onclick = () => { FILTER = b.dataset.f; PAGE = 1; FOCUS = null; syncUrl(true); load(); });
 $("#reload").onclick = async () => { await fetch("/api/reload", { method: "POST" }); load(); };
+$("#viewtoggle").onclick = () => {
+  VIEW = VIEW === "sheet" ? "cards" : "sheet";
+  syncUrl(true); load();
+};
+$("#size").oninput = (e) => {
+  THUMB = +e.target.value;
+  const w = THUMB, h = Math.round(THUMB * 9 / 16);
+  document.querySelectorAll(".th").forEach(t => { t.style.width = w + "px"; t.style.height = h + "px"; });
+  syncUrl(false);
+};
 
+// Back/forward should restore the view the URL describes, not refetch blindly.
+window.addEventListener("popstate", () => {
+  readUrl();
+  $("#dataset").value = DATASET;
+  $("#size").value = THUMB;
+  load();
+});
+
+readUrl();
 $("#dataset").value = DATASET;
+$("#size").value = THUMB;
 load();
 </script>
 </body>

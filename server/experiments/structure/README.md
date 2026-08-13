@@ -119,6 +119,12 @@ filtered page is by construction a set of scattered oddities, so the neighbours
 are usually what decides. Each frame's audio clip plays alongside it — the
 commentary carries the break boundary when the picture is ambiguous.
 
+The contact-sheet view drops the whole selection to bordered thumbnails for
+scanning in bulk: border by stored label, a dot for your ruling, an outline
+where a signal or the other pass disagrees. Clicking one opens the cards page
+holding that frame with it selected. Every option is a query param, so a view is
+linkable and the back button works.
+
 Two filters find the frames actually worth a human's time:
 
 - **Anchor conflicts** (27) — the USA/peacock bug was detected but the frame is
