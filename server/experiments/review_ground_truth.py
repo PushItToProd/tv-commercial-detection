@@ -795,6 +795,9 @@ async function load() {
   // A jump from the sheet names a frame; land on it rather than the top.
   const at = FOCUS ? ROWS.findIndex(x => x.filename === FOCUS) : -1;
   SEL = at >= 0 ? at : 0;
+  // Arriving with no frame named, the top card is where the view is, so the
+  // sheet has somewhere to scroll to if the toggle is hit straight away.
+  if (ROWS[SEL]) { FOCUS = ROWS[SEL].filename; syncUrl(false); }
   render(d);
   if (at >= 0) document.querySelectorAll(".card")[at]
     ?.scrollIntoView({ block: "center", behavior: "smooth" });
@@ -935,7 +938,17 @@ function paint() {
   if (el) el.scrollIntoView({ block: "nearest" });
 }
 
-function select(i) { SEL = i; paint(); }
+// The selected card is the frame the view is "on", so it is what the contact
+// sheet scrolls to and what the URL names. Keeping FOCUS in step here is what
+// makes the view toggle carry the current card rather than the last jump.
+function setSel(i) {
+  SEL = Math.max(0, Math.min(i, ROWS.length - 1));
+  const r = ROWS[SEL];
+  if (r) { FOCUS = r.filename; syncUrl(false); }
+  paint();
+}
+
+function select(i) { setSel(i); }
 function go(p) { PAGE = p; FOCUS = null; syncUrl(true); load(); }
 
 // ── Lightbox: one frame in the context of its neighbours ────────────────────
@@ -1054,10 +1067,10 @@ document.addEventListener("keydown", (e) => {
   // `r` for racing, not `c`: `c` collided with cmd-c. The modifier guard above
   // now stops that anyway, but the binding is not worth reclaiming.
   const keys = { a: "ad", r: "content", o: "other" };
-  if (keys[e.key]) { mark(SEL, keys[e.key]); SEL = Math.min(SEL + 1, ROWS.length - 1); paint(); }
+  if (keys[e.key]) { mark(SEL, keys[e.key]); setSel(SEL + 1); }
   else if (e.key === "x") mark(SEL, null);
-  else if (e.key === "j" || e.key === "ArrowDown" || e.key === "ArrowRight") { SEL = Math.min(SEL + 1, ROWS.length - 1); paint(); }
-  else if (e.key === "k" || e.key === "ArrowUp" || e.key === "ArrowLeft") { SEL = Math.max(SEL - 1, 0); paint(); }
+  else if (e.key === "j" || e.key === "ArrowDown" || e.key === "ArrowRight") setSel(SEL + 1);
+  else if (e.key === "k" || e.key === "ArrowUp" || e.key === "ArrowLeft") setSel(SEL - 1);
   else if (e.key === "Enter") { const r = ROWS[SEL]; if (r) zoom(r.filename); }
 });
 
