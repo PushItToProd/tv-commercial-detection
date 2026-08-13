@@ -1,0 +1,623 @@
+#!/usr/bin/env python3
+"""Standalone FastAPI viewer for auditing the experiments' ground truth.
+
+The numbers in `notes/temporal-hysteresis-2026-08.md` and
+`notes/broadcast-structure-2026-08.md` are all measured against labels that were
+assigned by reading contact sheets, not by the operator. This app puts each
+labelled frame back in front of a human alongside every independent signal that
+bears on it, so the labels themselves can be checked.
+
+Nothing here writes to the experiment data. Human verdicts go to a separate
+`review_verdicts.json`, so the audit and the thing being audited stay distinct.
+
+Usage:
+    uv run python experiments/review_ground_truth.py
+    uv run python experiments/review_ground_truth.py --port 8766 --dataset structure
+
+Review order matters more than volume. Three filters carry most of the value:
+
+- `conflict` — an OpenCV anchor contradicts the label. Objectively suspect, and
+  small enough to clear in one sitting.
+- `cross_conflict` — the two experiments labelled the same frame differently.
+  Their captures overlap, so these are two independent passes disagreeing; at
+  least one label is wrong.
+- `unanchored` — nothing behind the label but the original eyeball pass.
+"""
+
+import argparse
+import json
+import sys
+from datetime import UTC, datetime
+from pathlib import Path
+
+import uvicorn
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
+from pydantic import BaseModel
+
+HERE = Path(__file__).parent
+SERVER = HERE.parent
+BROADCAST = Path(
+    "/mnt/data/tv-commercial-detector/full_broadcasts/tv.youtube.com/USA_4K_Iowa_Corn_350"
+)
+VERDICTS = HERE / "review_verdicts.json"
+
+# How near a segment edge a frame has to be to count as a boundary frame. The
+# ground truth's edges were placed by eye to +/-30 frames and then refined, so
+# this is the window where residual error is plausible.
+BOUNDARY_WINDOW = 3
+
+
+# ── Loading ───────────────────────────────────────────────────────────────────
+
+def _jsonl(path: Path) -> list[dict]:
+    if not path.exists():
+        return []
+    with path.open() as fh:
+        return [json.loads(line) for line in fh if line.strip()]
+
+
+def _json(path: Path):
+    if not path.exists():
+        return None
+    with path.open() as fh:
+        return json.load(fh)
+
+
+def hysteresis_labels() -> dict[str, str]:
+    """Every frame the hysteresis experiment labelled, keyed by filename.
+
+    Its continuous capture is a prefix of the structure capture, so the same
+    frames carry two labels assigned by two independent passes. Where they
+    differ, at least one is wrong.
+    """
+    out: dict[str, str] = {}
+    for name in ("cont_dataset.jsonl", "dataset.jsonl"):
+        for r in _jsonl(HERE / "hysteresis" / name):
+            if r.get("gt"):
+                out[r["filename"]] = r["gt"]
+    return out
+
+
+def load_structure() -> list[dict]:
+    """The 4775-frame whole-broadcast capture, labelled by segment."""
+    truth = _json(HERE / "structure" / "truth.json")
+    if not truth:
+        return []
+    cross = hysteresis_labels()
+    visual = _jsonl(HERE / "structure" / "visual.jsonl")
+    evidence = {r["i"]: r for r in _jsonl(HERE / "structure" / "evidence.jsonl")}
+    furniture = {r["filename"]: r for r in _jsonl(HERE / "structure" / "furniture.jsonl")}
+    audio = {r["filename"]: r for r in _jsonl(HERE / "structure" / "audio.jsonl")}
+
+    # Frame index -> the segment covering it, so each frame can show which run
+    # of the ground truth put it where it is.
+    seg_of: dict[int, dict] = {}
+    edges: set[int] = set()
+    for s in truth["segments"]:
+        for i in range(s["start"], s["end"] + 1):
+            seg_of[i] = s
+        edges.add(s["start"])
+        edges.add(s["end"])
+
+    rows = []
+    for v in visual:
+        i, fn = v["i"], v["filename"]
+        gt = truth["labels"].get(fn)
+        if gt is None:
+            continue
+        ev = evidence.get(i, {})
+        seg = seg_of.get(i, {})
+        anchor = ev.get("anchor") or ""
+        near_edge = min((abs(i - e) for e in edges), default=999)
+        rows.append({
+            "dataset": "structure",
+            "i": i,
+            "filename": fn,
+            "t": ev.get("t"),
+            "gt": gt,
+            "anchor": anchor,
+            "cross_gt": cross.get(fn),
+            "conflict": bool(anchor) and anchor != gt,
+            "cross_conflict": bool(cross.get(fn)) and cross[fn] != gt,
+            "unanchored": not anchor,
+            "boundary": near_edge <= BOUNDARY_WINDOW,
+            "boundary_dist": near_edge,
+            "seg": f"{seg.get('start')}-{seg.get('end')}" if seg else "",
+            "seg_kind": seg.get("kind") or "",
+            "bug": ev.get("bug"),
+            "banner": ev.get("banner"),
+            "black": ev.get("black"),
+            "p_ad": ev.get("p_audio+furniture"),
+            "p_furniture": ev.get("p_furniture"),
+            "p_audio": ev.get("p_audio"),
+            "peacock": v.get("peacock"),
+            "usa": v.get("usa"),
+            "sbs": v.get("sbs"),
+            "edge_all": (furniture.get(fn) or {}).get("edge_all"),
+            "rms_db": (audio.get(fn) or {}).get("rms_db"),
+            "preds": [],
+        })
+    return rows
+
+
+def _load_hysteresis(name: str, dataset: str, replay_name: str, images: Path) -> list[dict]:
+    rows_in = _jsonl(HERE / "hysteresis" / dataset)
+    if not rows_in:
+        return []
+    replay = _json(HERE / "hysteresis" / replay_name) or {}
+    # The continuous capture is a prefix of the structure capture, so the
+    # structure ground truth is an independent second opinion on the same frames.
+    truth = _json(HERE / "structure" / "truth.json") or {"labels": {}}
+    other = truth["labels"]
+
+    rows = []
+    for r in rows_in:
+        fn = r["filename"]
+        preds = replay.get(fn, [])
+        cross = other.get(fn)
+        rows.append({
+            "dataset": name,
+            "i": r["i"],
+            "filename": fn,
+            "t": r.get("video_offset"),
+            "timestamp": r.get("timestamp"),
+            "gt": r.get("gt"),
+            "cross_gt": cross,
+            "anchor": "",
+            "conflict": False,
+            "cross_conflict": bool(cross) and cross != r.get("gt"),
+            "unanchored": cross is None,
+            "boundary": False,
+            "boundary_dist": 999,
+            "episode": r.get("episode"),
+            "live_class": r.get("live_class"),
+            "live_reason": r.get("live_reason"),
+            "correct_label": r.get("correct_label"),
+            "peacock": r.get("peacock"),
+            "usa": r.get("usa"),
+            "sbs": r.get("sbs"),
+            "images_dir": str(images),
+            "preds": preds,
+        })
+    return rows
+
+
+def summarize_preds(row: dict) -> None:
+    """Fold the replay reps into a majority verdict and a flip flag."""
+    preds = row.get("preds") or []
+    if not preds:
+        row["pred"] = None
+        row["pred_agrees"] = None
+        row["flips"] = False
+        return
+    types = [p.get("type") for p in preds]
+    top = max(set(types), key=types.count)
+    row["pred"] = top
+    row["pred_agrees"] = (top == row["gt"])
+    row["flips"] = len(set(types)) > 1
+    row["pred_reason"] = preds[0].get("reason")
+
+
+DATASETS: dict[str, list[dict]] = {}
+
+
+def load_all() -> None:
+    structure = load_structure()
+    for r in structure:
+        r["images_dir"] = str(BROADCAST / "images")
+    burst = _load_hysteresis(
+        "burst", "dataset.jsonl", "replay.json", SERVER / "frames" / "images"
+    )
+    cont = _load_hysteresis(
+        "cont", "cont_dataset.jsonl", "cont_replay.json", BROADCAST / "images"
+    )
+    for rows in (structure, burst, cont):
+        for r in rows:
+            summarize_preds(r)
+    DATASETS.clear()
+    DATASETS.update({"structure": structure, "burst": burst, "cont": cont})
+
+
+# ── Verdicts ──────────────────────────────────────────────────────────────────
+
+def load_verdicts() -> dict:
+    return _json(VERDICTS) or {}
+
+
+def save_verdicts(v: dict) -> None:
+    tmp = VERDICTS.with_suffix(".json.tmp")
+    with tmp.open("w") as fh:
+        json.dump(v, fh, indent=1, sort_keys=True)
+    tmp.replace(VERDICTS)
+
+
+class Verdict(BaseModel):
+    dataset: str
+    filename: str
+    verdict: str | None = None  # "agree" | "disagree" | "unsure" | None to clear
+    note: str = ""
+
+
+# ── Filters ───────────────────────────────────────────────────────────────────
+
+FILTERS = {
+    "conflict": lambda r, v: r["conflict"],
+    "cross_conflict": lambda r, v: r["cross_conflict"],
+    "unanchored": lambda r, v: r["unanchored"],
+    "boundary": lambda r, v: r["boundary"],
+    "model_wrong": lambda r, v: r.get("pred_agrees") is False,
+    "model_flips": lambda r, v: r.get("flips"),
+    "ad": lambda r, v: r["gt"] == "ad",
+    "content": lambda r, v: r["gt"] == "content",
+    "reviewed": lambda r, v: v is not None,
+    "unreviewed": lambda r, v: v is None,
+    "disputed": lambda r, v: (v or {}).get("verdict") == "disagree",
+    "all": lambda r, v: True,
+}
+
+
+def app_factory(default_dataset: str) -> FastAPI:
+    app = FastAPI(title="Ground truth review")
+
+    @app.get("/", response_class=HTMLResponse)
+    def index() -> str:
+        return _HTML.replace("__DEFAULT_DATASET__", json.dumps(default_dataset))
+
+    @app.get("/api/frames")
+    def frames(
+        dataset: str = "structure",
+        filter: str = "conflict",
+        page: int = 1,
+        per_page: int = 60,
+    ) -> JSONResponse:
+        rows = DATASETS.get(dataset)
+        if rows is None:
+            raise HTTPException(404, f"unknown dataset {dataset!r}")
+        pred = FILTERS.get(filter)
+        if pred is None:
+            raise HTTPException(400, f"unknown filter {filter!r}")
+        verdicts = load_verdicts().get(dataset, {})
+        sel = [r for r in rows if pred(r, verdicts.get(r["filename"]))]
+        total = len(sel)
+        per_page = max(1, min(per_page, 500))
+        start = (page - 1) * per_page
+        page_rows = []
+        for r in sel[start:start + per_page]:
+            out = dict(r)
+            out["verdict"] = verdicts.get(r["filename"])
+            page_rows.append(out)
+        return JSONResponse({
+            "rows": page_rows,
+            "total": total,
+            "page": page,
+            "per_page": per_page,
+            "pages": max(1, (total + per_page - 1) // per_page),
+            "counts": counts_for(rows, verdicts),
+        })
+
+    @app.get("/api/summary")
+    def summary() -> JSONResponse:
+        all_v = load_verdicts()
+        out = {}
+        for name, rows in DATASETS.items():
+            if not rows:
+                continue
+            out[name] = counts_for(rows, all_v.get(name, {}))
+        return JSONResponse(out)
+
+    @app.post("/api/verdict")
+    def set_verdict(v: Verdict) -> JSONResponse:
+        if v.dataset not in DATASETS:
+            raise HTTPException(404, f"unknown dataset {v.dataset!r}")
+        store = load_verdicts()
+        ds = store.setdefault(v.dataset, {})
+        if v.verdict is None:
+            ds.pop(v.filename, None)
+        else:
+            ds[v.filename] = {
+                "verdict": v.verdict,
+                "note": v.note,
+                "at": datetime.now(UTC).isoformat(timespec="seconds"),
+            }
+        save_verdicts(store)
+        return JSONResponse({"ok": True, "verdict": ds.get(v.filename)})
+
+    @app.post("/api/reload")
+    def reload() -> JSONResponse:
+        """Re-read the experiment files. Useful while a replay is still running."""
+        load_all()
+        return JSONResponse({n: len(r) for n, r in DATASETS.items()})
+
+    @app.get("/image/{dataset}/{filename}")
+    def image(dataset: str, filename: str) -> FileResponse:
+        rows = DATASETS.get(dataset)
+        if not rows:
+            raise HTTPException(404, "unknown dataset")
+        if "/" in filename or ".." in filename:
+            raise HTTPException(400, "bad filename")
+        path = Path(rows[0]["images_dir"]) / filename
+        if not path.exists():
+            raise HTTPException(404, f"no such frame {filename}")
+        return FileResponse(path)
+
+    return app
+
+
+def counts_for(rows: list[dict], verdicts: dict) -> dict[str, int]:
+    c = {k: 0 for k in FILTERS}
+    for r in rows:
+        v = verdicts.get(r["filename"])
+        for k, fn in FILTERS.items():
+            if fn(r, v):
+                c[k] += 1
+    c["agree"] = sum(1 for x in verdicts.values() if x.get("verdict") == "agree")
+    return c
+
+
+# ── HTML ──────────────────────────────────────────────────────────────────────
+# Placeholders are substituted at runtime so the JS braces need no escaping.
+
+_HTML = r"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Ground truth review</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  body { font-family: sans-serif; background: #1a1a1a; color: #eee; margin: 0; padding: 1rem; }
+  h1 { margin: 0 0 0.75rem; font-size: 1.05rem; opacity: 0.6; }
+  a { color: #7ab; }
+
+  .bar {
+    background: #252525; border-radius: 8px; padding: 0.6rem 1rem;
+    display: flex; flex-wrap: wrap; gap: 0.4rem 1.2rem; align-items: center;
+    margin-bottom: 0.75rem;
+  }
+  .stat { display: flex; flex-direction: column; align-items: center; min-width: 3.5rem; }
+  .stat .val { font-size: 1.25rem; font-weight: bold; }
+  .stat .lbl { font-size: 0.65rem; opacity: 0.5; text-transform: uppercase; letter-spacing: .03em; }
+  .stat.bad .val { color: #f55; }
+  .stat.good .val { color: #4d4; }
+
+  #controls { margin-bottom: 0.75rem; display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
+  button, select {
+    padding: 0.28rem 0.7rem; border: 2px solid #444; border-radius: 4px;
+    background: transparent; color: #ccc; cursor: pointer; font-size: 0.8rem;
+  }
+  button:hover { background: #2e2e2e; }
+  button.active { background: #383838; border-color: #777; color: #fff; }
+  select { background: #1a1a1a; }
+  #counter { margin-left: auto; opacity: 0.5; font-size: 0.8rem; }
+  .hint { font-size: 0.72rem; opacity: 0.4; margin-bottom: 0.6rem; }
+
+  .grid { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+  .card {
+    background: #242424; border-radius: 8px; overflow: hidden;
+    width: 320px; display: flex; flex-direction: column; border: 2px solid #3a3a3a;
+  }
+  .card.sel { border-color: #7ab; box-shadow: 0 0 0 2px #7ab4; }
+  .card.agree    { border-color: #2a5; }
+  .card.disagree { border-color: #c33; }
+  .card.unsure   { border-color: #c92; }
+  .card img { width: 100%; display: block; cursor: zoom-in; background: #111; min-height: 80px; }
+  .fn { padding: 0.25rem 0.5rem; font-size: 0.6rem; opacity: 0.35; word-break: break-all; }
+  .rows { padding: 0.35rem 0.5rem; display: flex; flex-direction: column; gap: 0.22rem; font-size: 0.75rem; }
+  .row { display: flex; gap: 0.4rem; align-items: baseline; }
+  .k { opacity: 0.42; width: 5.2rem; flex-shrink: 0; font-size: 0.7rem; }
+  .badge { display: inline-block; padding: 0.08rem 0.4rem; border-radius: 3px; font-size: 0.7rem; font-weight: bold; }
+  .badge.ad { background: #a02; color: #fff; }
+  .badge.content { background: #060; color: #dfd; }
+  .badge.unknown, .badge.none { background: #555; color: #ccc; }
+  .warn { color: #f90; }
+  .reply {
+    margin: 0.25rem 0.5rem 0.4rem; padding: 0.35rem 0.45rem; background: #161616;
+    border-radius: 4px; border-left: 2px solid #c60; font-size: 0.68rem;
+    line-height: 1.45; color: #bbb; max-height: 6rem; overflow-y: auto;
+  }
+  .acts { display: flex; gap: 0.25rem; padding: 0.35rem 0.5rem 0.5rem; }
+  .acts button { flex: 1; padding: 0.25rem 0; font-size: 0.72rem; }
+  .note { width: 100%; background: #1a1a1a; color: #ccc; border: 1px solid #444;
+          border-radius: 4px; font-size: 0.7rem; padding: 0.2rem 0.35rem; }
+
+  #lightbox { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.93);
+              align-items: center; justify-content: center; z-index: 100; }
+  #lightbox.open { display: flex; }
+  #lightbox img { max-width: 96vw; max-height: 94vh; border-radius: 6px; }
+  #lb-close { position: fixed; top: .5rem; right: 1rem; font-size: 2.4rem; cursor: pointer; color: #fff; }
+</style>
+</head>
+<body>
+<h1>Ground truth review — is the label right?</h1>
+<div class="bar" id="bar"></div>
+<div id="controls">
+  <select id="dataset">
+    <option value="structure">structure (4775, whole broadcast)</option>
+    <option value="burst">burst (1400, 2026-08-09)</option>
+    <option value="cont">cont (1572, continuous)</option>
+  </select>
+  <button data-f="conflict">Anchor conflicts</button>
+  <button data-f="cross_conflict">Cross-experiment conflicts</button>
+  <button data-f="unanchored">Unanchored</button>
+  <button data-f="boundary">Boundaries</button>
+  <button data-f="model_wrong">Model disagrees</button>
+  <button data-f="model_flips">Model flips</button>
+  <button data-f="ad">GT ad</button>
+  <button data-f="content">GT content</button>
+  <button data-f="disputed">My disputes</button>
+  <button data-f="unreviewed">Unreviewed</button>
+  <button data-f="all">All</button>
+  <button id="reload" title="Re-read the experiment files">⟳</button>
+  <span id="counter"></span>
+</div>
+<div class="hint">
+  Click a card to select it. <b>a</b> agree with the label · <b>d</b> disagree · <b>u</b> unsure ·
+  <b>x</b> clear · <b>j/k</b> or arrows to move · click the image to zoom.
+  Verdicts save to <code>experiments/review_verdicts.json</code>.
+</div>
+<div class="grid" id="grid"></div>
+<div id="pager" style="margin-top:1rem;display:flex;gap:.5rem;align-items:center"></div>
+<div id="lightbox"><span id="lb-close">&times;</span><img id="lb-img" src="" alt=""></div>
+
+<script>
+let DATASET = __DEFAULT_DATASET__;
+let FILTER = "conflict";
+let PAGE = 1;
+let ROWS = [];
+let SEL = 0;
+
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+const num = (x, d=3) => (x === null || x === undefined) ? "–" : (typeof x === "number" ? x.toFixed(d) : x);
+
+function badge(v) {
+  const c = v === "ad" ? "ad" : v === "content" ? "content" : "none";
+  return `<span class="badge ${c}">${esc(v ?? "—")}</span>`;
+}
+
+async function load() {
+  const r = await fetch(`/api/frames?dataset=${DATASET}&filter=${FILTER}&page=${PAGE}&per_page=60`);
+  if (!r.ok) { $("#grid").innerHTML = `<p class="warn">${esc(await r.text())}</p>`; return; }
+  const d = await r.json();
+  ROWS = d.rows; SEL = 0;
+  render(d);
+}
+
+function render(d) {
+  const c = d.counts;
+  $("#bar").innerHTML = [
+    ["conflict", "anchor", "bad"], ["cross_conflict", "cross-pass", "bad"],
+    ["unanchored", "unanchored", ""],
+    ["boundary", "boundary", ""], ["model_wrong", "model wrong", ""],
+    ["model_flips", "model flips", ""], ["reviewed", "reviewed", "good"],
+    ["disputed", "disputed", "bad"], ["all", "frames", ""],
+  ].map(([k, lbl, cls]) => `<div class="stat ${cls}"><span class="val">${c[k] ?? 0}</span><span class="lbl">${lbl}</span></div>`).join("");
+
+  document.querySelectorAll("#controls button").forEach(b =>
+    b.classList.toggle("active", b.dataset.f === FILTER));
+  $("#counter").textContent = `${d.total} frames · page ${d.page}/${d.pages}`;
+
+  $("#grid").innerHTML = ROWS.map((r, idx) => card(r, idx)).join("");
+  $("#pager").innerHTML = d.pages > 1
+    ? `<button onclick="go(${Math.max(1, d.page - 1)})">← prev</button>
+       <span style="opacity:.5;font-size:.8rem">page ${d.page} of ${d.pages}</span>
+       <button onclick="go(${Math.min(d.pages, d.page + 1)})">next →</button>` : "";
+  paint();
+}
+
+function card(r, idx) {
+  const v = r.verdict?.verdict ?? "";
+  const rows = [];
+  rows.push(`<div class="row"><span class="k">label (AI)</span>${badge(r.gt)} <span style="opacity:.4;font-size:.68rem">${esc(r.seg_kind || "")}</span></div>`);
+  if (r.anchor !== undefined && r.anchor !== "")
+    rows.push(`<div class="row"><span class="k">opencv anchor</span>${badge(r.anchor)} ${r.conflict ? '<span class="warn">← conflicts</span>' : ""}</div>`);
+  if (r.cross_gt)
+    rows.push(`<div class="row"><span class="k">other pass</span>${badge(r.cross_gt)} ${r.cross_conflict ? '<span class="warn">← conflicts</span>' : ""}</div>`);
+  if (r.pred)
+    rows.push(`<div class="row"><span class="k">model</span>${badge(r.pred)} <span style="opacity:.45;font-size:.68rem">${esc(r.pred_reason || "")}${r.flips ? " · flips" : ""}</span></div>`);
+  if (r.live_class)
+    rows.push(`<div class="row"><span class="k">live said</span>${badge(r.live_class)} <span style="opacity:.45;font-size:.68rem">${esc(r.live_reason || "")}</span></div>`);
+  rows.push(`<div class="row"><span class="k">frame</span><span style="opacity:.6">i=${r.i} t=${num(r.t, 1)}s ${r.seg ? "seg " + esc(r.seg) : ""}${r.boundary ? ` <span class="warn">edge±${r.boundary_dist}</span>` : ""}</span></div>`);
+  rows.push(`<div class="row"><span class="k">scores</span><span style="opacity:.6">usa ${num(r.usa)} · pea ${num(r.peacock)} · sbs ${num(r.sbs)}</span></div>`);
+  if (r.p_ad !== undefined && r.p_ad !== null)
+    rows.push(`<div class="row"><span class="k">p(ad)</span><span style="opacity:.6">${num(r.p_ad, 4)} (furn ${num(r.p_furniture)})</span></div>`);
+
+  const reply = (r.preds || []).map(p => p.reply).find(x => x && x !== "(opencv)");
+  return `<div class="card ${v}" data-idx="${idx}" onclick="select(${idx})">
+    <img src="/image/${DATASET}/${encodeURIComponent(r.filename)}" loading="lazy"
+         onclick="event.stopPropagation();zoom(this.src)">
+    <div class="fn">${esc(r.filename)}</div>
+    <div class="rows">${rows.join("")}</div>
+    ${reply ? `<div class="reply">${esc(reply)}</div>` : ""}
+    <div class="acts">
+      <button onclick="event.stopPropagation();mark(${idx},'agree')">agree</button>
+      <button onclick="event.stopPropagation();mark(${idx},'disagree')">disagree</button>
+      <button onclick="event.stopPropagation();mark(${idx},'unsure')">?</button>
+      <button onclick="event.stopPropagation();mark(${idx},null)">×</button>
+    </div>
+    <div style="padding:0 .5rem .5rem"><input class="note" placeholder="note"
+      value="${esc(r.verdict?.note ?? "")}" onclick="event.stopPropagation()"
+      onchange="note(${idx}, this.value)"></div>
+  </div>`;
+}
+
+function paint() {
+  document.querySelectorAll(".card").forEach((el, i) => el.classList.toggle("sel", i === SEL));
+  const el = document.querySelectorAll(".card")[SEL];
+  if (el) el.scrollIntoView({ block: "nearest" });
+}
+
+function select(i) { SEL = i; paint(); }
+function go(p) { PAGE = p; load(); }
+function zoom(src) { $("#lb-img").src = src; $("#lightbox").classList.add("open"); }
+
+async function mark(idx, verdict) {
+  const r = ROWS[idx];
+  const res = await fetch("/api/verdict", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ dataset: DATASET, filename: r.filename, verdict,
+                           note: r.verdict?.note ?? "" }),
+  });
+  const d = await res.json();
+  r.verdict = d.verdict;
+  const el = document.querySelectorAll(".card")[idx];
+  el.classList.remove("agree", "disagree", "unsure");
+  if (verdict) el.classList.add(verdict);
+}
+
+async function note(idx, text) {
+  const r = ROWS[idx];
+  await fetch("/api/verdict", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ dataset: DATASET, filename: r.filename,
+                           verdict: r.verdict?.verdict ?? "unsure", note: text }),
+  });
+}
+
+document.addEventListener("keydown", (e) => {
+  if (e.target.tagName === "INPUT") return;
+  if ($("#lightbox").classList.contains("open") && e.key === "Escape")
+    return $("#lightbox").classList.remove("open");
+  const keys = { a: "agree", d: "disagree", u: "unsure" };
+  if (keys[e.key]) { mark(SEL, keys[e.key]); SEL = Math.min(SEL + 1, ROWS.length - 1); paint(); }
+  else if (e.key === "x") mark(SEL, null);
+  else if (e.key === "j" || e.key === "ArrowDown" || e.key === "ArrowRight") { SEL = Math.min(SEL + 1, ROWS.length - 1); paint(); }
+  else if (e.key === "k" || e.key === "ArrowUp" || e.key === "ArrowLeft") { SEL = Math.max(SEL - 1, 0); paint(); }
+  else if (e.key === "Enter") { const el = document.querySelectorAll(".card img")[SEL]; if (el) zoom(el.src); }
+});
+
+$("#lightbox").onclick = () => $("#lightbox").classList.remove("open");
+$("#dataset").onchange = (e) => { DATASET = e.target.value; PAGE = 1; load(); };
+document.querySelectorAll("#controls button[data-f]").forEach(b =>
+  b.onclick = () => { FILTER = b.dataset.f; PAGE = 1; load(); });
+$("#reload").onclick = async () => { await fetch("/api/reload", { method: "POST" }); load(); };
+
+$("#dataset").value = DATASET;
+load();
+</script>
+</body>
+</html>
+"""
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--host", default="0.0.0.0")
+    ap.add_argument("--port", type=int, default=8766)
+    ap.add_argument("--dataset", default="structure", choices=["structure", "burst", "cont"])
+    args = ap.parse_args()
+
+    load_all()
+    for name, rows in DATASETS.items():
+        n_pred = sum(1 for r in rows if r.get("pred"))
+        print(f"{name:10s} {len(rows):5d} frames  {n_pred:5d} with model predictions",
+              file=sys.stderr)
+    if not any(DATASETS.values()):
+        sys.exit("no experiment data found — run this from the server/ checkout")
+
+    print(f"\n  http://localhost:{args.port}/\n", file=sys.stderr)
+    uvicorn.run(app_factory(args.dataset), host=args.host, port=args.port, log_level="warning")
+
+
+if __name__ == "__main__":
+    main()

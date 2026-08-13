@@ -1,9 +1,14 @@
 """Re-run the live nascar_on_nbc pipeline over the labelled window.
 
 Runs the real `classify_image`, so the OpenCV short-circuits and both LLM passes
-behave exactly as in production, and records per-frame verdict, reason and wall
-time. Repeats give the per-frame verdict distribution, which matters because the
-model is known to flip between identical runs at the production temperature.
+behave exactly as in production, and records per-frame verdict, reason, wall time
+and the model's raw reply. Repeats give the per-frame verdict distribution, which
+matters because the model is known to flip between identical runs at the
+production temperature.
+
+The reply is what makes a disagreement reviewable after the fact: a verdict alone
+cannot distinguish the model misreading the frame from the frame being genuinely
+ambiguous. `evaluate.py` ignores the field.
 
 Audio is off: 61% of this day's clips are digital silence (see
 notes/misclassification-analysis-2026-08.md), and feeding silence to the model
@@ -54,12 +59,12 @@ def main() -> None:
             t0 = time.perf_counter()
             try:
                 res = nbc.classify_image(str(path))
-                verdict, reason = res.type, res.reason
+                verdict, reason, reply = res.type, res.reason, res.reply
             except Exception as e:
-                verdict, reason = "error", f"{type(e).__name__}"
+                verdict, reason, reply = "error", f"{type(e).__name__}", None
             dt = time.perf_counter() - t0
             results.setdefault(r["filename"], []).append(
-                {"rep": rep, "type": verdict, "reason": reason, "secs": dt}
+                {"rep": rep, "type": verdict, "reason": reason, "secs": dt, "reply": reply}
             )
             if n % 200 == 0:
                 el = time.perf_counter() - t_start

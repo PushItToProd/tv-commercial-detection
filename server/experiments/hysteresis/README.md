@@ -49,6 +49,29 @@ operator's own `/report_wrong` corrections: 10/10 agreement.
 `burst_labels.py` and `frame_labels.py` carry the labelling rule and, more
 usefully, the cases where it does not decide.
 
+## Auditing the ground truth
+
+The labels above were read off contact sheets, not supplied by the operator, so
+they carry an error bar of their own.
+`experiments/review_ground_truth.py` replays each labelled frame next to its
+signals and records a per-frame human verdict in `review_verdicts.json`.
+
+```bash
+uv run python experiments/review_ground_truth.py --dataset cont   # :8766
+```
+
+The continuous capture is a prefix of the recording the `structure/` experiment
+labelled independently, which makes 1572 frames a direct check of one pass
+against the other. They agree on 95.93%. All 64 disagreements run the same way —
+`content` here, `ad` there — and fall in four contiguous runs rather than at
+edges; frames 111–142 and 275–301 are each about a minute long and carry no
+OpenCV anchor to break the tie. Treat 4% as the uncertainty on any accuracy
+figure in `results_continuous.json`.
+
+`replay_pipeline.py` also records the model's raw reply per frame, so the
+`model_wrong` and `model_flips` filters show what the model actually said about
+a frame it got wrong, not just that it was wrong.
+
 ## Files
 
 | File | Purpose |

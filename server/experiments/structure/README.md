@@ -90,6 +90,42 @@ The helper scripts used to produce and check it are kept:
 - `sheet_disputes.py` — one row per eyeball/signal disagreement
 - `refit_truth.py` — the furniture-derived boundary proposal
 
+## Auditing the ground truth
+
+`ground_truth.py` documents how the labels were built, but the labels were
+assigned by reading contact sheets rather than by the operator, so the numbers
+here are only as good as that reading.
+`experiments/review_ground_truth.py` puts each labelled frame back on screen
+next to every independent signal bearing on it, and records a human verdict per
+frame in `review_verdicts.json` — kept separate from the experiment data so the
+audit and the thing audited never mix.
+
+```bash
+uv run python experiments/review_ground_truth.py     # http://localhost:8766/
+```
+
+Two filters find the frames actually worth a human's time:
+
+- **Anchor conflicts** (27) — the USA/peacock bug was detected but the frame is
+  labelled `ad`. All 27 sit within nine frames of a break edge and score 0.91+
+  against a 0.65 threshold, so the bug is unmistakably on screen. Either the
+  edges are placed a few frames wide, or the bug genuinely survives into the
+  opening wipe — which the `nonstop` convention in `ground_truth.py` already
+  counts as part of the break. The distinction needs eyes, not more code.
+- **Cross-experiment conflicts** (64) — see below.
+
+The hysteresis experiment's continuous capture is a *prefix of this same
+recording*, so 1572 frames carry two labels produced by two independent passes.
+They agree on 95.93% and disagree on 64 frames, every one of them in the same
+direction: hysteresis says `content`, this experiment says `ad`. The
+disagreements are not boundary jitter but four contiguous runs, two of them
+about a minute long (frames 111–142 and 275–301). Those two runs carry no
+OpenCV anchor either way, so nothing but a human decides them.
+
+That 4% is the honest uncertainty band on any label-derived number here, and it
+is wider than the gaps between the top policies in `results.json` — several of
+which differ by less than a tenth of a point.
+
 ## Gotchas
 
 - **Never split these clips at random.** They are 4 s long and arrive every 2 s,
