@@ -135,6 +135,14 @@ broadcast, so a frame reached that way can sit outside the current filter; the
 sheet widens to `all` once rather than landing on nothing. Every option is a
 query param, so a view is linkable and the back button works.
 
+Breaks run for dozens of consecutive frames, so rulings are made in runs rather
+than one at a time. Shift+click two frames — in either view — to take everything
+between them, then edit the run in one pass. Unlike a card, where a click is the
+write, the bulk editor shows the whole selection as a strip and changes nothing
+until Save. Ruling and note move independently, each defaulting to "leave
+alone", so a note can be swept across a run without disturbing rulings already
+made frame by frame.
+
 Two filters find the frames actually worth a human's time:
 
 - **Anchor conflicts** (27) — the USA/peacock bug was detected but the frame is

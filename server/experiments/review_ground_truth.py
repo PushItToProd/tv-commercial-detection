@@ -298,6 +298,21 @@ class Verdict(BaseModel):
     clear: bool = False
 
 
+class BulkVerdict(BaseModel):
+    """A ruling applied to a run of frames.
+
+    Ruling and note move independently, each with an "leave alone" default, so a
+    sweep can set a note across a run without touching rulings already made one
+    at a time, or vice versa. `null` means untouched; clearing is explicit.
+    """
+
+    dataset: str
+    filenames: list[str]
+    verdict: str | None = None  # None leaves existing rulings alone
+    clear_verdict: bool = False  # explicit "remove the ruling"
+    note: str | None = None  # None leaves existing notes alone
+
+
 def ruling_agrees(v: dict | None, gt: str) -> bool | None:
     if not v or not v.get("verdict"):
         return None
@@ -450,6 +465,53 @@ def app_factory(default_dataset: str) -> FastAPI:
             "verdict": ds.get(v.filename),
             "elsewhere": rulings_elsewhere(v.dataset, v.filename, store),
         })
+
+    @app.post("/api/verdict/bulk")
+    def set_verdicts(v: BulkVerdict) -> JSONResponse:
+        """Apply one ruling and/or note to many frames in a single write.
+
+        One write rather than one per frame: a run can be hundreds long, and
+        rewriting the file each time would be both slow and a wider window for
+        a concurrent reviewer to lose a ruling in.
+        """
+        if v.dataset not in DATASETS:
+            raise HTTPException(404, f"unknown dataset {v.dataset!r}")
+        if v.verdict is not None and v.verdict not in VERDICT_LABELS:
+            raise HTTPException(400, f"verdict must be one of {VERDICT_LABELS}")
+        known = POSITIONS.get(v.dataset, {})
+        unknown = [f for f in v.filenames if f not in known]
+        if unknown:
+            raise HTTPException(404, f"{len(unknown)} unknown frame(s), e.g. {unknown[0]}")
+
+        store = load_verdicts()
+        ds = store.setdefault(v.dataset, {})
+        rows = {r["filename"]: r for r in DATASETS[v.dataset]}
+        now = datetime.now(UTC).isoformat(timespec="seconds")
+        changed = cleared = 0
+        for fn in v.filenames:
+            if v.clear_verdict and v.note is None:
+                if ds.pop(fn, None) is not None:
+                    cleared += 1
+                continue
+            rec = dict(ds.get(fn) or {})
+            if v.clear_verdict:
+                rec.pop("verdict", None)
+                rec.pop("judged", None)
+            elif v.verdict is not None:
+                rec["verdict"] = v.verdict
+                rec["judged"] = rows[fn]["gt"]
+            if v.note is not None:
+                rec["note"] = v.note
+            # A record holding neither a ruling nor a note carries nothing.
+            if not rec.get("verdict") and not rec.get("note"):
+                if ds.pop(fn, None) is not None:
+                    cleared += 1
+                continue
+            rec["at"] = now
+            ds[fn] = rec
+            changed += 1
+        save_verdicts(store)
+        return JSONResponse({"ok": True, "changed": changed, "cleared": cleared})
 
     @app.get("/api/sheet")
     def sheet(dataset: str = "structure", filter: str = "conflict") -> JSONResponse:
@@ -689,6 +751,39 @@ _HTML = r"""<!DOCTYPE html>
   #size { width: 8rem; }
   .legend { font-size: .68rem; opacity: .45; display: flex; gap: .9rem; flex-wrap: wrap;
             margin-bottom: .5rem; }
+
+  /* Range selection. The anchor is one end of a range not yet closed. */
+  .card.anchor, .th.anchor { box-shadow: 0 0 0 3px #fb3; z-index: 2; }
+  .card.inrange, .th.inrange { outline: 2px solid #fb3; outline-offset: -2px; }
+  #selbar {
+    position: sticky; top: 0; z-index: 20; display: none;
+    background: #2b2b1a; border: 1px solid #6a5; border-radius: 6px;
+    padding: .45rem .8rem; margin-bottom: .6rem; font-size: .82rem;
+    align-items: center; gap: .8rem;
+  }
+  #selbar.on { display: flex; }
+  #selbar b { color: #fd6; }
+
+  /* Bulk editor. Same controls as a card, but nothing is written until Save. */
+  #bulk { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.9);
+          z-index: 200; align-items: center; justify-content: center; padding: 1rem; }
+  #bulk.open { display: flex; }
+  .bulkbox { background: #202020; border: 1px solid #444; border-radius: 8px;
+             padding: 1rem; max-width: 96vw; max-height: 94vh; overflow-y: auto;
+             display: flex; flex-direction: column; gap: .7rem; }
+  .bulkbox h2 { margin: 0; font-size: 1rem; font-weight: normal; }
+  .bulkbox h2 b { color: #7ab; }
+  #bulkstrip { display: flex; flex-wrap: wrap; gap: 3px; max-height: 42vh;
+               overflow-y: auto; padding: .2rem; background: #161616; border-radius: 4px; }
+  .choice { display: flex; gap: .35rem; flex-wrap: wrap; align-items: center; }
+  .choice button.on { background: #7ab; border-color: #7ab; color: #04121a; font-weight: bold; }
+  #bulknote { width: 100%; min-height: 3.2rem; background: #1a1a1a; color: #ddd;
+              border: 1px solid #444; border-radius: 4px; padding: .4rem; font: inherit;
+              font-size: .8rem; }
+  .bulkrow { display: flex; gap: .6rem; align-items: center; flex-wrap: wrap; }
+  .bulkrow .lbl { font-size: .75rem; opacity: .6; width: 5.5rem; }
+  #bulksave { background: #2a5; border-color: #2a5; color: #041; font-weight: bold; }
+  .muted { font-size: .72rem; opacity: .45; }
 </style>
 </head>
 <body>
@@ -732,6 +827,12 @@ _HTML = r"""<!DOCTYPE html>
   ✅/❌ on a row says whether your ruling backs it; rows stay unmarked until you rule, and an <i>other</i> ruling marks nothing.
   Rulings save to <code>experiments/review_verdicts.json</code>.
 </div>
+<div id="selbar">
+  <span id="selmsg"></span>
+  <button id="seledit">Edit selected…</button>
+  <button id="selclear">Clear selection</button>
+  <span class="muted">shift+click two frames to pick a range · <b>e</b> to edit · Esc to clear</span>
+</div>
 <div class="legend" id="legend" style="display:none">
   <span>border: <b style="color:#f55">red</b> label ad · <b style="color:#4d4">green</b> label content</span>
   <span>dot: your ruling (red ad, green content, amber other)</span>
@@ -742,6 +843,35 @@ _HTML = r"""<!DOCTYPE html>
 <div class="grid" id="grid"></div>
 <div id="sheet" style="display:none"></div>
 <div id="pager" style="margin-top:1rem;display:flex;gap:.5rem;align-items:center"></div>
+<div id="bulk">
+  <div class="bulkbox">
+    <h2>Editing <b id="bulkcount"></b> frames <span class="muted" id="bulkrange"></span></h2>
+    <div id="bulkstrip"></div>
+    <div class="bulkrow">
+      <span class="lbl">ruling</span>
+      <div class="choice" id="bulkchoice">
+        <button data-v="">leave as is</button>
+        <button data-v="ad">ad</button>
+        <button data-v="content">content</button>
+        <button data-v="other">other</button>
+        <button data-v="__clear__">clear ruling</button>
+      </div>
+    </div>
+    <div class="bulkrow" style="align-items:flex-start">
+      <span class="lbl">note</span>
+      <div style="flex:1;min-width:20rem">
+        <label class="muted"><input type="checkbox" id="bulknoteon"> replace the note on every selected frame</label>
+        <textarea id="bulknote" placeholder="left alone unless the box above is ticked"></textarea>
+      </div>
+    </div>
+    <div class="bulkrow" style="justify-content:flex-end">
+      <span class="muted" id="bulkwarn"></span>
+      <button id="bulkcancel">Cancel</button>
+      <button id="bulksave">Save</button>
+    </div>
+  </div>
+</div>
+
 <div id="lightbox">
   <span id="lb-close" title="Close (Esc)">&times;</span>
   <img id="lb-img" src="" alt="">
@@ -800,6 +930,9 @@ function badge(v) {
 }
 
 async function load() {
+  // Range indices point into the list being shown, so any navigation - a new
+  // page, filter, dataset or view - makes them meaningless.
+  clearRange();
   syncUrl(false);
   $("#viewtoggle").textContent = VIEW === "sheet" ? "▤ Cards view" : "▦ Contact sheet";
   $("#sizewrap").style.display = VIEW === "sheet" ? "" : "none";
@@ -847,7 +980,8 @@ async function loadSheet() {
   const w = THUMB, h = Math.round(THUMB * 9 / 16);
   $("#sheet").innerHTML = SHEET.map((n, k) => `
     <div class="th ${n.gt} ${n.conflict ? "conflict" : ""} ${n.contradiction ? "contradiction" : ""} ${n.filename === FOCUS ? "focus" : ""}"
-         style="width:${w}px;height:${h}px" onclick="jumpTo(${k})"
+         style="width:${w}px;height:${h}px"
+         onclick="event.shiftKey ? shiftPick(${k}) : jumpTo(${k})"
          title="i=${n.i} · label ${esc(n.gt)}${n.ruling ? " · ruled " + esc(n.ruling) : ""}">
       <img src="/image/${DATASET}/${encodeURIComponent(n.filename)}" loading="lazy">
       ${n.ruling ? `<span class="dot ${n.ruling}"></span>` : ""}
@@ -944,7 +1078,8 @@ function card(r, idx) {
   }
 
   const reply = (r.preds || []).map(p => p.reply).find(x => x && x !== "(opencv)");
-  return `<div class="card ${cardClass(r)}" data-idx="${idx}" onclick="focusCard(${idx})">
+  return `<div class="card ${cardClass(r)}" data-idx="${idx}"
+       onclick="event.shiftKey ? shiftPick(${idx}) : focusCard(${idx})">
     <img src="/image/${DATASET}/${encodeURIComponent(r.filename)}" loading="lazy"
          title="Click to see this frame in context"
          onclick="event.stopPropagation();zoom('${r.filename}')">
@@ -972,6 +1107,7 @@ function card(r, idx) {
 
 function paint() {
   document.querySelectorAll(".card").forEach((el, i) => el.classList.toggle("sel", i === SEL));
+  paintRange();   // a single-card re-render drops its range classes
   const el = document.querySelectorAll(".card")[SEL];
   if (el) el.scrollIntoView({ block: "nearest" });
 }
@@ -991,6 +1127,55 @@ function setSel(i) {
 // scope chain, and <input> already has a select() that grabs its own text -
 // which silently shadowed the global and made the note field do nothing.
 function focusCard(i) { setSel(i); }
+
+// ── Range selection ─────────────────────────────────────────────────────────
+// Shift+click one frame, then another, to take everything between them. Two
+// explicit clicks rather than "extend from wherever the focus is", because in
+// the sheet a plain click navigates away, so there is no way to place a start
+// without leaving. The same gesture then means the same thing in both views.
+let ANCHOR = null;   // index of an open range's first end
+let RANGE = null;    // {lo, hi} once closed
+
+// Whichever list the current view is showing; range indices are into this.
+function viewList() { return VIEW === "sheet" ? SHEET : ROWS; }
+
+function shiftPick(i) {
+  stopBlink();
+  if (ANCHOR === null || RANGE) {          // start over
+    ANCHOR = i; RANGE = null;
+  } else {
+    RANGE = { lo: Math.min(ANCHOR, i), hi: Math.max(ANCHOR, i) };
+  }
+  paintRange();
+}
+
+function clearRange() { ANCHOR = null; RANGE = null; paintRange(); }
+
+function rangeFrames() {
+  if (!RANGE) return [];
+  return viewList().slice(RANGE.lo, RANGE.hi + 1);
+}
+
+function paintRange() {
+  const cls = VIEW === "sheet" ? ".th" : ".card";
+  document.querySelectorAll(cls).forEach((el, i) => {
+    el.classList.toggle("anchor", ANCHOR !== null && !RANGE && i === ANCHOR);
+    el.classList.toggle("inrange", !!RANGE && i >= RANGE.lo && i <= RANGE.hi);
+  });
+  const bar = $("#selbar");
+  if (RANGE) {
+    const n = RANGE.hi - RANGE.lo + 1;
+    const list = viewList();
+    $("#selmsg").innerHTML = `<b>${n}</b> frames selected ` +
+      `<span class="muted">(i=${list[RANGE.lo]?.i} … ${list[RANGE.hi]?.i})</span>`;
+    bar.classList.add("on");
+  } else if (ANCHOR !== null) {
+    $("#selmsg").innerHTML = `range starts at <b>i=${viewList()[ANCHOR]?.i}</b> — shift+click the other end`;
+    bar.classList.add("on");
+  } else {
+    bar.classList.remove("on");
+  }
+}
 
 // ── Focus blink ─────────────────────────────────────────────────────────────
 // Only a view switch blinks: arriving in the other view, the frame you were on
@@ -1126,13 +1311,78 @@ async function note(idx, text) {
   });
 }
 
+// ── Bulk editor ─────────────────────────────────────────────────────────────
+// Nothing here is written until Save, unlike a card where a click is the write.
+// A sweep can touch hundreds of frames, so it gets a chance to be looked at
+// first, and Cancel has to be a real way out.
+let BULK_V = "";   // "" leave as is · ad/content/other · __clear__
+
+function openBulk() {
+  const frames = rangeFrames();
+  if (!frames.length) return;
+  stopBlink();
+  BULK_V = "";
+  $("#bulknoteon").checked = false;
+  $("#bulknote").value = "";
+  $("#bulkcount").textContent = frames.length;
+  $("#bulkrange").textContent = `i=${frames[0].i} … ${frames[frames.length - 1].i}`;
+  const ruled = frames.filter(f => (f.ruling ?? f.verdict?.verdict)).length;
+  $("#bulkwarn").textContent = ruled
+    ? `${ruled} of these already carry a ruling` : "";
+  $("#bulkstrip").innerHTML = frames.map(f => {
+    const ruling = f.ruling ?? f.verdict?.verdict ?? null;
+    return `<div class="th ${f.gt}" style="width:88px;height:50px"
+      title="i=${f.i} · label ${esc(f.gt)}${ruling ? " · ruled " + esc(ruling) : ""}">
+      <img src="/image/${DATASET}/${encodeURIComponent(f.filename)}" loading="lazy">
+      ${ruling ? `<span class="dot ${ruling}"></span>` : ""}
+      <span class="idx">${f.i}</span></div>`;
+  }).join("");
+  paintBulkChoice();
+  $("#bulk").classList.add("open");
+}
+
+function paintBulkChoice() {
+  document.querySelectorAll("#bulkchoice button").forEach(b =>
+    b.classList.toggle("on", b.dataset.v === BULK_V));
+}
+
+function closeBulk() { $("#bulk").classList.remove("open"); }
+
+async function saveBulk() {
+  const frames = rangeFrames();
+  const noteOn = $("#bulknoteon").checked;
+  if (!frames.length || (BULK_V === "" && !noteOn)) return closeBulk();
+  const body = {
+    dataset: DATASET,
+    filenames: frames.map(f => f.filename),
+    verdict: (BULK_V && BULK_V !== "__clear__") ? BULK_V : null,
+    clear_verdict: BULK_V === "__clear__",
+    note: noteOn ? $("#bulknote").value : null,
+  };
+  const r = await fetch("/api/verdict/bulk", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) { $("#bulkwarn").textContent = await r.text(); return; }
+  closeBulk();
+  clearRange();
+  load();
+}
+
 document.addEventListener("keydown", (e) => {
   // Any keystroke means the reviewer is working; the blink has served its
   // purpose. Ahead of the guards below so typing a note cancels it too.
   stopBlink();
-  if (e.target.tagName === "INPUT") return;
+  // The bulk editor owns the keyboard while it is open.
+  if ($("#bulk").classList.contains("open")) {
+    if (e.key === "Escape") closeBulk();
+    return;
+  }
+  if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
   // Never shadow a browser shortcut: cmd-c / ctrl-a and friends must still work.
   if (e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.key === "e" && RANGE) { e.preventDefault(); return openBulk(); }
+  if (e.key === "Escape" && (RANGE || ANCHOR !== null)) return clearRange();
   // While the lightbox is open the arrows walk the broadcast, not the grid.
   if ($("#lightbox").classList.contains("open")) {
     if (e.key === "Escape") return closeLightbox();
@@ -1165,6 +1415,16 @@ document.addEventListener("keydown", (e) => {
 // Only the backdrop closes — clicks on the image, strip or player must not.
 $("#lightbox").onclick = (e) => { if (e.target.id === "lightbox") closeLightbox(); };
 $("#lb-close").onclick = closeLightbox;
+
+$("#seledit").onclick = openBulk;
+$("#selclear").onclick = clearRange;
+$("#bulkcancel").onclick = closeBulk;
+$("#bulksave").onclick = saveBulk;
+$("#bulk").onclick = (e) => { if (e.target.id === "bulk") closeBulk(); };
+document.querySelectorAll("#bulkchoice button").forEach(b =>
+  b.onclick = () => { BULK_V = b.dataset.v; paintBulkChoice(); });
+// Typing a note is the intent to set one; no need to tick the box as well.
+$("#bulknote").oninput = () => { if ($("#bulknote").value) $("#bulknoteon").checked = true; };
 $("#dataset").onchange = (e) => {
   DATASET = e.target.value; PAGE = 1; FOCUS = null; syncUrl(true); load();
 };
