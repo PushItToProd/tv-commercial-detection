@@ -1426,6 +1426,14 @@ async function saveBulk() {
   load();
 }
 
+// One clip at a time. A page of cards holds dozens of players and the context
+// view another, and two commentaries over each other tell you nothing about
+// either. Delegated so players rendered later are covered, and captured because
+// `play` does not bubble.
+document.addEventListener("play", (e) => {
+  document.querySelectorAll("audio").forEach(a => { if (a !== e.target) a.pause(); });
+}, true);
+
 document.addEventListener("keydown", (e) => {
   // Any keystroke means the reviewer is working; the blink has served its
   // purpose. Ahead of the guards below so typing a note cancels it too.
