@@ -604,12 +604,14 @@ _HTML = r"""<!DOCTYPE html>
     background: #242424; border-radius: 8px; overflow: hidden;
     width: 320px; display: flex; flex-direction: column; border: 2px solid #3a3a3a;
   }
-  .card.sel { border-color: #7ab; box-shadow: 0 0 0 2px #7ab4; }
-  /* Ruled, and the ruling matches the stored label / contradicts it / neither. */
-  .card.confirmed { border-color: #2a5; }
-  .card.disputed  { border-color: #c33; }
-  .card.other     { border-color: #c92; }
-  .card.contradiction { border-color: #d0f; box-shadow: 0 0 0 2px #d0f4; }
+  .card.sel { box-shadow: 0 0 0 3px #7ab; }
+  /* What the frame is: your ruling if you made one, else the stored label.
+     Same red/green as the contact sheet so the two views read alike. */
+  .card.lab-ad      { border-color: #a02; }
+  .card.lab-content { border-color: #060; }
+  .card.lab-other   { border-color: #c92; }
+  /* Outline, not border-color, so it cannot erase the label colour. */
+  .card.contradiction { outline: 2px solid #d0f; outline-offset: -4px; }
   .card img { width: 100%; display: block; cursor: zoom-in; background: #111; min-height: 80px; }
   .fn { padding: 0.25rem 0.5rem; font-size: 0.6rem; opacity: 0.35; word-break: break-all; }
   .rows { padding: 0.35rem 0.5rem; display: flex; flex-direction: column; gap: 0.22rem; font-size: 0.75rem; }
@@ -710,6 +712,9 @@ _HTML = r"""<!DOCTYPE html>
   <b>a</b> ad · <b>r</b> content/racing · <b>o</b> other (bumper, sponsor billboard, undecidable) ·
   <b>x</b> clear · <b>j/k</b> or arrows to move · <b>Enter</b> or click a frame to open it in context.
   In context view, <b>←/→</b> walk the broadcast, <b>space</b> plays the clip and <b>s</b> shows the frame in the contact sheet.
+  <br>Border says what the frame is — <b style="color:#f55">red</b> ad, <b style="color:#4d4">green</b> content,
+  <b style="color:#fb3">amber</b> neither — your ruling where you made one, otherwise the stored label.
+  ✅/❌ on a row says whether your ruling backs it; rows stay unmarked until you rule, and an <i>other</i> ruling marks nothing.
   Rulings save to <code>experiments/review_verdicts.json</code>.
 </div>
 <div class="legend" id="legend" style="display:none">
@@ -872,23 +877,33 @@ function render(d) {
   paint();
 }
 
-// The stored label is what we are judging; a ruling that matches it confirms
-// it, one that differs disputes it, and "other" rejects the binary outright.
+// Border carries what the frame *is*, on the same red/green as the contact
+// sheet, so a page of cards reads at a glance. A ruling outranks the stored
+// label, since it is the better answer wherever one exists.
 function cardClass(r) {
-  const v = r.verdict?.verdict;
-  if (!v) return "";
-  const base = v === "other" ? "other" : (v === r.gt ? "confirmed" : "disputed");
+  const eff = r.verdict?.verdict || r.gt;
+  const base = eff === "ad" ? "lab-ad" : eff === "content" ? "lab-content" : "lab-other";
   return r.contradiction ? base + " contradiction" : base;
+}
+
+// Whether a ruling backs a given claim about the frame. Only meaningful when
+// the ruling is one of the two real labels: `other` is a placeholder for
+// categories the classifiers have no way to emit, so agreement against it is
+// undefined rather than false.
+function agreeMark(r, value) {
+  const v = r.verdict?.verdict;
+  if (!v || v === "other" || !value) return "";
+  return v === value ? " ✅" : " ❌";
 }
 
 function card(r, idx) {
   const v = r.verdict?.verdict ?? "";
   const rows = [];
-  rows.push(`<div class="row"><span class="k">label (AI)</span>${badge(r.gt)} <span style="opacity:.4;font-size:.68rem">${esc(r.seg_kind || "")}</span></div>`);
+  rows.push(`<div class="row"><span class="k">label (AI)</span>${badge(r.gt)}${agreeMark(r, r.gt)} <span style="opacity:.4;font-size:.68rem">${esc(r.seg_kind || "")}</span></div>`);
   if (r.anchor !== undefined && r.anchor !== "")
-    rows.push(`<div class="row"><span class="k">opencv anchor</span>${badge(r.anchor)} ${r.conflict ? '<span class="warn">← conflicts</span>' : ""}</div>`);
+    rows.push(`<div class="row"><span class="k">opencv anchor</span>${badge(r.anchor)}${agreeMark(r, r.anchor)} ${r.conflict ? '<span class="warn">← conflicts</span>' : ""}</div>`);
   if (r.cross_gt)
-    rows.push(`<div class="row"><span class="k">other pass</span>${badge(r.cross_gt)} ${r.cross_conflict ? '<span class="warn">← conflicts</span>' : ""}</div>`);
+    rows.push(`<div class="row"><span class="k">other pass</span>${badge(r.cross_gt)}${agreeMark(r, r.cross_gt)} ${r.cross_conflict ? '<span class="warn">← conflicts</span>' : ""}</div>`);
   if (r.pred)
     rows.push(`<div class="row"><span class="k">model</span>${badge(r.pred)} <span style="opacity:.45;font-size:.68rem">${esc(r.pred_reason || "")}${r.flips ? " · flips" : ""}</span></div>`);
   if (r.live_class)
