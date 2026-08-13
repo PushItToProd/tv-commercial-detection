@@ -613,7 +613,8 @@ _HTML = r"""<!DOCTYPE html>
   /* Outline, not border-color, so it cannot erase the label colour. */
   .card.contradiction { outline: 2px solid #d0f; outline-offset: -4px; }
   .card img { width: 100%; display: block; cursor: zoom-in; background: #111; min-height: 80px; }
-  .fn { padding: 0.25rem 0.5rem; font-size: 0.6rem; opacity: 0.35; word-break: break-all; }
+  .fn { padding: 0.25rem 0.5rem; font-size: 0.6rem; opacity: 0.35; word-break: break-all;
+        cursor: text; user-select: text; }
   .rows { padding: 0.35rem 0.5rem; display: flex; flex-direction: column; gap: 0.22rem; font-size: 0.75rem; }
   .row { display: flex; gap: 0.4rem; align-items: baseline; }
   .k { opacity: 0.42; width: 5.2rem; flex-shrink: 0; font-size: 0.7rem; }
@@ -710,7 +711,7 @@ _HTML = r"""<!DOCTYPE html>
 <div class="hint">
   Say what the frame <i>is</i>, not whether the label is right — agreement is worked out from that.
   <b>a</b> ad · <b>r</b> content/racing · <b>o</b> other (bumper, sponsor billboard, undecidable) ·
-  <b>x</b> clear · <b>j/k</b> or arrows to move · <b>Enter</b> or click a frame to open it in context.
+  <b>x</b> clear · <b>←/→</b> or <b>j/k</b> move one card, <b>↑/↓</b> move a row · <b>Enter</b> or click a frame to open it in context.
   In context view, <b>←/→</b> walk the broadcast, <b>space</b> plays the clip and <b>s</b> shows the frame in the contact sheet.
   <br>Border says what the frame is — <b style="color:#f55">red</b> ad, <b style="color:#4d4">green</b> content,
   <b style="color:#fb3">amber</b> neither — your ruling where you made one, otherwise the stored label.
@@ -925,11 +926,13 @@ function card(r, idx) {
   }
 
   const reply = (r.preds || []).map(p => p.reply).find(x => x && x !== "(opencv)");
-  return `<div class="card ${cardClass(r)}" data-idx="${idx}" onclick="select(${idx})">
+  return `<div class="card ${cardClass(r)}" data-idx="${idx}" onclick="focusCard(${idx})">
     <img src="/image/${DATASET}/${encodeURIComponent(r.filename)}" loading="lazy"
          title="Click to see this frame in context"
          onclick="event.stopPropagation();zoom('${r.filename}')">
-    <div class="fn">${esc(r.filename)}</div>
+    <!-- Selecting the filename to copy it must not move the card selection. -->
+    <div class="fn" onclick="event.stopPropagation()"
+         onmousedown="event.stopPropagation()">${esc(r.filename)}</div>
     <div class="rows">${rows.join("")}</div>
     ${r.has_audio ? `<audio class="clip" controls preload="none"
          onclick="event.stopPropagation()"
@@ -938,14 +941,14 @@ function card(r, idx) {
     <!-- Acting on a card moves the selection to it, so the keyboard carries on
          from where the mouse left off rather than from the last card walked. -->
     <div class="acts">
-      <button onclick="event.stopPropagation();select(${idx});mark(${idx},'ad')">ad</button>
-      <button onclick="event.stopPropagation();select(${idx});mark(${idx},'content')">content</button>
-      <button onclick="event.stopPropagation();select(${idx});mark(${idx},'other')">other</button>
-      <button onclick="event.stopPropagation();select(${idx});mark(${idx},null)">×</button>
+      <button onclick="event.stopPropagation();focusCard(${idx});mark(${idx},'ad')">ad</button>
+      <button onclick="event.stopPropagation();focusCard(${idx});mark(${idx},'content')">content</button>
+      <button onclick="event.stopPropagation();focusCard(${idx});mark(${idx},'other')">other</button>
+      <button onclick="event.stopPropagation();focusCard(${idx});mark(${idx},null)">×</button>
     </div>
     <div style="padding:0 .5rem .5rem"><input class="note" placeholder="note"
       value="${esc(r.verdict?.note ?? "")}" onclick="event.stopPropagation()"
-      onfocus="select(${idx})" onchange="note(${idx}, this.value)"></div>
+      onfocus="focusCard(${idx})" onchange="note(${idx}, this.value)"></div>
   </div>`;
 }
 
@@ -965,7 +968,25 @@ function setSel(i) {
   paint();
 }
 
-function select(i) { setSel(i); }
+// Named focusCard, not select: an inline handler puts the element on the
+// scope chain, and <input> already has a select() that grabs its own text -
+// which silently shadowed the global and made the note field do nothing.
+function focusCard(i) { setSel(i); }
+
+// How many cards sit on one row of the wrapped grid, measured rather than
+// derived from the CSS width, so up/down follow what is actually on screen at
+// whatever the window size is.
+function columnCount() {
+  const cards = document.querySelectorAll(".card");
+  if (cards.length < 2) return 1;
+  const top = cards[0].offsetTop;
+  let n = 0;
+  for (const c of cards) {
+    if (c.offsetTop !== top) break;
+    n++;
+  }
+  return Math.max(1, n);
+}
 function go(p) { PAGE = p; FOCUS = null; syncUrl(true); load(); }
 
 // ── Lightbox: one frame in the context of its neighbours ────────────────────
@@ -1086,8 +1107,12 @@ document.addEventListener("keydown", (e) => {
   const keys = { a: "ad", r: "content", o: "other" };
   if (keys[e.key]) { mark(SEL, keys[e.key]); setSel(SEL + 1); }
   else if (e.key === "x") mark(SEL, null);
-  else if (e.key === "j" || e.key === "ArrowDown" || e.key === "ArrowRight") setSel(SEL + 1);
-  else if (e.key === "k" || e.key === "ArrowUp" || e.key === "ArrowLeft") setSel(SEL - 1);
+  // Arrows move within the grid rather than scrolling it: left/right by one,
+  // up/down by a whole row. paint() scrolls whatever lands off-screen.
+  else if (e.key === "j" || e.key === "ArrowRight") { e.preventDefault(); setSel(SEL + 1); }
+  else if (e.key === "k" || e.key === "ArrowLeft") { e.preventDefault(); setSel(SEL - 1); }
+  else if (e.key === "ArrowDown") { e.preventDefault(); setSel(SEL + columnCount()); }
+  else if (e.key === "ArrowUp") { e.preventDefault(); setSel(SEL - columnCount()); }
   else if (e.key === "Enter") { const r = ROWS[SEL]; if (r) zoom(r.filename); }
 });
 
