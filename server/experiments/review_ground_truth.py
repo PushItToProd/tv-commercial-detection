@@ -604,7 +604,19 @@ _HTML = r"""<!DOCTYPE html>
     background: #242424; border-radius: 8px; overflow: hidden;
     width: 320px; display: flex; flex-direction: column; border: 2px solid #3a3a3a;
   }
-  .card.sel { box-shadow: 0 0 0 3px #7ab; }
+  /* Selection is a shadow, never a border colour, so the label colour survives.
+     Raised so the shadow draws over the neighbouring card rather than under it. */
+  .card { position: relative; }
+  .card.sel { box-shadow: 0 0 0 3px #7ab; z-index: 2; }
+
+  /* A view switch lands on a frame somewhere in a full screen of them, so the
+     new focus box blinks a few times to say where it went. Cancelled the moment
+     the reviewer does anything, rather than pulsing under their hands. */
+  @keyframes focusblink {
+    0%, 100% { box-shadow: 0 0 0 3px #7ab; }
+    50%      { box-shadow: 0 0 0 9px rgba(122, 187, 221, .9); }
+  }
+  .card.sel.blink, .th.focus.blink { animation: focusblink .42s ease-in-out 4; }
   /* What the frame is: your ruling if you made one, else the stored label.
      Same red/green as the contact sheet so the two views read alike. */
   .card.lab-ad      { border-color: #a02; }
@@ -665,7 +677,9 @@ _HTML = r"""<!DOCTYPE html>
   .th.content { border-color: #060; }
   .th.conflict      { outline: 1px solid #fa0; outline-offset: -3px; }
   .th.contradiction { outline: 2px solid #d0f; outline-offset: -4px; }
-  .th.focus { border-color: #7ab; box-shadow: 0 0 0 2px #7ab; }
+  /* Same treatment as a selected card: a shadow over the label colour, raised
+     so the packed grid does not clip it. */
+  .th.focus { box-shadow: 0 0 0 3px #7ab; z-index: 2; }
   .th .dot { position: absolute; top: 2px; right: 2px; width: 7px; height: 7px;
              border-radius: 50%; border: 1px solid #000a; }
   .th .dot.ad { background: #f44; } .th .dot.content { background: #4d4; }
@@ -807,6 +821,7 @@ async function load() {
   render(d);
   if (at >= 0) document.querySelectorAll(".card")[at]
     ?.scrollIntoView({ block: "center", behavior: "smooth" });
+  if (BLINK_NEXT) { BLINK_NEXT = false; blinkFocus(".card.sel"); }
 }
 
 async function loadSheet() {
@@ -840,15 +855,18 @@ async function loadSheet() {
     </div>`).join("");
   if (FOCUS) document.querySelector(".th.focus")
     ?.scrollIntoView({ block: "center", behavior: "smooth" });
+  if (BLINK_NEXT) { BLINK_NEXT = false; blinkFocus(".th.focus"); }
 }
 
 // Position within the filtered selection decides which cards page holds it.
 function jumpTo(k) {
+  stopBlink();
   const n = SHEET[k];
   if (!n) return;
   FOCUS = n.filename;
   PAGE = Math.floor(k / PER_PAGE) + 1;
   VIEW = "cards";
+  BLINK_NEXT = true;
   syncUrl(true);
   load();
 }
@@ -962,6 +980,7 @@ function paint() {
 // sheet scrolls to and what the URL names. Keeping FOCUS in step here is what
 // makes the view toggle carry the current card rather than the last jump.
 function setSel(i) {
+  stopBlink();   // the reviewer is moving the focus themselves now
   SEL = Math.max(0, Math.min(i, ROWS.length - 1));
   const r = ROWS[SEL];
   if (r) { FOCUS = r.filename; syncUrl(false); }
@@ -972,6 +991,28 @@ function setSel(i) {
 // scope chain, and <input> already has a select() that grabs its own text -
 // which silently shadowed the global and made the note field do nothing.
 function focusCard(i) { setSel(i); }
+
+// ── Focus blink ─────────────────────────────────────────────────────────────
+// Only a view switch blinks: arriving in the other view, the frame you were on
+// is one of a screenful, and a static box is easy to miss. Anything the
+// reviewer does that would move the focus cancels it, so it never pulses while
+// they are working.
+let BLINK_NEXT = false;   // the next render is the far side of a view switch
+let BLINK_TIMER = null;
+
+function blinkFocus(selector) {
+  stopBlink();
+  const el = document.querySelector(selector);
+  if (!el) return;
+  el.classList.add("blink");
+  // 4 iterations at .42s; clear a little after so the class never outlives it.
+  BLINK_TIMER = setTimeout(stopBlink, 1800);
+}
+
+function stopBlink() {
+  if (BLINK_TIMER) { clearTimeout(BLINK_TIMER); BLINK_TIMER = null; }
+  document.querySelectorAll(".blink").forEach(el => el.classList.remove("blink"));
+}
 
 // How many cards sit on one row of the wrapped grid, measured rather than
 // derived from the CSS width, so up/down follow what is actually on screen at
@@ -994,6 +1035,7 @@ let CTX = [];      // the neighbouring frames, in capture order
 let CTX_POS = 0;   // which of them is on screen
 
 async function zoom(filename) {
+  stopBlink();
   const r = await fetch(`/api/context?dataset=${DATASET}&filename=${encodeURIComponent(filename)}&radius=12`);
   if (!r.ok) return;
   const d = await r.json();
@@ -1045,6 +1087,7 @@ function openInSheet() {
   FOCUS = f.filename;
   closeLightbox();
   VIEW = "sheet";
+  BLINK_NEXT = true;
   syncUrl(true);
   load();
 }
@@ -1084,6 +1127,9 @@ async function note(idx, text) {
 }
 
 document.addEventListener("keydown", (e) => {
+  // Any keystroke means the reviewer is working; the blink has served its
+  // purpose. Ahead of the guards below so typing a note cancels it too.
+  stopBlink();
   if (e.target.tagName === "INPUT") return;
   // Never shadow a browser shortcut: cmd-c / ctrl-a and friends must still work.
   if (e.metaKey || e.ctrlKey || e.altKey) return;
@@ -1127,6 +1173,7 @@ document.querySelectorAll("#controls button[data-f]").forEach(b =>
 $("#reload").onclick = async () => { await fetch("/api/reload", { method: "POST" }); load(); };
 $("#viewtoggle").onclick = () => {
   VIEW = VIEW === "sheet" ? "cards" : "sheet";
+  BLINK_NEXT = true;
   syncUrl(true); load();
 };
 $("#size").oninput = (e) => {
