@@ -57,8 +57,8 @@ def sanitize(text: str) -> str:
     both wrap titles in directional isolates (U+2068/U+2069), which are
     invisible in the UI but would otherwise end up in the directory name.
     Whitespace (including the non-breaking space in "HBO Max") becomes "_", and
-    every other character becomes "-", so `⁨eero 400⁩ • HBO Max` reads as
-    `eero_400_-_HBO_Max`.
+    every other character becomes "-", so `\u2068eero 400\u2069 • HBO Max` reads
+    as `eero_400_-_HBO_Max`.
     """
     cleaned = []
     for ch in text:
