@@ -43,6 +43,13 @@ Review order matters more than volume. Three filters carry most of the value:
   Their captures overlap, so these are two independent passes disagreeing; at
   least one label is wrong.
 - `unanchored` — nothing behind the label but the original eyeball pass.
+
+Facets (`facets.py`, `review_facets.json`) hang off each card: what the frame
+*is*, where it sits in the break cycle, and what being wrong costs in each
+direction. They are keyed by filename rather than by dataset, because they
+describe the frame and not the review of it. Each value shows where it came
+from — `d` derived, `f` defaulted, `i` inferred from a note, `m` set by hand —
+and `facet_review` collects everything still resting on an inference.
 """
 
 import argparse
@@ -62,6 +69,7 @@ BROADCAST = Path(
     "/mnt/data/tv-commercial-detector/full_broadcasts/tv.youtube.com/USA_4K_Iowa_Corn_350"
 )
 VERDICTS = HERE / "review_verdicts.json"
+FACETS = HERE / "review_facets.json"
 
 # How near a segment edge a frame has to be to count as a boundary frame. The
 # ground truth's edges were placed by eye to +/-30 frames and then refined, so
@@ -298,6 +306,38 @@ class Verdict(BaseModel):
     clear: bool = False
 
 
+# ── Facets ────────────────────────────────────────────────────────────────────
+# A facet describes the frame, not the review of it, so unlike a ruling it is
+# keyed by filename alone - the same frame carries the same facets whichever
+# dataset it is being looked at through. `facets.py` builds them; this only
+# edits them.
+
+def load_facets() -> tuple[dict, dict]:
+    d = _json(FACETS) or {}
+    return d.get("facets", {}), d.get("schema", {})
+
+
+def save_facets(facets: dict, schema: dict) -> None:
+    tmp = FACETS.with_suffix(".json.tmp")
+    with tmp.open("w") as fh:
+        json.dump({"schema": schema, "facets": facets}, fh, indent=1, sort_keys=True)
+    tmp.replace(FACETS)
+
+
+class Facet(BaseModel):
+    """A facet edit. Omitted fields are left alone; "" clears one."""
+
+    filename: str
+    video: str | None = None
+    audio: str | None = None
+    care_away: int | None = None
+    care_back: int | None = None
+    risk: str | None = None
+    # Clears the `review` flag: the operator has looked at the guess and stands
+    # behind whatever is there now.
+    confirmed: bool | None = None
+
+
 class BulkVerdict(BaseModel):
     """A ruling applied to a run of frames.
 
@@ -363,6 +403,12 @@ def rulings_elsewhere(dataset: str, filename: str, store: dict) -> list[dict]:
     return out
 
 
+def annotate_facets(rows: list[dict]) -> None:
+    facets, _ = load_facets()
+    for r in rows:
+        r["facet"] = facets.get(r["filename"])
+
+
 def annotate_rulings(dataset: str, rows: list[dict], store: dict) -> None:
     """Attach other datasets' rulings, and flag any that contradict this one."""
     mine = store.get(dataset, {})
@@ -400,6 +446,12 @@ FILTERS = {
     # Same frame ruled two different ways across datasets. Only reachable on the
     # 1572-frame overlap, and always a mistake on the reviewer's part.
     "contradicts": lambda r, v: bool(r.get("contradiction")),
+    # Facet filters. `facet_review` is the working set: every value guessed from
+    # the operator's prose rather than derived from a signal.
+    "facet_review": lambda r, v: bool((r.get("facet") or {}).get("review")),
+    "fraught": lambda r, v: (r.get("facet") or {}).get("risk") == "fraught",
+    "ad_read": lambda r, v: (r.get("facet") or {}).get("audio") == "ad_read",
+    "artifact": lambda r, v: bool((r.get("facet") or {}).get("artifact")),
     "all": lambda r, v: True,
 }
 
@@ -409,7 +461,10 @@ def app_factory(default_dataset: str) -> FastAPI:
 
     @app.get("/", response_class=HTMLResponse)
     def index() -> str:
-        return _HTML.replace("__DEFAULT_DATASET__", json.dumps(default_dataset))
+        _, schema = load_facets()
+        return (_HTML
+                .replace("__DEFAULT_DATASET__", json.dumps(default_dataset))
+                .replace("__SCHEMA__", json.dumps(schema)))
 
     @app.get("/api/frames")
     def frames(
@@ -427,6 +482,7 @@ def app_factory(default_dataset: str) -> FastAPI:
         store = load_verdicts()
         verdicts = store.get(dataset, {})
         annotate_rulings(dataset, rows, store)
+        annotate_facets(rows)
         sel = [r for r in rows if pred(r, verdicts.get(r["filename"]))]
         total = len(sel)
         per_page = max(1, min(per_page, 500))
@@ -453,6 +509,7 @@ def app_factory(default_dataset: str) -> FastAPI:
             if not rows:
                 continue
             annotate_rulings(name, rows, store)
+            annotate_facets(rows)
             out[name] = counts_for(rows, store.get(name, {}))
         return JSONResponse(out)
 
@@ -554,6 +611,7 @@ def app_factory(default_dataset: str) -> FastAPI:
         store = load_verdicts()
         verdicts = store.get(dataset, {})
         annotate_rulings(dataset, rows, store)
+        annotate_facets(rows)
         out = []
         for r in rows:
             if not pred(r, verdicts.get(r["filename"])):
@@ -563,6 +621,7 @@ def app_factory(default_dataset: str) -> FastAPI:
                 "filename": r["filename"], "i": r["i"], "gt": r["gt"],
                 "ruling": rec.get("verdict"),
                 "has_note": bool(rec.get("note")),
+                "facet_review": bool((r.get("facet") or {}).get("review")),
                 "conflict": r["conflict"] or r["cross_conflict"],
                 "contradiction": r.get("contradiction", False),
                 "model_wrong": r.get("pred_agrees") is False,
@@ -617,6 +676,39 @@ def app_factory(default_dataset: str) -> FastAPI:
         if not path.exists():
             raise HTTPException(404, f"no clip for {filename}")
         return FileResponse(path, media_type="audio/wav")
+
+    @app.post("/api/facet")
+    def set_facet(f: Facet) -> JSONResponse:
+        facets, schema = load_facets()
+        rec = dict(facets.get(f.filename) or {})
+        src = dict(rec.get("src") or {})
+        for axis in ("video", "audio", "risk"):
+            val = getattr(f, axis)
+            if val is None:
+                continue
+            if val and schema.get(axis) and val not in schema[axis]:
+                raise HTTPException(400, f"{axis} must be one of {sorted(schema[axis])}")
+            if val:
+                rec[axis] = val
+            else:
+                rec.pop(axis, None)
+            src[axis] = "manual"
+        for axis in ("care_away", "care_back"):
+            val = getattr(f, axis)
+            if val is None:
+                continue
+            if not 0 <= val <= 3:
+                raise HTTPException(400, f"{axis} must be 0-3")
+            rec[axis] = val
+            src["care"] = "manual"
+        if f.confirmed:
+            # The guess has been looked at. Whatever is there now is the answer.
+            rec.pop("review", None)
+            rec["confirmed"] = True
+        rec["src"] = src
+        facets[f.filename] = rec
+        save_facets(facets, schema)
+        return JSONResponse({"ok": True, "facet": rec})
 
     @app.post("/api/reload")
     def reload() -> JSONResponse:
@@ -723,6 +815,28 @@ _HTML = r"""<!DOCTYPE html>
   .badge.unknown, .badge.none { background: #555; color: #ccc; }
   .warn { color: #f90; }
   audio.clip { width: calc(100% - 1rem); margin: 0.15rem 0.5rem; height: 1.9rem; }
+
+  /* Facets. Muted by default - they describe the frame, the ruling decides. */
+  .facets { margin: .2rem .5rem .35rem; padding: .35rem .45rem; background: #1b1d20;
+            border-radius: 4px; border-left: 2px solid #46c; font-size: .7rem; }
+  .facets.needs { border-left-color: #fb3; }
+  .facets .fr { display: flex; gap: .3rem; align-items: center; margin-bottom: .18rem; }
+  .facets .fk { opacity: .4; width: 3.6rem; flex-shrink: 0; font-size: .66rem; }
+  .facets select { font-size: .68rem; padding: .05rem .2rem; border-width: 1px;
+                   background: #15171a; max-width: 8.5rem; }
+  .facets .care { display: flex; gap: .12rem; }
+  .facets .care button { padding: 0 .3rem; font-size: .64rem; border-width: 1px; }
+  .facets .care button.on { background: #46c; border-color: #46c; color: #fff; }
+  /* Where a value came from: derived and default are cheap, inferred is a guess. */
+  .prov { font-size: .58rem; opacity: .35; margin-left: .1rem; }
+  .prov.inferred { color: #fb3; opacity: .8; }
+  .prov.manual { color: #4d4; opacity: .8; }
+  .facets .flags { display: flex; gap: .3rem; align-items: center; margin-top: .2rem; }
+  .facets .flags button { padding: .05rem .4rem; font-size: .64rem; border-width: 1px; }
+  .tag { font-size: .6rem; padding: 0 .25rem; border-radius: 2px; }
+  .tag.fraught { background: #3a1800; color: #f90; }
+  .tag.artifact { background: #1a1a30; color: #77a; }
+  .tag.idea { background: #0a2e0a; color: #5e5; }
   .reply {
     margin: 0.25rem 0.5rem 0.4rem; padding: 0.35rem 0.45rem; background: #161616;
     border-radius: 4px; border-left: 2px solid #c60; font-size: 0.68rem;
@@ -831,6 +945,9 @@ _HTML = r"""<!DOCTYPE html>
   <button data-f="disputed">Label wrong</button>
   <button data-f="confirmed">Label confirmed</button>
   <button data-f="contradicts">My contradictions</button>
+  <button data-f="facet_review" title="Facets guessed from your notes">Facets to check</button>
+  <button data-f="fraught" title="Correct, but risky to train on">Fraught</button>
+  <button data-f="ad_read">Ad reads</button>
   <button data-f="unreviewed">Unreviewed</button>
   <button data-f="all">All</button>
   <button id="reload" title="Re-read the experiment files">⟳</button>
@@ -851,7 +968,11 @@ _HTML = r"""<!DOCTYPE html>
   <br>Border says what the frame is — <b style="color:#f55">red</b> ad, <b style="color:#4d4">green</b> content,
   <b style="color:#fb3">amber</b> neither — your ruling where you made one, otherwise the stored label.
   ✅/❌ on a row says whether your ruling backs it; rows stay unmarked until you rule, and an <i>other</i> ruling marks nothing.
-  Rulings save to <code>experiments/review_verdicts.json</code>.
+  Rulings save to <code>experiments/review_verdicts.json</code>; facets to <code>review_facets.json</code>.
+  <br>Facets say what the frame <i>is</i> and what being wrong costs — the letter beside each
+  is where the value came from: <b class="prov derived" style="opacity:1">d</b> derived,
+  <b class="prov">f</b> defaulted, <b class="prov inferred" style="opacity:1">i</b> inferred from your note,
+  <b class="prov manual" style="opacity:1">m</b> set by hand. <b>Facets to check</b> lists every one still resting on a guess.
 </div>
 <div id="selbar">
   <span id="selmsg"></span>
@@ -914,6 +1035,7 @@ _HTML = r"""<!DOCTYPE html>
 </div>
 
 <script>
+const SCHEMA = __SCHEMA__;   // facet vocabularies, from review_facets.json
 let DATASET = __DEFAULT_DATASET__;
 let FILTER = "conflict";
 let PAGE = 1;
@@ -1025,6 +1147,7 @@ async function loadSheet() {
          title="i=${n.i} · label ${esc(n.gt)}${n.ruling ? " · ruled " + esc(n.ruling) : ""}">
       <img src="/image/${DATASET}/${encodeURIComponent(n.filename)}" loading="lazy">
       ${n.ruling ? `<span class="dot ${n.ruling}"></span>` : ""}
+      ${n.facet_review ? `<span class="dot" style="background:#fb3;left:2px;right:auto"></span>` : ""}
       <span class="idx">${n.i}</span>
     </div>`).join("");
   if (FOCUS) document.querySelector(".th.focus")
@@ -1070,6 +1193,7 @@ function stats(c) {
     ["boundary", "boundary", ""], ["model_wrong", "model wrong", ""],
     ["reviewed", "ruled", "good"], ["confirmed", "confirmed", "good"],
     ["disputed", "label wrong", "bad"], ["contradicts", "contradictions", "bad"],
+    ["facet_review", "to check", "bad"], ["ad_read", "ad reads", ""],
     ["all", "frames", ""],
   ].map(([k, lbl, cls]) => `<div class="stat ${cls}"><span class="val">${c[k] ?? 0}</span><span class="lbl">${lbl}</span></div>`).join("");
 }
@@ -1105,6 +1229,69 @@ function agreeMark(r, value) {
   const v = r.verdict?.verdict;
   if (!v || v === "other" || !value) return "";
   return v === value ? " ✅" : " ❌";
+}
+
+// ── Facets ──────────────────────────────────────────────────────────────────
+// The ruling says what to do; the facets say what the frame is, where it sits,
+// and what being wrong costs. Editing one marks it `manual`, which is how a
+// checked guess is told apart from an unchecked one.
+
+function provTag(f, axis) {
+  const s = f.src?.[axis];
+  return s ? `<span class="prov ${s}">${s[0]}</span>` : "";
+}
+
+function facetSelect(idx, axis, value, vocab) {
+  const opts = ['<option value="">—</option>'].concat(
+    Object.keys(vocab || {}).map(k =>
+      `<option value="${k}"${k === value ? " selected" : ""}>${esc(k)}</option>`));
+  return `<select onchange="setFacet(${idx}, {${axis}: this.value})"
+            onclick="event.stopPropagation()">${opts.join("")}</select>`;
+}
+
+function careRow(idx, key, value) {
+  return `<div class="care">` + [0, 1, 2, 3].map(n =>
+    `<button class="${n === value ? "on" : ""}"
+       onclick="event.stopPropagation();setFacet(${idx}, {${key}: ${n}})">${n}</button>`
+  ).join("") + `</div>`;
+}
+
+function facetBlock(r, idx) {
+  const f = r.facet;
+  if (!f) return "";
+  const tags = [
+    f.risk === "fraught" ? '<span class="tag fraught">fraught</span>' : "",
+    f.artifact ? '<span class="tag artifact">capture artifact</span>' : "",
+    f.signal_idea ? '<span class="tag idea">signal idea</span>' : "",
+  ].filter(Boolean).join(" ");
+  return `<div class="facets ${f.review ? "needs" : ""}" onclick="event.stopPropagation()">
+    <div class="fr"><span class="fk">video</span>${facetSelect(idx, "video", f.video, SCHEMA.video)}${provTag(f, "video")}</div>
+    <div class="fr"><span class="fk">audio</span>${facetSelect(idx, "audio", f.audio, SCHEMA.audio)}${provTag(f, "audio")}</div>
+    <div class="fr"><span class="fk">position</span>
+      <span style="opacity:.6">${esc(f.phase ?? "")} · ${esc(f.where ?? "")}</span>
+      <span class="prov derived">d</span></div>
+    <div class="fr"><span class="fk">care away</span>${careRow(idx, "care_away", f.care_away)}
+      <span class="fk" style="width:auto;margin-left:.3rem">back</span>${careRow(idx, "care_back", f.care_back)}${provTag(f, "care")}</div>
+    <div class="flags">
+      ${facetSelect(idx, "risk", f.risk, SCHEMA.risk)}
+      ${tags}
+      ${f.review ? `<button onclick="event.stopPropagation();setFacet(${idx}, {confirmed: true})"
+          title="These were guessed from your note — mark them checked">✓ checked</button>` : ""}
+    </div>
+  </div>`;
+}
+
+async function setFacet(idx, patch) {
+  const r = ROWS[idx];
+  const res = await fetch("/api/facet", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ filename: r.filename, ...patch }),
+  });
+  if (!res.ok) return;
+  r.facet = (await res.json()).facet;
+  const el = document.querySelectorAll(".card")[idx];
+  el.outerHTML = card(r, idx);
+  paint();
 }
 
 function card(r, idx) {
@@ -1145,6 +1332,7 @@ function card(r, idx) {
     <div class="fn" onclick="event.stopPropagation()"
          onmousedown="event.stopPropagation()">${esc(r.filename)}</div>
     <div class="rows">${rows.join("")}</div>
+    ${facetBlock(r, idx)}
     ${r.has_audio ? `<audio class="clip" controls preload="none"
          onclick="event.stopPropagation()"
          src="/audio/${DATASET}/${encodeURIComponent(r.filename)}"></audio>` : ""}
