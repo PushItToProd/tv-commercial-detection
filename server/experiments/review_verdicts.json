@@ -561,9 +561,9 @@
    "verdict": "ad"
   },
   "2026-08-13T02-09-10-236000+00-00.jpg": {
-   "at": "2026-08-13T16:58:25+00:00",
+   "at": "2026-08-13T20:22:42+00:00",
    "judged": "ad",
-   "note": "this whole run of clips up to around 2026-08-13T02-10-12-363000+00-00.jpg is a pre-race hype segment - technically content but not necessarily super important to classify correctly. (hence why i marked it as other -- it's soft-content but not mandatory racing content i'd judge the classifier super harshly for rejecting)",
+   "note": "this whole run of clips up to around 2026-08-13T02-10-12-363000+00-00.jpg is a pre-race hype segment - technically content but not necessarily super important to classify correctly. (hence why i marked it as other -- it's soft-content but not mandatory racing content i'd judge the classifier super harshly for rejecting).",
    "verdict": "other"
   },
   "2026-08-13T02-09-12-237000+00-00.jpg": {
@@ -572,8 +572,9 @@
    "verdict": "other"
   },
   "2026-08-13T02-09-14-240000+00-00.jpg": {
-   "at": "2026-08-13T16:57:46+00:00",
+   "at": "2026-08-13T20:22:47+00:00",
    "judged": "ad",
+   "note": "this whole section's audio is very hard to classify",
    "verdict": "other"
   },
   "2026-08-13T02-09-16-242000+00-00.jpg": {
