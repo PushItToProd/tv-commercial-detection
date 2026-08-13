@@ -6,6 +6,7 @@ matrix.apply_matrix_settings is also patched so no HTTP calls go out.
 
 import io
 
+import pytest
 from fastapi.testclient import TestClient
 from PIL import Image
 
@@ -82,6 +83,42 @@ def test_receive_records_page_metadata_on_the_frame(client, mocker):
     entry = state_module.recent_frames[-1]
     assert entry.page_url == "https://tv.youtube.com/watch/abc"
     assert entry.page_title == "Home - YouTube TV"
+
+
+def test_receive_records_timebase_on_the_frame(client, mocker):
+    # These are what say whether video_offset is a position in the program, so
+    # they have to survive the trip from the form onto the frame entry.
+    _post_frame(
+        client,
+        "content",
+        mocker,
+        video_offset="160.99",
+        video_id="1LaATJR0CeM",
+        video_duration="11982.4",
+        seekable_start="0",
+        seekable_end="11982.4",
+    )
+    entry = state_module.recent_frames[-1]
+    assert entry.video_offset == pytest.approx(160.99)
+    assert entry.timebase.video_id == "1LaATJR0CeM"
+    assert entry.timebase.duration == pytest.approx(11982.4)
+    assert entry.timebase.is_live is False
+    assert entry.timebase.seekable_end == pytest.approx(11982.4)
+
+
+def test_receive_records_live_stream_timebase(client, mocker):
+    """A live stream's infinite duration arrives as a string and becomes a flag."""
+    _post_frame(client, "content", mocker, video_duration="Infinity")
+    entry = state_module.recent_frames[-1]
+    assert entry.timebase.is_live is True
+    assert entry.timebase.duration is None
+
+
+def test_receive_without_timebase_fields_still_works(client, mocker):
+    """An extension predating these fields must keep posting successfully."""
+    resp = _post_frame(client, "content", mocker)
+    assert resp.status_code == 200
+    assert state_module.recent_frames[-1].timebase.video_id is None
 
 
 def test_receive_no_image_paused(client):

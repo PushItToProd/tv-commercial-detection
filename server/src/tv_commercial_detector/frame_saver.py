@@ -54,6 +54,7 @@ def save_frames_batch(
                 "video_title": entry.video_title,
                 "network_name": entry.network_name,
                 "video_offset": entry.video_offset,
+                **entry.timebase.as_record(),
                 "state_classification": entry.state_classification,
             }
             if entry.result is not None:

@@ -127,7 +127,8 @@ async function screenshotTabAsBlob(tab, videoInfo) {
 }
 
 function buildFormData(tab, tabState, blob, audioBlob = null) {
-  const {isPaused, isSeeking, timestamp, videoTitle, networkName, videoOffset} = tabState;
+  const {isPaused, isSeeking, timestamp, videoTitle, networkName, videoOffset,
+         videoId, videoDuration, seekableStart, seekableEnd} = tabState;
 
   const form = new FormData();
   if (blob) form.append('image', blob, `frame_${timestamp}.jpg`);
@@ -140,6 +141,12 @@ function buildFormData(tab, tabState, blob, audioBlob = null) {
   if (videoTitle)  form.append('video_title',  videoTitle);
   if (networkName) form.append('network_name', networkName);
   if (videoOffset != null) form.append('video_offset', videoOffset.toString());
+  if (videoId) form.append('video_id', videoId);
+  // "Infinity" (live) and "NaN" (metadata not loaded) are the informative
+  // values here, so these stringify rather than being filtered out.
+  if (videoDuration != null) form.append('video_duration', String(videoDuration));
+  if (seekableStart != null) form.append('seekable_start', seekableStart.toString());
+  if (seekableEnd != null) form.append('seekable_end', seekableEnd.toString());
   return form;
 }
 
@@ -277,7 +284,17 @@ async function doCapture() {
       audioBlob = audBlob;
     }
 
-    const tabState = {isPaused, isSeeking, timestamp, videoTitle: videoInfo.videoTitle ?? null, networkName: videoInfo.networkName ?? null, videoOffset: videoInfo.currentTime ?? null};
+    const tabState = {
+      isPaused, isSeeking, timestamp,
+      videoTitle: videoInfo.videoTitle ?? null,
+      networkName: videoInfo.networkName ?? null,
+      videoOffset: videoInfo.currentTime ?? null,
+      videoId: videoInfo.videoId ?? null,
+      // `??` and not `||`: NaN and 0 are both meaningful readings.
+      videoDuration: videoInfo.duration ?? null,
+      seekableStart: videoInfo.seekableStart ?? null,
+      seekableEnd: videoInfo.seekableEnd ?? null,
+    };
     const form = buildFormData(tab, tabState, screenshotBlob, audioBlob);
 
     // 4. POST to each endpoint concurrently

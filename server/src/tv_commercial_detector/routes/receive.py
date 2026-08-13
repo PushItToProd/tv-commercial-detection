@@ -15,6 +15,7 @@ from ..config import app_config
 from ..frame_saver import save_frames_batch
 from ..phash_override import add_override
 from ..state import FrameEntry, last_image_path, recent_frames, state
+from ..video_timebase import parse_timebase
 from .status import broadcast_status
 from .trigger_matrix import apply_matrix_settings
 
@@ -34,10 +35,15 @@ async def receive(
     video_title: str = Form(default=""),
     network_name: str = Form(default=""),
     video_offset: str = Form(default=""),
+    video_id: str = Form(default=""),
+    video_duration: str = Form(default=""),
+    seekable_start: str = Form(default=""),
+    seekable_end: str = Form(default=""),
 ):
     state.paused = is_paused_bool = is_paused.lower() in ("true", "1", "yes")
     state.seeking = is_seeking_bool = is_seeking.lower() in ("true", "1", "yes")
     offset_secs: float | None = float(video_offset) if video_offset else None
+    timebase = parse_timebase(video_id, video_duration, seekable_start, seekable_end)
     offset_str = f"{offset_secs:.1f}s" if offset_secs is not None else "?"
 
     if image is None:
@@ -95,6 +101,7 @@ async def receive(
                 video_title=video_title,
                 network_name=network_name,
                 video_offset=offset_secs,
+                timebase=timebase,
                 state_classification=classification,
                 audio_bytes=audio_bytes,
             )

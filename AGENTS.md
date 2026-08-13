@@ -35,6 +35,7 @@ server/              FastAPI application
     metrics.py         Prometheus metrics setup
     phash_override.py  Perceptual hash override system (manual label corrections)
     state.py           In-memory application state (AppState)
+    video_timebase.py  Parses the player's timebase fields (see below)
     classification/    Low-level classification primitives
       llm_match.py     OpenAI-compat LLM calls (image resize, prompt, response parsing)
       logo_match.py    OpenCV template matching for network/side-by-side logos
@@ -185,6 +186,42 @@ recording can be reviewed by pointing `DETECTOR_SAVE_DIR` at it or fed to
 `dedupe_frames.py`. A title change mid-stream (pre-race show → race) opens a new
 directory; returning to a title already seen resumes appending to its directory.
 `GET /status` reports what's been written so far, and Ctrl-C prints a summary.
+
+### The player's timebase
+
+Every frame records where the player was, not just when the frame was grabbed.
+`video_offset` is the player's `currentTime`, and the timebase fields say what
+it is measured against:
+
+| Field | Meaning |
+|---|---|
+| `video_id` | The program, parsed from the page URL (`/watch/<id>` or `?v=<id>`) |
+| `video_duration` | Length in seconds, or `null` when not finite |
+| `is_live` | `true` live, `false` a recording, `null` not yet known |
+| `seekable_start` / `seekable_end` | Bounds of the seekable range |
+
+This matters because `currentTime` is only comparable across separate capture
+passes when it counts from the start of the program rather than from when the
+player loaded. A recording reports a finite duration and a seekable range
+starting at 0; a live stream reports an infinite duration and a DVR window whose
+start creeps forward. Recording the distinction per frame is what makes it
+possible to treat two discontinuous passes over one program — capture, reboot,
+capture again the next day — as a single timeline, and to line up passes taken
+at different capture intervals.
+
+Offsets are a coordinate, not a key: capture jitter means two passes never land
+on identical values (observed inter-frame deltas run 1.60–2.11 s against a
+nominal 2.0), and a backward seek can put two frames at the same offset. Joining
+passes is a nearest-neighbor match within a tolerance, and the filename stays
+the stable per-frame identifier.
+
+`video_duration` is split into a number plus `is_live` because a live stream's
+duration is `Infinity`, which has no JSON representation — writing it bare
+produces a `classifications.jsonl` that Python reads back but `jq` and
+`JSON.parse` reject. `video_timebase.py` holds the parsing, shared by the
+detector's `/receive` and `record_broadcast.py` so both write the same fields.
+Every field is independently optional, so an older extension still posts
+successfully and simply records nulls.
 
 ### Pruning silent audio files
 
