@@ -134,17 +134,30 @@ The discriminator against a true NASCAR NON STOP break is size and furniture:
 | NASCAR NON STOP break (`ad`) | ~15% of frame | yes | yes |
 | Sponsored squeezeback (`content`) | ~54% of frame | no | no |
 
-Two ways to act on it, cheapest first:
+**The prompt route was tried and does not work.** `prompt_nbc.txt` now carries an
+explicit squeezeback rule, stated three different ways across three iterations —
+as a bullet in the RACE BROADCAST list, as a numbered decision procedure, and as
+a structural "one video panel vs two" test. Measured over 8 interleaved reps on
+the flagged frames (120 verdicts per arm), the squeezeback burst goes from
+**0/40 to 5/40**. The model will even name the layout — one reply reads *"race
+cars on track with credit one bank branding and a 'squeezeback' layout"* — and
+still answer `type=ad`. Prominent branding dominates its judgement regardless of
+what the prompt says about it.
 
-- **Prompt rule.** Add to the RACE BROADCAST list: a sponsor frame or L-bar
-  around a *large* live race window, with no leaderboard and no NASCAR NON STOP
-  banner, is race content — the break rule applies only when the race is reduced
-  to a small inset. Right now the prompt states the small-inset case but leaves
-  the large-inset case to be captured by the branding rules.
+An early size-based phrasing ("race window roughly half the screen or more →
+racing") was actively harmful: the model read Fox side-by-side breaks with ~38%
+race panels as "large" and flipped four labelled `ad` frames to `content`. The
+current wording keys on whether a *second video panel* is playing, which is the
+real structural difference and does not have that failure mode.
+
+So this one needs code, not prompting:
+
 - **Geometry check.** `rectangle_match.py` already has the machinery. The
-  squeezeback inset is a stable normalized box; a rule of "detected inset ≥ ~40%
-  of frame area and no NON STOP banner → content" would generalise past any one
-  sponsor.
+  squeezeback inset is a stable normalized box — measured at x≈521, y 0–799,
+  i.e. 54% of frame area, consistent across all five frames. A rule of "one
+  detected video rectangle ≥ ~40% of frame area, no NON STOP banner, no second
+  large rectangle → content" would generalise past any one sponsor, and unlike
+  the prompt it would actually fire.
 
 For reference, the sponsor logo itself is trivially matchable — a crop of the
 Credit One panel at `[110:235, 90:470]` scores 0.994–0.997 on its own frames and
@@ -179,6 +192,19 @@ Three signals visible in these frames that the prompt does not currently name:
   seconds. No live broadcast cuts across series and venues that fast. The
   existing "any race cars other than NASCAR Cup Series" rule catches individual
   frames here, but the sequence itself is the signal.
+
+The first two are now in `prompt_nbc.txt`. Measured over 8 interleaved reps on
+the flagged frames, the revised prompt scores **53/120 against the old prompt's
+42/120**; on a broader sample of 90 labelled frames that reach the LLM the two
+are indistinguishable, and repeat runs of the *same* prompt on the same frames
+vary by ±2, so treat that second measurement as a no-op rather than a win.
+
+Beware how noisy this model is at the per-frame level. At the production
+temperature of 0.2, single frames flip verdict between otherwise identical runs
+— `2026-08-09T19-29-14` returned 0/8 `ad` under one prompt and 4/8 under
+another, and 3/3 `content` then 3/3 `ad` then 4/5 `content` across three
+three-rep runs. Any future prompt comparison needs interleaved arms and at
+least ~100 verdicts per arm; three reps on fifteen frames measures nothing.
 
 That last point is the general one. The classifier is per-frame and stateless,
 and every failure in this analysis is easier at the burst level than at the

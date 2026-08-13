@@ -19,12 +19,15 @@ from tv_commercial_detector.classification.logo_match import LOGOS_DIR, load_mas
 from tv_commercial_detector.classifiers.nascar_on_nbc import (
     PEACOCK_REGION,
     PEACOCK_TEMPLATE,
+    SIDE_BY_SIDE_REGION,
+    SIDE_BY_SIDE_TEMPLATE,
     USA_TEMPLATE,
     has_network_logo,
     has_peacock_logo,
     has_side_by_side_logo,
     has_usa_logo,
     peacock_score,
+    side_by_side_score,
     usa_score,
 )
 
@@ -32,8 +35,9 @@ from tv_commercial_detector.classifiers.nascar_on_nbc import (
 PEACOCK_ABS_X = 1771
 PEACOCK_ABS_Y = 66
 
-SIDE_BY_SIDE_ABS_X = 0
-SIDE_BY_SIDE_ABS_Y = 0
+# Where the NASCAR NON STOP banner actually sits in a 1920x1080 frame.
+SIDE_BY_SIDE_ABS_X = 55
+SIDE_BY_SIDE_ABS_Y = 33
 
 
 def blank_bgr(width: int = 1920, height: int = 1080, fill: int = 128) -> np.ndarray:
@@ -72,18 +76,15 @@ def test_peacock_scores_near_perfect_on_exact_paste():
     assert peacock_score(frame) > 0.95
 
 
-@pytest.mark.parametrize(
-    "logo_path",
-    [
-        LOGOS_DIR / "nbc_nascar_non_stop_side_by_side_logo.png",
-        LOGOS_DIR / "nbc_nascar_non_stop_full_logo.png",
-    ],
-    ids=["non_stop", "non_stop_full"],
-)
-def test_side_by_side_logo_detected(logo_path):
-    masked = load_masked(str(logo_path))
-    frame = frame_with_logo_at(masked, SIDE_BY_SIDE_ABS_X, SIDE_BY_SIDE_ABS_Y, fill=0)
-    assert has_side_by_side_logo(frame, {"logo": masked}) is True
+def test_side_by_side_banner_detected_at_expected_position():
+    frame = frame_with_logo_at(
+        cv2.cvtColor(SIDE_BY_SIDE_TEMPLATE, cv2.COLOR_GRAY2BGR),
+        SIDE_BY_SIDE_ABS_X,
+        SIDE_BY_SIDE_ABS_Y,
+        fill=0,
+    )
+    assert has_side_by_side_logo(frame) is True
+    assert side_by_side_score(frame) > 0.95
 
 
 # --- regressions on the two things that make this profile different --------
@@ -129,6 +130,44 @@ def test_side_by_side_check_does_not_mutate_caller_frame():
 def test_peacock_template_matches_its_own_file():
     on_disk = cv2.imread(str(LOGOS_DIR / "nbc_peacock_logo.png"))
     assert np.array_equal(PEACOCK_TEMPLATE, on_disk)
+
+
+def test_side_by_side_banner_must_not_be_white_masked():
+    """The banner is matched unmasked, and white-masking would gut it.
+
+    Guards against someone "consistently" switching this template over to
+    load_masked alongside the USA bug. The mask keeps ~1% of the banner, and
+    nothing at all once the glyph edges are soft — which is exactly what the
+    Prime Video feed's anti-aliased rendering looks like, and why the masked
+    version scored 0.16-0.22 there against a 0.80 threshold.
+    """
+    from tv_commercial_detector.classification.logo_match import mask_non_white
+
+    colour = cv2.cvtColor(SIDE_BY_SIDE_TEMPLATE, cv2.COLOR_GRAY2BGR)
+    assert colour.any(axis=2).mean() > 0.9
+    assert mask_non_white(colour.copy()).any(axis=2).mean() < 0.05
+
+    softened = cv2.GaussianBlur(colour, (5, 5), 0)
+    assert not mask_non_white(softened).any()
+
+
+def test_side_by_side_banner_outside_search_window_is_ignored():
+    """The banner only means an ad break in the upper left.
+
+    Commercials shown during a break can carry NASCAR branding anywhere on
+    screen; only the banner in its own corner marks the side-by-side layout.
+    """
+    frame = frame_with_logo_at(
+        cv2.cvtColor(SIDE_BY_SIDE_TEMPLATE, cv2.COLOR_GRAY2BGR), 900, 600, fill=0
+    )
+    assert has_side_by_side_logo(frame) is False
+
+
+def test_side_by_side_search_window_contains_the_template_bbox():
+    x0, x1, y0, y1 = SIDE_BY_SIDE_REGION
+    th, tw = SIDE_BY_SIDE_TEMPLATE.shape[:2]
+    assert x0 <= SIDE_BY_SIDE_ABS_X and SIDE_BY_SIDE_ABS_X + tw <= x1
+    assert y0 <= SIDE_BY_SIDE_ABS_Y and SIDE_BY_SIDE_ABS_Y + th <= y1
 
 
 # --- USA Network bug -------------------------------------------------------

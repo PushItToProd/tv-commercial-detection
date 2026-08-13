@@ -10,21 +10,33 @@ RACE BROADCAST — strong indicators:
 - Telemetry or simulation graphics (e.g. an iRacing-branded overlay showing throttle/MPG, gear, or a virtual track map) — these are in-broadcast analysis tools, NOT ads
 - Pre/post-race analysis: track maps, statistics, replays
 - Split-screen or picture-in-picture layouts where any panel shows live racing, especially with a "LIVE" badge
+- A sponsored "squeezeback": the live race is the ONLY thing playing, shrunk slightly and surrounded by a static sponsor frame or L-shaped bar (logo panel down one side, product bar across the bottom, often a slogan or QR code). No second video panel, no scoring strip, no "NASCAR NON STOP" banner. This is race content however heavy the surrounding branding is — the sponsor has only wrapped the race, not replaced it.
 - Sponsor logos in the CORNER of the screen — these are normal in-broadcast overlays, NOT indicators of an ad
 - Sponsor banners at the top or bottom of the screen
 - A brief network promo or lower-third for another event shown over the race broadcast
 
 AD BREAK — strong indicators:
 - A "NASCAR NON STOP" banner or bug, which NBC shows during side-by-side ad breaks where the race is shrunk into a smaller window alongside or above commercial content
-- The race reduced to a small inset while the majority of the screen shows unrelated content
+- The race confined to one panel while a SECOND video panel plays unrelated commercial content beside or below it. This holds whatever the relative sizes are — a race panel that takes up a third or more of the screen is still an ad break if a commercial is playing next to it.
 - NASCAR drivers in non-racing settings, like press conferences, gas stations, shopping, etc.
 - A product (food, vehicle, consumer goods) as the primary visual subject
 - Lifestyle or non-racing scenarios (people in a home, restaurant, or outdoor setting)
-- A brand logo or slogan dominating most of the screen
+- A brand logo or slogan dominating most of the screen, with no live race window beside it
 - Promos for NBC entertainment programming, Peacock originals, Sunday Night Football, the Olympics, or other non-NASCAR programming that fill the screen
 - Any type of race cars other than NASCAR Cup Series cars (e.g. open-wheel cars, Formula 1, IndyCar, NASCAR Trucks, sports cars, motorcycles)
 - Vehicles with very large tires or vehicles racing on dirt
 - Highly cinematic shots of race cars or racing scenes that are more typical of commercials than live sports broadcasts
 - Racing-themed imagery (cars, drivers) used to sell a product rather than show live action
+- Small legal disclaimer text, usually near the bottom edge and often centred — "Available features shown throughout", "available in selected markets", "Terms apply", a copyright line. Live coverage never carries this; it is close to a guarantee of an ad, even when the rest of the frame looks exactly like race footage.
+- A COMPLETELY clean frame: no network bug, no leaderboard, no lower third, no score strip, no "LIVE" badge — nothing but the picture. Commercials cut from real race footage look identical to broadcast cameras shot for shot, and this absence is often the only difference. Live coverage very rarely runs with no on-screen furniture at all.
+
+DECIDING WHEN THE RACE AND AN ADVERTISER SHARE THE SCREEN:
+
+This happens constantly, and branding alone never settles it. What settles it is whether a SECOND VIDEO PANEL of non-race content is playing next to the race:
+
+- TWO video panels — the race in one, a commercial playing in the other, usually with a scoring strip or "NASCAR NON STOP" banner across the top: this is a side-by-side ad break. `type=ad`. It stays an ad however large the race panel is.
+- ONE video panel — the live race — with the advertiser present only as a static surround: a logo panel down one side, a product bar across the bottom, an L-shaped frame, a slogan, a QR code. Nothing else is playing. This is a sponsored squeezeback, the race has not gone anywhere, and it is `type=racing` however heavy that surround is.
+
+If the whole screen is a single image with no distinct race window at all, the panel test does not apply — fall back to the indicator lists above.
 
 In 15 words or less, describe what you see. Then, end your message with `type=ad` or `type=racing`.

@@ -13,7 +13,7 @@ The two bugs need genuinely different matching and are NOT interchangeable:
 
 See each section below.
 
-Two things differ from the Fox profile and matter if you edit this:
+Three things differ from the Fox profile and matter if you edit this:
 
 1. The peacock is matched IN COLOR. `logo_match.load_masked` (and
    `mask_non_white`) zero out everything that isn't near-white, which erases a
@@ -24,6 +24,9 @@ Two things differ from the Fox profile and matter if you edit this:
    not separate: the weakest true positive scores below the strongest random
    negative. Constraining the window to where the bug actually sits is what
    makes the match reliable.
+
+3. The side-by-side banner is matched on UNMASKED GRAYSCALE, not a white mask.
+   See that section.
 
 Threshold rationale: measured over the 21 labelled NBC frames in `frames/`
 against 3000 random non-NBC frames. Weakest true positive scores 0.573, the
@@ -87,23 +90,38 @@ USA_MAX_MASK_FRACTION = 0.90
 
 # --- "NASCAR NON STOP" (side-by-side ad break, upper left) -> ad ------------
 #
-# UNVALIDATED. Every labelled NBC frame available is `content`, so there is no
-# side-by-side frame to test against. These templates are last season's assets
-# and are checked only against content frames, where they correctly stay quiet
-# (max score 0.35). Whether they fire on a real break is unknown — harvest a
-# side-by-side frame and re-crop before trusting this.
-SIDE_BY_SIDE_LOGO_PATHS = {
-    "non_stop": logo_match.LOGOS_DIR / "nbc_nascar_non_stop_side_by_side_logo.png",
-    "non_stop_full": logo_match.LOGOS_DIR / "nbc_nascar_non_stop_full_logo.png",
-}
-MASKED_SIDE_BY_SIDE_LOGOS = {
-    name: logo_match.load_masked(path) for name, path in SIDE_BY_SIDE_LOGO_PATHS.items()
-}
+# Matched UNMASKED, in grayscale. This is the one place the white mask actively
+# hurts. The banner is white-on-black, so masking it looks like the obvious
+# move, but `mask_non_white` (min_thresh=200) only survives a crisp rendering of
+# the glyphs. It holds on the NBC/USA feed and collapses on Prime Video, where
+# the same graphic is softer and anti-aliased: masked scores drop to 0.16-0.22
+# there, far below any usable threshold, while genuine NBC/USA breaks sit at
+# only 0.89. Dropping the mask removes that dependence on how one feed happens
+# to render its edges.
+#
+# Measured with the template below (cropped from the Prime feed at
+# 2026-06-21T21-04-26-980026_0, x 55-345 / y 33-75 in 1920x1080 space):
+#
+#   Prime banner frames (crop source excluded, n=52): median 0.998, 90% >= 0.80
+#   NBC/USA banner frames (n=94):                     min 0.892, median 0.955
+#   Labelled `content` frames (n=239):                max 0.656, none >= 0.80
+#   Aug 9 non-banner frames (n=2226):                 max 0.71
+#
+# One template, ~0.18 of margin on both feeds. The ~10% of Prime positives below
+# threshold are the banner animating in and out, which is a frame or two either
+# side of a break that the LLM handles anyway.
+#
+# The banner is small relative to the search region, so restrict the search to
+# where it actually sits rather than the upper-left fifth: the region below is
+# the band the banner occupies on both feeds, with margin.
+SIDE_BY_SIDE_LOGO = logo_match.LOGOS_DIR / "nbc_nascar_non_stop_banner.png"
+SIDE_BY_SIDE_TEMPLATE = cv2.cvtColor(cv2.imread(str(SIDE_BY_SIDE_LOGO)), cv2.COLOR_BGR2GRAY)
+SIDE_BY_SIDE_REGION = (0, 500, 0, 160)  # x0, x1, y0, y1
 SIDE_BY_SIDE_THRESHOLD = 0.8
 
-# Toggles so the unvalidated half can be turned off mid-broadcast without a
-# code change, via `/settings/classifier_profile` swapping to a known-good
-# profile or by editing these at the console.
+# Toggles so any single check can be turned off mid-broadcast without a code
+# change, via `/settings/classifier_profile` swapping to a known-good profile or
+# by editing these at the console.
 ENABLE_PEACOCK_CHECK = True
 ENABLE_USA_CHECK = True
 ENABLE_SIDE_BY_SIDE_CHECK = True
@@ -163,17 +181,24 @@ def has_network_logo(img: cv2.typing.MatLike) -> bool:
     return ENABLE_USA_CHECK and has_usa_logo(img)
 
 
-def _has_side_by_side_logo(img: cv2.typing.MatLike, masked_logo: cv2.typing.MatLike) -> bool:
-    masked_img = logo_match.mask_non_white(img.copy())
-    h, w = masked_img.shape[:2]
-    result = logo_match.match_template(masked_img[0 : h // 5, 0 : w // 5], masked_logo)
-    return result.max_val >= SIDE_BY_SIDE_THRESHOLD
+def side_by_side_score(
+    img: cv2.typing.MatLike, template: cv2.typing.MatLike = SIDE_BY_SIDE_TEMPLATE
+) -> float:
+    """Best match score for the NASCAR NON STOP banner within its search window.
+
+    *img* must already be resized to 1920x1080.
+    """
+    x0, x1, y0, y1 = SIDE_BY_SIDE_REGION
+    gray = cv2.cvtColor(img[y0:y1, x0:x1], cv2.COLOR_BGR2GRAY)
+    return logo_match.match_template(gray, template).max_val
 
 
 def has_side_by_side_logo(
-    img: cv2.typing.MatLike, masked_logos=MASKED_SIDE_BY_SIDE_LOGOS
+    img: cv2.typing.MatLike,
+    template: cv2.typing.MatLike = SIDE_BY_SIDE_TEMPLATE,
+    threshold: float = SIDE_BY_SIDE_THRESHOLD,
 ) -> bool:
-    return any(_has_side_by_side_logo(img, logo) for logo in masked_logos.values())
+    return side_by_side_score(img, template) >= threshold
 
 
 def classify_image(image_path: str, audio_bytes: bytes | None = None) -> ClassificationResult:
