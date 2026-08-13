@@ -159,6 +159,18 @@ Thresholds above 11 start merging frames with differing manual labels; see
 `notes/frame-deduplication.md` for the measurements behind the default of 10 and
 for why grouping is deliberately non-transitive.
 
+`scripts/prune_silent_audio.py` removes audio clips whose peak amplitude is at
+or below `audio_silence_threshold` — the residue of capture bound to a sink the
+browser wasn't playing to. It touches only `audio/`; clips carry no metadata
+records of their own, so a removed clip dangles nothing and its frame stays. The
+dry run prints a per-day table, which is the quickest way to see when capture
+died and whether it has recovered.
+
+```bash
+uv run python scripts/prune_silent_audio.py            # dry run + per-day report
+uv run python scripts/prune_silent_audio.py --apply
+```
+
 Additional `AppConfig` fields:
 - `phash_threshold` — max perceptual hash distance for override matches (default: `10`)
 - `enable_llm_audio` — enable audio-based LLM classification (default: `false`)
