@@ -20107,70 +20107,70 @@
    "verdict": "ad"
   },
   "2026-08-13T04-18-52-681000+00-00.jpg": {
-   "at": "2026-08-13T16:31:27+00:00",
+   "at": "2026-08-13T20:31:55+00:00",
    "judged": "ad",
    "note": "I actually agree with calling this an ad in effect but marked it as other because it's a post-ad-break ad read that continues all the way thru 2026-08-13T04-19-16-731000+00-00.jpg. this is content that I don't want to switch back for, but i worry classifying it too strongly as an ad would make the model treat any shots of fans in the stands as an ad even though those shots are occasionally shown in the middle of a content segment and not transitioning to/from ads.",
-   "verdict": "other"
+   "verdict": "ad"
   },
   "2026-08-13T04-18-54-683000+00-00.jpg": {
-   "at": "2026-08-13T16:22:38+00:00",
+   "at": "2026-08-13T20:31:58+00:00",
    "judged": "ad",
-   "verdict": "other"
+   "verdict": "ad"
   },
   "2026-08-13T04-18-56-685000+00-00.jpg": {
-   "at": "2026-08-13T16:22:39+00:00",
+   "at": "2026-08-13T20:32:47+00:00",
    "judged": "content",
-   "verdict": "other"
+   "verdict": "ad"
   },
   "2026-08-13T04-18-58-686000+00-00.jpg": {
-   "at": "2026-08-13T16:22:41+00:00",
+   "at": "2026-08-13T20:32:48+00:00",
    "judged": "content",
-   "verdict": "other"
+   "verdict": "ad"
   },
   "2026-08-13T04-19-00-689000+00-00.jpg": {
-   "at": "2026-08-13T16:22:49+00:00",
+   "at": "2026-08-13T20:32:49+00:00",
    "judged": "content",
-   "verdict": "other"
+   "verdict": "ad"
   },
   "2026-08-13T04-19-02-692000+00-00.jpg": {
-   "at": "2026-08-13T16:22:49+00:00",
+   "at": "2026-08-13T20:32:50+00:00",
    "judged": "content",
-   "verdict": "other"
+   "verdict": "ad"
   },
   "2026-08-13T04-19-04-694000+00-00.jpg": {
-   "at": "2026-08-13T16:22:50+00:00",
+   "at": "2026-08-13T20:32:52+00:00",
    "judged": "content",
-   "verdict": "other"
+   "verdict": "ad"
   },
   "2026-08-13T04-19-06-694000+00-00.jpg": {
-   "at": "2026-08-13T16:22:50+00:00",
+   "at": "2026-08-13T20:32:57+00:00",
    "judged": "content",
-   "verdict": "other"
+   "verdict": "ad"
   },
   "2026-08-13T04-19-08-697000+00-00.jpg": {
-   "at": "2026-08-13T16:22:51+00:00",
+   "at": "2026-08-13T20:32:56+00:00",
    "judged": "content",
-   "verdict": "other"
+   "verdict": "ad"
   },
   "2026-08-13T04-19-10-698000+00-00.jpg": {
-   "at": "2026-08-13T16:22:52+00:00",
+   "at": "2026-08-13T20:32:55+00:00",
    "judged": "content",
-   "verdict": "other"
+   "verdict": "ad"
   },
   "2026-08-13T04-19-12-724000+00-00.jpg": {
-   "at": "2026-08-13T16:22:52+00:00",
+   "at": "2026-08-13T20:32:55+00:00",
    "judged": "content",
-   "verdict": "other"
+   "verdict": "ad"
   },
   "2026-08-13T04-19-14-727000+00-00.jpg": {
-   "at": "2026-08-13T16:22:52+00:00",
+   "at": "2026-08-13T20:32:54+00:00",
    "judged": "content",
-   "verdict": "other"
+   "verdict": "ad"
   },
   "2026-08-13T04-19-16-731000+00-00.jpg": {
-   "at": "2026-08-13T16:22:53+00:00",
+   "at": "2026-08-13T20:33:24+00:00",
    "judged": "content",
-   "verdict": "other"
+   "verdict": "ad"
   },
   "2026-08-13T04-19-18-732000+00-00.jpg": {
    "at": "2026-08-13T16:23:16+00:00",
@@ -20378,16 +20378,16 @@
    "verdict": "content"
   },
   "2026-08-13T04-20-40-917000+00-00.jpg": {
-   "at": "2026-08-13T14:39:08+00:00",
+   "at": "2026-08-13T20:33:58+00:00",
    "judged": "ad",
-   "note": "transition",
-   "verdict": "other"
+   "note": "start of a transition",
+   "verdict": "content"
   },
   "2026-08-13T04-20-42-921000+00-00.jpg": {
-   "at": "2026-08-13T14:39:09+00:00",
+   "at": "2026-08-13T20:34:16+00:00",
    "judged": "ad",
    "note": "transition",
-   "verdict": "other"
+   "verdict": "content"
   },
   "2026-08-13T04-20-44-924000+00-00.jpg": {
    "at": "2026-08-13T14:39:10+00:00",
@@ -20782,142 +20782,142 @@
    "verdict": "ad"
   },
   "2026-08-13T04-23-21-302000+00-00.jpg": {
-   "at": "2026-08-13T18:16:21+00:00",
+   "at": "2026-08-13T21:22:07+00:00",
    "judged": "content",
    "note": "another post-ad-break in-broadcast ad read, this time for DraftKings and semi-disguised as an informational segment -- just happens to be information about betting odds to try to get people to gamble. I'm not sure it's actually worth trying to classify this one as an ad -- feels like it might just confuse the model and make it more prone to treat other content as ad content too",
-   "verdict": "other"
+   "verdict": "ad"
   },
   "2026-08-13T04-23-23-303000+00-00.jpg": {
-   "at": "2026-08-13T18:16:21+00:00",
+   "at": "2026-08-13T21:22:08+00:00",
    "judged": "content",
    "note": "post-ad-break in-broadcast ad read continues",
-   "verdict": "other"
+   "verdict": "ad"
   },
   "2026-08-13T04-23-25-304000+00-00.jpg": {
-   "at": "2026-08-13T18:16:21+00:00",
+   "at": "2026-08-13T21:22:09+00:00",
    "judged": "content",
    "note": "post-ad-break in-broadcast ad read continues",
-   "verdict": "other"
+   "verdict": "ad"
   },
   "2026-08-13T04-23-27-305000+00-00.jpg": {
-   "at": "2026-08-13T18:16:21+00:00",
+   "at": "2026-08-13T21:22:09+00:00",
    "judged": "content",
    "note": "post-ad-break in-broadcast ad read continues",
-   "verdict": "other"
+   "verdict": "ad"
   },
   "2026-08-13T04-23-29-318000+00-00.jpg": {
-   "at": "2026-08-13T18:16:21+00:00",
+   "at": "2026-08-13T21:22:10+00:00",
    "judged": "content",
    "note": "post-ad-break in-broadcast ad read continues",
-   "verdict": "other"
+   "verdict": "ad"
   },
   "2026-08-13T04-23-31-320000+00-00.jpg": {
-   "at": "2026-08-13T18:16:21+00:00",
+   "at": "2026-08-13T21:22:04+00:00",
    "judged": "content",
    "note": "post-ad-break in-broadcast ad read continues",
-   "verdict": "other"
+   "verdict": "ad"
   },
   "2026-08-13T04-23-33-323000+00-00.jpg": {
-   "at": "2026-08-13T18:16:21+00:00",
+   "at": "2026-08-13T21:22:03+00:00",
    "judged": "content",
    "note": "post-ad-break in-broadcast ad read continues",
-   "verdict": "other"
+   "verdict": "ad"
   },
   "2026-08-13T04-23-35-324000+00-00.jpg": {
-   "at": "2026-08-13T18:16:21+00:00",
+   "at": "2026-08-13T21:22:02+00:00",
    "judged": "content",
    "note": "post-ad-break in-broadcast ad read continues",
-   "verdict": "other"
+   "verdict": "ad"
   },
   "2026-08-13T04-23-37-330000+00-00.jpg": {
-   "at": "2026-08-13T18:16:21+00:00",
+   "at": "2026-08-13T21:22:02+00:00",
    "judged": "content",
    "note": "post-ad-break in-broadcast ad read continues",
-   "verdict": "other"
+   "verdict": "ad"
   },
   "2026-08-13T04-23-39-331000+00-00.jpg": {
-   "at": "2026-08-13T18:16:21+00:00",
+   "at": "2026-08-13T21:22:01+00:00",
    "judged": "content",
    "note": "post-ad-break in-broadcast ad read continues",
-   "verdict": "other"
+   "verdict": "ad"
   },
   "2026-08-13T04-23-41-351000+00-00.jpg": {
-   "at": "2026-08-13T18:16:21+00:00",
+   "at": "2026-08-13T21:21:57+00:00",
    "judged": "content",
    "note": "post-ad-break in-broadcast ad read continues",
-   "verdict": "other"
+   "verdict": "ad"
   },
   "2026-08-13T04-23-43-352000+00-00.jpg": {
-   "at": "2026-08-13T18:16:21+00:00",
+   "at": "2026-08-13T21:21:57+00:00",
    "judged": "content",
    "note": "post-ad-break in-broadcast ad read continues",
-   "verdict": "other"
+   "verdict": "ad"
   },
   "2026-08-13T04-23-45-353000+00-00.jpg": {
-   "at": "2026-08-13T18:16:21+00:00",
+   "at": "2026-08-13T21:21:58+00:00",
    "judged": "content",
    "note": "post-ad-break in-broadcast ad read continues",
-   "verdict": "other"
+   "verdict": "ad"
   },
   "2026-08-13T04-23-47-355000+00-00.jpg": {
-   "at": "2026-08-13T18:16:21+00:00",
+   "at": "2026-08-13T21:21:59+00:00",
    "judged": "content",
    "note": "post-ad-break in-broadcast ad read continues",
-   "verdict": "other"
+   "verdict": "ad"
   },
   "2026-08-13T04-23-49-358000+00-00.jpg": {
-   "at": "2026-08-13T18:16:21+00:00",
+   "at": "2026-08-13T21:21:59+00:00",
    "judged": "content",
    "note": "post-ad-break in-broadcast ad read continues",
-   "verdict": "other"
+   "verdict": "ad"
   },
   "2026-08-13T04-23-51-362000+00-00.jpg": {
-   "at": "2026-08-13T18:16:21+00:00",
+   "at": "2026-08-13T21:21:54+00:00",
    "judged": "content",
-   "note": "post-ad-break in-broadcast ad read continues",
-   "verdict": "other"
+   "note": "post-ad-break in-broadcast ad read continues - commentator touts DraftKings but switching away now would guarantee a bounce",
+   "verdict": "ad"
   },
   "2026-08-13T04-23-53-364000+00-00.jpg": {
-   "at": "2026-08-13T18:16:21+00:00",
+   "at": "2026-08-13T21:21:53+00:00",
    "judged": "content",
    "note": "post-ad-break in-broadcast ad read continues",
-   "verdict": "other"
+   "verdict": "ad"
   },
   "2026-08-13T04-23-55-365000+00-00.jpg": {
-   "at": "2026-08-13T18:16:21+00:00",
+   "at": "2026-08-13T21:21:53+00:00",
    "judged": "content",
    "note": "post-ad-break in-broadcast ad read continues",
-   "verdict": "other"
+   "verdict": "ad"
   },
   "2026-08-13T04-23-57-368000+00-00.jpg": {
-   "at": "2026-08-13T17:41:49+00:00",
+   "at": "2026-08-13T21:21:52+00:00",
    "judged": "content",
    "note": "post-ad-break in-broadcast ad read continues: the DraftKings ad read from the preceding captures actually keeps going through these images too, but flagging these as ads would *really* be fraught. the other concern that occurs to me with this is that I've seen some broadcasts where they promoted DraftKings in a segment the middle of a stretch of content so if we hypothetically did something like ran STT and assumed type=ad anytime we found \"DraftKings\", we'd still end up switching away at times we probably don't want to switch",
-   "verdict": "other"
+   "verdict": "ad"
   },
   "2026-08-13T04-23-59-385000+00-00.jpg": {
-   "at": "2026-08-13T17:41:49+00:00",
+   "at": "2026-08-13T21:21:51+00:00",
    "judged": "content",
    "note": "post-ad-break in-broadcast ad read continues",
-   "verdict": "other"
+   "verdict": "ad"
   },
   "2026-08-13T04-24-01-402000+00-00.jpg": {
-   "at": "2026-08-13T17:41:53+00:00",
+   "at": "2026-08-13T21:21:49+00:00",
    "judged": "content",
    "note": "post-ad-break in-broadcast ad read continues",
-   "verdict": "other"
+   "verdict": "ad"
   },
   "2026-08-13T04-24-03-405000+00-00.jpg": {
-   "at": "2026-08-13T17:41:54+00:00",
+   "at": "2026-08-13T21:21:48+00:00",
    "judged": "content",
    "note": "post-ad-break in-broadcast ad read continues",
-   "verdict": "other"
+   "verdict": "ad"
   },
   "2026-08-13T04-24-05-406000+00-00.jpg": {
-   "at": "2026-08-13T17:41:55+00:00",
+   "at": "2026-08-13T21:21:47+00:00",
    "judged": "content",
-   "note": "post-ad-break in-broadcast ad read continues",
-   "verdict": "other"
+   "note": "post-ad-break in-broadcast ad read continues (end)",
+   "verdict": "ad"
   },
   "2026-08-13T04-24-07-407000+00-00.jpg": {
    "at": "2026-08-13T17:42:47+00:00",

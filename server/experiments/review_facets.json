@@ -1589,462 +1589,528 @@
    "where": "rejoin"
   },
   "2026-08-13T02-09-14-240000+00-00.jpg": {
-   "audio": null,
+   "audio": "spot_audio",
    "care_away": 0,
    "care_back": 0,
+   "confirmed": true,
    "phase": "pre_race",
-   "review": true,
-   "risk": "safe",
+   "risk": "fraught",
    "src": {
+    "audio": "manual",
     "care": "inferred",
+    "risk": "manual",
     "video": "inferred"
    },
    "video": "package",
    "where": "rejoin"
   },
   "2026-08-13T02-09-16-242000+00-00.jpg": {
-   "audio": null,
+   "audio": "spot_audio",
    "care_away": 0,
    "care_back": 0,
+   "confirmed": true,
    "phase": "pre_race",
-   "review": true,
-   "risk": "safe",
+   "risk": "fraught",
    "src": {
+    "audio": "manual",
     "care": "inferred",
+    "risk": "manual",
     "video": "inferred"
    },
    "video": "package",
    "where": "rejoin"
   },
   "2026-08-13T02-09-18-242000+00-00.jpg": {
-   "audio": null,
+   "audio": "spot_audio",
    "care_away": 0,
    "care_back": 0,
+   "confirmed": true,
    "phase": "pre_race",
-   "review": true,
-   "risk": "safe",
+   "risk": "fraught",
    "src": {
+    "audio": "manual",
     "care": "inferred",
+    "risk": "manual",
     "video": "inferred"
    },
    "video": "package",
    "where": "rejoin"
   },
   "2026-08-13T02-09-20-244000+00-00.jpg": {
-   "audio": null,
+   "audio": "spot_audio",
    "care_away": 0,
    "care_back": 0,
+   "confirmed": true,
    "phase": "pre_race",
-   "review": true,
-   "risk": "safe",
+   "risk": "fraught",
    "src": {
+    "audio": "manual",
     "care": "inferred",
+    "risk": "manual",
     "video": "inferred"
    },
    "video": "package",
    "where": "rejoin"
   },
   "2026-08-13T02-09-22-245000+00-00.jpg": {
-   "audio": null,
+   "audio": "spot_audio",
    "care_away": 0,
    "care_back": 0,
+   "confirmed": true,
    "phase": "pre_race",
-   "review": true,
-   "risk": "safe",
+   "risk": "fraught",
    "src": {
+    "audio": "manual",
     "care": "inferred",
+    "risk": "manual",
     "video": "inferred"
    },
    "video": "package",
    "where": "rejoin"
   },
   "2026-08-13T02-09-24-255000+00-00.jpg": {
-   "audio": null,
+   "audio": "spot_audio",
    "care_away": 0,
    "care_back": 0,
+   "confirmed": true,
    "phase": "pre_race",
-   "review": true,
-   "risk": "safe",
+   "risk": "fraught",
    "src": {
+    "audio": "manual",
     "care": "inferred",
+    "risk": "manual",
     "video": "inferred"
    },
    "video": "package",
    "where": "rejoin"
   },
   "2026-08-13T02-09-26-259000+00-00.jpg": {
-   "audio": null,
+   "audio": "spot_audio",
    "care_away": 0,
    "care_back": 0,
+   "confirmed": true,
    "phase": "pre_race",
-   "review": true,
-   "risk": "safe",
+   "risk": "fraught",
    "src": {
+    "audio": "manual",
     "care": "inferred",
+    "risk": "manual",
     "video": "inferred"
    },
    "video": "package",
    "where": "rejoin"
   },
   "2026-08-13T02-09-28-274000+00-00.jpg": {
-   "audio": null,
+   "audio": "spot_audio",
    "care_away": 0,
    "care_back": 0,
+   "confirmed": true,
    "phase": "pre_race",
-   "review": true,
-   "risk": "safe",
+   "risk": "fraught",
    "src": {
+    "audio": "manual",
     "care": "inferred",
+    "risk": "manual",
     "video": "inferred"
    },
    "video": "package",
    "where": "rejoin"
   },
   "2026-08-13T02-09-30-275000+00-00.jpg": {
-   "audio": null,
+   "audio": "spot_audio",
    "care_away": 0,
    "care_back": 0,
+   "confirmed": true,
    "phase": "pre_race",
-   "review": true,
-   "risk": "safe",
+   "risk": "fraught",
    "src": {
+    "audio": "manual",
     "care": "inferred",
+    "risk": "manual",
     "video": "inferred"
    },
    "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-09-32-277000+00-00.jpg": {
-   "audio": null,
+   "audio": "spot_audio",
    "care_away": 0,
    "care_back": 0,
+   "confirmed": true,
    "phase": "pre_race",
-   "review": true,
-   "risk": "safe",
+   "risk": "fraught",
    "src": {
+    "audio": "manual",
     "care": "inferred",
+    "risk": "manual",
     "video": "inferred"
    },
    "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-09-34-278000+00-00.jpg": {
-   "audio": null,
+   "audio": "spot_audio",
    "care_away": 0,
    "care_back": 0,
+   "confirmed": true,
    "phase": "pre_race",
-   "review": true,
-   "risk": "safe",
+   "risk": "fraught",
    "src": {
+    "audio": "manual",
     "care": "inferred",
+    "risk": "manual",
     "video": "inferred"
    },
    "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-09-36-280000+00-00.jpg": {
-   "audio": null,
+   "audio": "spot_audio",
    "care_away": 0,
    "care_back": 0,
+   "confirmed": true,
    "phase": "pre_race",
-   "review": true,
-   "risk": "safe",
+   "risk": "fraught",
    "src": {
+    "audio": "manual",
     "care": "inferred",
+    "risk": "manual",
     "video": "inferred"
    },
    "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-09-38-282000+00-00.jpg": {
-   "audio": null,
+   "audio": "spot_audio",
    "care_away": 0,
    "care_back": 0,
+   "confirmed": true,
    "phase": "pre_race",
-   "review": true,
-   "risk": "safe",
+   "risk": "fraught",
    "src": {
+    "audio": "manual",
     "care": "inferred",
+    "risk": "manual",
     "video": "inferred"
    },
    "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-09-40-282000+00-00.jpg": {
-   "audio": null,
+   "audio": "spot_audio",
    "care_away": 0,
    "care_back": 0,
+   "confirmed": true,
    "phase": "pre_race",
-   "review": true,
-   "risk": "safe",
+   "risk": "fraught",
    "src": {
+    "audio": "manual",
     "care": "inferred",
+    "risk": "manual",
     "video": "inferred"
    },
    "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-09-42-309000+00-00.jpg": {
-   "audio": null,
+   "audio": "spot_audio",
    "care_away": 0,
    "care_back": 0,
+   "confirmed": true,
    "phase": "pre_race",
-   "review": true,
-   "risk": "safe",
+   "risk": "fraught",
    "src": {
+    "audio": "manual",
     "care": "inferred",
+    "risk": "manual",
     "video": "inferred"
    },
    "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-09-44-310000+00-00.jpg": {
-   "audio": null,
+   "audio": "spot_audio",
    "care_away": 0,
    "care_back": 0,
+   "confirmed": true,
    "phase": "pre_race",
-   "review": true,
-   "risk": "safe",
+   "risk": "fraught",
    "src": {
+    "audio": "manual",
     "care": "inferred",
+    "risk": "manual",
     "video": "inferred"
    },
    "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-09-46-311000+00-00.jpg": {
-   "audio": null,
+   "audio": "spot_audio",
    "care_away": 0,
    "care_back": 0,
+   "confirmed": true,
    "phase": "pre_race",
-   "review": true,
-   "risk": "safe",
+   "risk": "fraught",
    "src": {
+    "audio": "manual",
     "care": "inferred",
+    "risk": "manual",
     "video": "inferred"
    },
    "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-09-48-312000+00-00.jpg": {
-   "audio": null,
+   "audio": "spot_audio",
    "care_away": 0,
    "care_back": 0,
+   "confirmed": true,
    "phase": "pre_race",
-   "review": true,
-   "risk": "safe",
+   "risk": "fraught",
    "src": {
+    "audio": "manual",
     "care": "inferred",
+    "risk": "manual",
     "video": "inferred"
    },
    "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-09-50-320000+00-00.jpg": {
-   "audio": null,
+   "audio": "spot_audio",
    "care_away": 0,
    "care_back": 0,
+   "confirmed": true,
    "phase": "pre_race",
-   "review": true,
-   "risk": "safe",
+   "risk": "fraught",
    "src": {
+    "audio": "manual",
     "care": "inferred",
+    "risk": "manual",
     "video": "inferred"
    },
    "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-09-52-321000+00-00.jpg": {
-   "audio": null,
+   "audio": "spot_audio",
    "care_away": 0,
    "care_back": 0,
+   "confirmed": true,
    "phase": "pre_race",
-   "review": true,
-   "risk": "safe",
+   "risk": "fraught",
    "src": {
+    "audio": "manual",
     "care": "inferred",
+    "risk": "manual",
     "video": "inferred"
    },
    "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-09-54-322000+00-00.jpg": {
-   "audio": null,
+   "audio": "spot_audio",
    "care_away": 0,
    "care_back": 0,
+   "confirmed": true,
    "phase": "pre_race",
-   "review": true,
-   "risk": "safe",
+   "risk": "fraught",
    "src": {
+    "audio": "manual",
     "care": "inferred",
+    "risk": "manual",
     "video": "inferred"
    },
    "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-09-56-323000+00-00.jpg": {
-   "audio": null,
+   "audio": "spot_audio",
    "care_away": 0,
    "care_back": 0,
+   "confirmed": true,
    "phase": "pre_race",
-   "review": true,
-   "risk": "safe",
+   "risk": "fraught",
    "src": {
+    "audio": "manual",
     "care": "inferred",
+    "risk": "manual",
     "video": "inferred"
    },
    "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-09-58-326000+00-00.jpg": {
-   "audio": null,
+   "audio": "spot_audio",
    "care_away": 0,
    "care_back": 0,
+   "confirmed": true,
    "phase": "pre_race",
-   "review": true,
-   "risk": "safe",
+   "risk": "fraught",
    "src": {
+    "audio": "manual",
     "care": "inferred",
+    "risk": "manual",
     "video": "inferred"
    },
    "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-10-00-327000+00-00.jpg": {
-   "audio": null,
+   "audio": "spot_audio",
    "care_away": 0,
    "care_back": 0,
+   "confirmed": true,
    "phase": "pre_race",
-   "review": true,
-   "risk": "safe",
+   "risk": "fraught",
    "src": {
+    "audio": "manual",
     "care": "inferred",
+    "risk": "manual",
     "video": "inferred"
    },
    "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-10-02-348000+00-00.jpg": {
-   "audio": null,
+   "audio": "spot_audio",
    "care_away": 0,
    "care_back": 0,
+   "confirmed": true,
    "phase": "pre_race",
-   "review": true,
-   "risk": "safe",
+   "risk": "fraught",
    "src": {
+    "audio": "manual",
     "care": "inferred",
+    "risk": "manual",
     "video": "inferred"
    },
    "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-10-04-356000+00-00.jpg": {
-   "audio": null,
+   "audio": "spot_audio",
    "care_away": 0,
    "care_back": 0,
+   "confirmed": true,
    "phase": "pre_race",
-   "review": true,
-   "risk": "safe",
+   "risk": "fraught",
    "src": {
+    "audio": "manual",
     "care": "inferred",
+    "risk": "manual",
     "video": "inferred"
    },
    "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-10-06-358000+00-00.jpg": {
-   "audio": null,
+   "audio": "spot_audio",
    "care_away": 0,
    "care_back": 0,
+   "confirmed": true,
    "phase": "pre_race",
-   "review": true,
-   "risk": "safe",
+   "risk": "fraught",
    "src": {
+    "audio": "manual",
     "care": "inferred",
+    "risk": "manual",
     "video": "inferred"
    },
    "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-10-08-359000+00-00.jpg": {
-   "audio": null,
+   "audio": "spot_audio",
    "care_away": 0,
    "care_back": 0,
+   "confirmed": true,
    "phase": "pre_race",
-   "review": true,
-   "risk": "safe",
+   "risk": "fraught",
    "src": {
+    "audio": "manual",
     "care": "inferred",
+    "risk": "manual",
     "video": "inferred"
    },
    "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-10-10-362000+00-00.jpg": {
-   "audio": null,
+   "audio": "spot_audio",
    "care_away": 0,
    "care_back": 0,
+   "confirmed": true,
    "phase": "pre_race",
-   "review": true,
-   "risk": "safe",
+   "risk": "fraught",
    "src": {
+    "audio": "manual",
     "care": "inferred",
+    "risk": "manual",
     "video": "inferred"
    },
    "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-10-12-363000+00-00.jpg": {
-   "audio": null,
+   "audio": "spot_audio",
    "care_away": 0,
    "care_back": 0,
+   "confirmed": true,
    "phase": "pre_race",
-   "review": true,
-   "risk": "safe",
+   "risk": "fraught",
    "src": {
+    "audio": "manual",
     "care": "inferred",
+    "risk": "manual",
     "video": "inferred"
    },
    "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-10-14-365000+00-00.jpg": {
-   "audio": null,
+   "audio": "spot_audio",
    "care_away": 0,
    "care_back": 0,
+   "confirmed": true,
    "phase": "pre_race",
-   "review": true,
-   "risk": "safe",
+   "risk": "fraught",
    "src": {
+    "audio": "manual",
     "care": "default",
+    "risk": "manual",
     "video": "inferred"
    },
    "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-10-16-366000+00-00.jpg": {
-   "audio": null,
+   "audio": "spot_audio",
    "care_away": 0,
    "care_back": 0,
+   "confirmed": true,
    "phase": "pre_race",
-   "review": true,
-   "risk": "safe",
+   "risk": "fraught",
    "src": {
+    "audio": "manual",
     "care": "default",
+    "risk": "manual",
     "video": "inferred"
    },
    "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-10-18-367000+00-00.jpg": {
-   "audio": null,
+   "audio": "spot_audio",
    "care_away": 0,
    "care_back": 0,
+   "confirmed": true,
    "phase": "pre_race",
-   "review": true,
-   "risk": "safe",
+   "risk": "fraught",
    "src": {
+    "audio": "manual",
     "care": "default",
+    "risk": "manual",
     "video": "inferred"
    },
    "video": "package",
@@ -3847,13 +3913,14 @@
    "where": "in_break"
   },
   "2026-08-13T02-14-38-961000+00-00.jpg": {
-   "audio": null,
+   "audio": "silence",
    "care_away": 0,
    "care_back": 0,
+   "confirmed": true,
    "phase": "pre_race",
-   "review": true,
    "risk": "safe",
    "src": {
+    "audio": "manual",
     "care": "inferred",
     "video": "inferred"
    },
@@ -3861,13 +3928,14 @@
    "where": "rejoin"
   },
   "2026-08-13T02-14-40-962000+00-00.jpg": {
-   "audio": null,
+   "audio": "silence",
    "care_away": 0,
    "care_back": 0,
+   "confirmed": true,
    "phase": "pre_race",
-   "review": true,
    "risk": "safe",
    "src": {
+    "audio": "manual",
     "care": "inferred",
     "video": "inferred"
    },
@@ -3875,13 +3943,14 @@
    "where": "rejoin"
   },
   "2026-08-13T02-14-42-963000+00-00.jpg": {
-   "audio": null,
+   "audio": "music_bed",
    "care_away": 0,
    "care_back": 0,
+   "confirmed": true,
    "phase": "pre_race",
-   "review": true,
    "risk": "safe",
    "src": {
+    "audio": "manual",
     "care": "inferred",
     "video": "inferred"
    },
@@ -3889,13 +3958,14 @@
    "where": "rejoin"
   },
   "2026-08-13T02-14-44-964000+00-00.jpg": {
-   "audio": null,
+   "audio": "music_bed",
    "care_away": 0,
    "care_back": 0,
+   "confirmed": true,
    "phase": "pre_race",
-   "review": true,
    "risk": "safe",
    "src": {
+    "audio": "manual",
     "care": "inferred",
     "video": "inferred"
    },
@@ -3903,13 +3973,14 @@
    "where": "rejoin"
   },
   "2026-08-13T02-14-46-965000+00-00.jpg": {
-   "audio": null,
+   "audio": "music_bed",
    "care_away": 0,
    "care_back": 0,
+   "confirmed": true,
    "phase": "pre_race",
-   "review": true,
    "risk": "safe",
    "src": {
+    "audio": "manual",
     "care": "inferred",
     "video": "inferred"
    },
@@ -3917,13 +3988,14 @@
    "where": "rejoin"
   },
   "2026-08-13T02-14-48-978000+00-00.jpg": {
-   "audio": null,
+   "audio": "music_bed",
    "care_away": 0,
    "care_back": 0,
+   "confirmed": true,
    "phase": "pre_race",
-   "review": true,
    "risk": "safe",
    "src": {
+    "audio": "manual",
     "care": "inferred",
     "video": "inferred"
    },
@@ -3931,13 +4003,14 @@
    "where": "rejoin"
   },
   "2026-08-13T02-14-50-980000+00-00.jpg": {
-   "audio": null,
+   "audio": "music_bed",
    "care_away": 0,
    "care_back": 0,
+   "confirmed": true,
    "phase": "pre_race",
-   "review": true,
    "risk": "safe",
    "src": {
+    "audio": "manual",
     "care": "inferred",
     "video": "inferred"
    },
@@ -3945,13 +4018,14 @@
    "where": "rejoin"
   },
   "2026-08-13T02-14-52-984000+00-00.jpg": {
-   "audio": null,
+   "audio": "music_bed",
    "care_away": 0,
    "care_back": 0,
+   "confirmed": true,
    "phase": "pre_race",
-   "review": true,
    "risk": "safe",
    "src": {
+    "audio": "manual",
     "care": "inferred",
     "video": "inferred"
    },
@@ -3959,13 +4033,14 @@
    "where": "rejoin"
   },
   "2026-08-13T02-14-54-984000+00-00.jpg": {
-   "audio": null,
+   "audio": "music_bed",
    "care_away": 0,
    "care_back": 0,
+   "confirmed": true,
    "phase": "pre_race",
-   "review": true,
    "risk": "safe",
    "src": {
+    "audio": "manual",
     "care": "inferred",
     "video": "inferred"
    },
@@ -3973,13 +4048,14 @@
    "where": "rejoin"
   },
   "2026-08-13T02-14-56-986000+00-00.jpg": {
-   "audio": null,
+   "audio": "music_bed",
    "care_away": 0,
    "care_back": 0,
+   "confirmed": true,
    "phase": "pre_race",
-   "review": true,
    "risk": "safe",
    "src": {
+    "audio": "manual",
     "care": "inferred",
     "video": "inferred"
    },
@@ -3987,13 +4063,14 @@
    "where": "rejoin"
   },
   "2026-08-13T02-14-58-986000+00-00.jpg": {
-   "audio": null,
+   "audio": "music_bed",
    "care_away": 0,
    "care_back": 0,
+   "confirmed": true,
    "phase": "pre_race",
-   "review": true,
    "risk": "safe",
    "src": {
+    "audio": "manual",
     "care": "inferred",
     "video": "inferred"
    },
@@ -4001,13 +4078,14 @@
    "where": "interior"
   },
   "2026-08-13T02-15-00-988000+00-00.jpg": {
-   "audio": null,
+   "audio": "music_bed",
    "care_away": 0,
    "care_back": 0,
+   "confirmed": true,
    "phase": "pre_race",
-   "review": true,
    "risk": "safe",
    "src": {
+    "audio": "manual",
     "care": "inferred",
     "video": "inferred"
    },
@@ -4015,13 +4093,14 @@
    "where": "interior"
   },
   "2026-08-13T02-15-02-989000+00-00.jpg": {
-   "audio": null,
+   "audio": "music_bed",
    "care_away": 0,
    "care_back": 0,
+   "confirmed": true,
    "phase": "pre_race",
-   "review": true,
    "risk": "safe",
    "src": {
+    "audio": "manual",
     "care": "inferred",
     "video": "inferred"
    },
@@ -4029,13 +4108,14 @@
    "where": "interior"
   },
   "2026-08-13T02-15-04-990000+00-00.jpg": {
-   "audio": null,
+   "audio": "music_bed",
    "care_away": 0,
    "care_back": 0,
+   "confirmed": true,
    "phase": "pre_race",
-   "review": true,
    "risk": "safe",
    "src": {
+    "audio": "manual",
     "care": "inferred",
     "video": "inferred"
    },
@@ -4043,13 +4123,14 @@
    "where": "interior"
   },
   "2026-08-13T02-15-07-013000+00-00.jpg": {
-   "audio": null,
+   "audio": "music_bed",
    "care_away": 0,
    "care_back": 0,
+   "confirmed": true,
    "phase": "pre_race",
-   "review": true,
    "risk": "safe",
    "src": {
+    "audio": "manual",
     "care": "inferred",
     "video": "inferred"
    },
@@ -4057,13 +4138,14 @@
    "where": "interior"
   },
   "2026-08-13T02-15-09-014000+00-00.jpg": {
-   "audio": null,
+   "audio": "music_bed",
    "care_away": 0,
    "care_back": 0,
+   "confirmed": true,
    "phase": "pre_race",
-   "review": true,
    "risk": "safe",
    "src": {
+    "audio": "manual",
     "care": "inferred",
     "video": "inferred"
    },
@@ -4071,13 +4153,14 @@
    "where": "interior"
   },
   "2026-08-13T02-15-11-015000+00-00.jpg": {
-   "audio": null,
+   "audio": "music_bed",
    "care_away": 0,
    "care_back": 0,
+   "confirmed": true,
    "phase": "pre_race",
-   "review": true,
    "risk": "safe",
    "src": {
+    "audio": "manual",
     "care": "inferred",
     "video": "inferred"
    },
@@ -4085,13 +4168,14 @@
    "where": "interior"
   },
   "2026-08-13T02-15-13-016000+00-00.jpg": {
-   "audio": null,
+   "audio": "music_bed",
    "care_away": 0,
    "care_back": 0,
+   "confirmed": true,
    "phase": "pre_race",
-   "review": true,
    "risk": "safe",
    "src": {
+    "audio": "manual",
     "care": "inferred",
     "video": "inferred"
    },
@@ -4099,13 +4183,14 @@
    "where": "interior"
   },
   "2026-08-13T02-15-15-017000+00-00.jpg": {
-   "audio": null,
+   "audio": "music_bed",
    "care_away": 0,
    "care_back": 0,
+   "confirmed": true,
    "phase": "pre_race",
-   "review": true,
    "risk": "safe",
    "src": {
+    "audio": "manual",
     "care": "inferred",
     "video": "inferred"
    },
@@ -4113,13 +4198,14 @@
    "where": "interior"
   },
   "2026-08-13T02-15-17-018000+00-00.jpg": {
-   "audio": null,
+   "audio": "music_bed",
    "care_away": 0,
    "care_back": 0,
+   "confirmed": true,
    "phase": "pre_race",
-   "review": true,
    "risk": "safe",
    "src": {
+    "audio": "manual",
     "care": "inferred",
     "video": "inferred"
    },
@@ -4127,13 +4213,14 @@
    "where": "interior"
   },
   "2026-08-13T02-15-19-035000+00-00.jpg": {
-   "audio": null,
+   "audio": "music_bed",
    "care_away": 0,
    "care_back": 0,
+   "confirmed": true,
    "phase": "pre_race",
-   "review": true,
    "risk": "safe",
    "src": {
+    "audio": "manual",
     "care": "inferred",
     "video": "inferred"
    },
@@ -4141,13 +4228,14 @@
    "where": "interior"
   },
   "2026-08-13T02-15-21-036000+00-00.jpg": {
-   "audio": null,
+   "audio": "music_bed",
    "care_away": 0,
    "care_back": 0,
+   "confirmed": true,
    "phase": "pre_race",
-   "review": true,
    "risk": "safe",
    "src": {
+    "audio": "manual",
     "care": "inferred",
     "video": "inferred"
    },
@@ -4155,13 +4243,14 @@
    "where": "interior"
   },
   "2026-08-13T02-15-23-038000+00-00.jpg": {
-   "audio": null,
+   "audio": "music_bed",
    "care_away": 0,
    "care_back": 0,
+   "confirmed": true,
    "phase": "pre_race",
-   "review": true,
    "risk": "safe",
    "src": {
+    "audio": "manual",
     "care": "inferred",
     "video": "inferred"
    },
@@ -4169,13 +4258,14 @@
    "where": "interior"
   },
   "2026-08-13T02-15-25-039000+00-00.jpg": {
-   "audio": null,
+   "audio": "music_bed",
    "care_away": 0,
    "care_back": 0,
+   "confirmed": true,
    "phase": "pre_race",
-   "review": true,
    "risk": "safe",
    "src": {
+    "audio": "manual",
     "care": "inferred",
     "video": "inferred"
    },
@@ -4183,13 +4273,14 @@
    "where": "interior"
   },
   "2026-08-13T02-15-27-042000+00-00.jpg": {
-   "audio": null,
+   "audio": "music_bed",
    "care_away": 0,
    "care_back": 0,
+   "confirmed": true,
    "phase": "pre_race",
-   "review": true,
    "risk": "safe",
    "src": {
+    "audio": "manual",
     "care": "inferred",
     "video": "inferred"
    },
@@ -24496,17 +24587,18 @@
    "where": "in_break"
   },
   "2026-08-13T03-04-03-863000+00-00.jpg": {
-   "audio": null,
+   "audio": "chatter",
    "care_away": 1,
-   "care_back": 0,
+   "care_back": 1,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "safe",
    "src": {
-    "care": "default",
-    "video": "derived"
+    "audio": "manual",
+    "care": "manual",
+    "video": "manual"
    },
-   "video": "live_race",
+   "video": "bumper",
    "where": "rejoin"
   },
   "2026-08-13T03-04-05-864000+00-00.jpg": {
@@ -46848,8 +46940,8 @@
    "audio": "commentary",
    "care_away": 0,
    "care_back": 3,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "safe",
    "src": {
     "audio": "default",
@@ -54337,13 +54429,14 @@
    "where": "pre_break"
   },
   "2026-08-13T04-16-08-299000+00-00.jpg": {
-   "audio": null,
+   "audio": "commentary_outro",
    "care_away": 1,
    "care_back": 0,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "safe",
    "src": {
+    "audio": "manual",
     "care": "default",
     "video": "manual"
    },
@@ -54351,13 +54444,14 @@
    "where": "pre_break"
   },
   "2026-08-13T04-16-10-299000+00-00.jpg": {
-   "audio": null,
+   "audio": "music_bed",
    "care_away": 1,
    "care_back": 0,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "safe",
    "src": {
+    "audio": "manual",
     "care": "default",
     "video": "derived"
    },
@@ -54365,13 +54459,14 @@
    "where": "pre_break"
   },
   "2026-08-13T04-16-12-307000+00-00.jpg": {
-   "audio": null,
+   "audio": "music_bed",
    "care_away": 1,
    "care_back": 0,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "safe",
    "src": {
+    "audio": "manual",
     "care": "default",
     "video": "derived"
    },
@@ -55488,8 +55583,8 @@
    "audio": "ad_read",
    "care_away": 2,
    "care_back": 0,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "fraught",
    "src": {
     "audio": "inferred",
@@ -55503,8 +55598,8 @@
    "audio": "ad_read",
    "care_away": 2,
    "care_back": 0,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "fraught",
    "src": {
     "audio": "inferred",
@@ -55518,8 +55613,8 @@
    "audio": "ad_read",
    "care_away": 2,
    "care_back": 0,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "fraught",
    "src": {
     "audio": "inferred",
@@ -55533,8 +55628,8 @@
    "audio": "ad_read",
    "care_away": 2,
    "care_back": 0,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "fraught",
    "src": {
     "audio": "inferred",
@@ -55548,8 +55643,8 @@
    "audio": "ad_read",
    "care_away": 2,
    "care_back": 0,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "fraught",
    "src": {
     "audio": "inferred",
@@ -55563,8 +55658,8 @@
    "audio": "ad_read",
    "care_away": 2,
    "care_back": 0,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "fraught",
    "src": {
     "audio": "inferred",
@@ -55578,8 +55673,8 @@
    "audio": "ad_read",
    "care_away": 2,
    "care_back": 0,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "fraught",
    "src": {
     "audio": "inferred",
@@ -55593,8 +55688,8 @@
    "audio": "ad_read",
    "care_away": 2,
    "care_back": 0,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "fraught",
    "src": {
     "audio": "inferred",
@@ -55608,8 +55703,8 @@
    "audio": "ad_read",
    "care_away": 2,
    "care_back": 0,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "fraught",
    "src": {
     "audio": "inferred",
@@ -55623,8 +55718,8 @@
    "audio": "ad_read",
    "care_away": 2,
    "care_back": 0,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "fraught",
    "src": {
     "audio": "inferred",
@@ -55638,8 +55733,8 @@
    "audio": "ad_read",
    "care_away": 2,
    "care_back": 0,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "fraught",
    "src": {
     "audio": "inferred",
@@ -55653,8 +55748,8 @@
    "audio": "ad_read",
    "care_away": 2,
    "care_back": 0,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "fraught",
    "src": {
     "audio": "inferred",
@@ -55668,8 +55763,8 @@
    "audio": "ad_read",
    "care_away": 2,
    "care_back": 0,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "fraught",
    "src": {
     "audio": "inferred",
@@ -56240,42 +56335,45 @@
    "where": "pre_break"
   },
   "2026-08-13T04-20-40-917000+00-00.jpg": {
-   "audio": null,
-   "care_away": 1,
-   "care_back": 0,
+   "audio": "commentary",
+   "care_away": 0,
+   "care_back": 1,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "safe",
    "src": {
-    "care": "default",
-    "video": "derived"
+    "audio": "manual",
+    "care": "manual",
+    "video": "manual"
    },
-   "video": "live_race",
+   "video": "bumper",
    "where": "pre_break"
   },
   "2026-08-13T04-20-42-921000+00-00.jpg": {
-   "audio": null,
-   "care_away": 1,
+   "audio": "commentary",
+   "care_away": 0,
    "care_back": 0,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "safe",
    "src": {
-    "care": "default",
-    "video": "derived"
+    "audio": "manual",
+    "care": "manual",
+    "video": "manual"
    },
-   "video": "live_race",
+   "video": "bumper",
    "where": "pre_break"
   },
   "2026-08-13T04-20-44-924000+00-00.jpg": {
-   "audio": null,
-   "care_away": 1,
+   "audio": "commentary",
+   "care_away": 0,
    "care_back": 0,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "safe",
    "src": {
-    "care": "default",
+    "audio": "manual",
+    "care": "manual",
     "video": "derived"
    },
    "video": "live_race",
@@ -56285,8 +56383,8 @@
    "audio": "spot_audio",
    "care_away": 3,
    "care_back": 0,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "safe",
    "signal_idea": true,
    "src": {
@@ -57362,85 +57460,95 @@
    "where": "in_break"
   },
   "2026-08-13T04-23-21-302000+00-00.jpg": {
-   "audio": "ad_read",
+   "audio": "spot_audio",
    "care_away": 2,
    "care_back": 0,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "fraught",
    "src": {
-    "audio": "inferred",
-    "care": "default"
+    "audio": "manual",
+    "care": "default",
+    "video": "manual"
    },
-   "video": null,
+   "video": "live_race",
    "where": "rejoin"
   },
   "2026-08-13T04-23-23-303000+00-00.jpg": {
-   "audio": "ad_read",
+   "audio": "spot_audio",
    "care_away": 2,
-   "care_back": 0,
+   "care_back": 1,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
-   "risk": "safe",
+   "risk": "fraught",
    "src": {
-    "audio": "inferred",
-    "care": "default"
+    "audio": "manual",
+    "care": "manual",
+    "risk": "manual",
+    "video": "manual"
    },
-   "video": null,
+   "video": "live_race",
    "where": "rejoin"
   },
   "2026-08-13T04-23-25-304000+00-00.jpg": {
-   "audio": "ad_read",
+   "audio": "silence",
    "care_away": 2,
-   "care_back": 0,
+   "care_back": 2,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
-   "risk": "safe",
+   "risk": "fraught",
    "src": {
-    "audio": "inferred",
-    "care": "default"
+    "audio": "manual",
+    "care": "manual",
+    "risk": "manual",
+    "video": "manual"
    },
-   "video": null,
+   "video": "live_race",
    "where": "rejoin"
   },
   "2026-08-13T04-23-27-305000+00-00.jpg": {
    "audio": "ad_read",
    "care_away": 2,
-   "care_back": 0,
+   "care_back": 2,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
-   "risk": "safe",
+   "risk": "fraught",
    "src": {
     "audio": "inferred",
-    "care": "default"
+    "care": "manual",
+    "risk": "manual",
+    "video": "manual"
    },
-   "video": null,
+   "video": "live_race",
    "where": "rejoin"
   },
   "2026-08-13T04-23-29-318000+00-00.jpg": {
    "audio": "ad_read",
    "care_away": 2,
-   "care_back": 0,
+   "care_back": 2,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
-   "risk": "safe",
+   "risk": "fraught",
    "src": {
     "audio": "inferred",
-    "care": "default"
+    "care": "manual",
+    "risk": "manual",
+    "video": "manual"
    },
-   "video": null,
+   "video": "live_race",
    "where": "rejoin"
   },
   "2026-08-13T04-23-31-320000+00-00.jpg": {
    "audio": "ad_read",
    "care_away": 2,
-   "care_back": 0,
+   "care_back": 2,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
-   "risk": "safe",
+   "risk": "fraught",
    "src": {
     "audio": "inferred",
-    "care": "default",
+    "care": "manual",
+    "risk": "manual",
     "video": "derived"
    },
    "video": "live_race",
@@ -57449,133 +57557,140 @@
   "2026-08-13T04-23-33-323000+00-00.jpg": {
    "audio": "ad_read",
    "care_away": 2,
-   "care_back": 0,
+   "care_back": 2,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
-   "risk": "safe",
+   "risk": "fraught",
    "src": {
     "audio": "inferred",
-    "care": "default",
+    "care": "manual",
+    "risk": "manual",
     "video": "derived"
    },
    "video": "live_race",
    "where": "rejoin"
   },
   "2026-08-13T04-23-35-324000+00-00.jpg": {
-   "audio": "ad_read",
-   "care_away": 2,
-   "care_back": 0,
+   "audio": "commentary",
+   "care_away": 1,
+   "care_back": 1,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
-   "risk": "safe",
+   "risk": "fraught",
    "src": {
-    "audio": "inferred",
-    "care": "default",
+    "audio": "manual",
+    "care": "manual",
+    "risk": "manual",
     "video": "derived"
    },
    "video": "live_race",
    "where": "rejoin"
   },
   "2026-08-13T04-23-37-330000+00-00.jpg": {
-   "audio": "ad_read",
-   "care_away": 2,
-   "care_back": 0,
+   "audio": "commentary",
+   "care_away": 1,
+   "care_back": 1,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
-   "risk": "safe",
+   "risk": "fraught",
    "src": {
-    "audio": "inferred",
-    "care": "default",
+    "audio": "manual",
+    "care": "manual",
+    "risk": "manual",
     "video": "derived"
    },
    "video": "live_race",
    "where": "rejoin"
   },
   "2026-08-13T04-23-39-331000+00-00.jpg": {
-   "audio": "ad_read",
-   "care_away": 2,
-   "care_back": 0,
+   "audio": "commentary",
+   "care_away": 1,
+   "care_back": 1,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
-   "risk": "safe",
+   "risk": "fraught",
    "src": {
-    "audio": "inferred",
-    "care": "default",
+    "audio": "manual",
+    "care": "manual",
+    "risk": "manual",
     "video": "derived"
    },
    "video": "live_race",
    "where": "rejoin"
   },
   "2026-08-13T04-23-41-351000+00-00.jpg": {
-   "audio": "ad_read",
-   "care_away": 2,
-   "care_back": 0,
+   "audio": "commentary",
+   "care_away": 1,
+   "care_back": 1,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "safe",
    "src": {
-    "audio": "inferred",
-    "care": "default",
+    "audio": "manual",
+    "care": "manual",
     "video": "derived"
    },
    "video": "live_race",
    "where": "interior"
   },
   "2026-08-13T04-23-43-352000+00-00.jpg": {
-   "audio": "ad_read",
-   "care_away": 2,
-   "care_back": 0,
+   "audio": "commentary",
+   "care_away": 1,
+   "care_back": 1,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
-   "risk": "safe",
+   "risk": "fraught",
    "src": {
-    "audio": "inferred",
-    "care": "default",
+    "audio": "manual",
+    "care": "manual",
+    "risk": "manual",
     "video": "derived"
    },
    "video": "live_race",
    "where": "interior"
   },
   "2026-08-13T04-23-45-353000+00-00.jpg": {
-   "audio": "ad_read",
-   "care_away": 2,
-   "care_back": 0,
+   "audio": "commentary",
+   "care_away": 1,
+   "care_back": 1,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "safe",
    "src": {
-    "audio": "inferred",
-    "care": "default",
+    "audio": "manual",
+    "care": "manual",
     "video": "derived"
    },
    "video": "live_race",
    "where": "interior"
   },
   "2026-08-13T04-23-47-355000+00-00.jpg": {
-   "audio": "ad_read",
-   "care_away": 2,
-   "care_back": 0,
+   "audio": "commentary",
+   "care_away": 1,
+   "care_back": 1,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
-   "risk": "safe",
+   "risk": "fraught",
    "src": {
-    "audio": "inferred",
-    "care": "default",
+    "audio": "manual",
+    "care": "manual",
+    "risk": "manual",
     "video": "derived"
    },
    "video": "live_race",
    "where": "interior"
   },
   "2026-08-13T04-23-49-358000+00-00.jpg": {
-   "audio": "ad_read",
-   "care_away": 2,
-   "care_back": 0,
+   "audio": "commentary",
+   "care_away": 1,
+   "care_back": 1,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
-   "risk": "safe",
+   "risk": "fraught",
    "src": {
-    "audio": "inferred",
-    "care": "default",
+    "audio": "manual",
+    "care": "manual",
+    "risk": "manual",
     "video": "derived"
    },
    "video": "live_race",
@@ -57584,13 +57699,14 @@
   "2026-08-13T04-23-51-362000+00-00.jpg": {
    "audio": "ad_read",
    "care_away": 2,
-   "care_back": 0,
+   "care_back": 2,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
-   "risk": "safe",
+   "risk": "fraught",
    "src": {
     "audio": "inferred",
-    "care": "default",
+    "care": "manual",
+    "risk": "manual",
     "video": "derived"
    },
    "video": "live_race",
@@ -57599,13 +57715,14 @@
   "2026-08-13T04-23-53-364000+00-00.jpg": {
    "audio": "ad_read",
    "care_away": 2,
-   "care_back": 0,
+   "care_back": 2,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
-   "risk": "safe",
+   "risk": "fraught",
    "src": {
     "audio": "inferred",
-    "care": "default",
+    "care": "manual",
+    "risk": "manual",
     "video": "derived"
    },
    "video": "live_race",
@@ -57614,13 +57731,14 @@
   "2026-08-13T04-23-55-365000+00-00.jpg": {
    "audio": "ad_read",
    "care_away": 2,
-   "care_back": 0,
+   "care_back": 2,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
-   "risk": "safe",
+   "risk": "fraught",
    "src": {
     "audio": "inferred",
-    "care": "default",
+    "care": "manual",
+    "risk": "manual",
     "video": "derived"
    },
    "video": "live_race",
@@ -57629,13 +57747,13 @@
   "2026-08-13T04-23-57-368000+00-00.jpg": {
    "audio": "ad_read",
    "care_away": 2,
-   "care_back": 0,
+   "care_back": 2,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "fraught",
    "src": {
     "audio": "inferred",
-    "care": "default",
+    "care": "manual",
     "video": "derived"
    },
    "video": "live_race",
@@ -57644,13 +57762,14 @@
   "2026-08-13T04-23-59-385000+00-00.jpg": {
    "audio": "ad_read",
    "care_away": 2,
-   "care_back": 0,
+   "care_back": 2,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
-   "risk": "safe",
+   "risk": "fraught",
    "src": {
     "audio": "inferred",
-    "care": "default",
+    "care": "manual",
+    "risk": "manual",
     "video": "derived"
    },
    "video": "live_race",
@@ -57659,13 +57778,14 @@
   "2026-08-13T04-24-01-402000+00-00.jpg": {
    "audio": "ad_read",
    "care_away": 2,
-   "care_back": 0,
+   "care_back": 2,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
-   "risk": "safe",
+   "risk": "fraught",
    "src": {
     "audio": "inferred",
-    "care": "default",
+    "care": "manual",
+    "risk": "manual",
     "video": "derived"
    },
    "video": "live_race",
@@ -57674,28 +57794,29 @@
   "2026-08-13T04-24-03-405000+00-00.jpg": {
    "audio": "ad_read",
    "care_away": 2,
-   "care_back": 0,
+   "care_back": 2,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
-   "risk": "safe",
+   "risk": "fraught",
    "src": {
     "audio": "inferred",
-    "care": "default",
+    "care": "manual",
+    "risk": "manual",
     "video": "derived"
    },
    "video": "live_race",
    "where": "interior"
   },
   "2026-08-13T04-24-05-406000+00-00.jpg": {
-   "audio": "ad_read",
-   "care_away": 2,
-   "care_back": 0,
+   "audio": "commentary",
+   "care_away": 1,
+   "care_back": 2,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "safe",
    "src": {
-    "audio": "inferred",
-    "care": "default",
+    "audio": "manual",
+    "care": "manual",
     "video": "derived"
    },
    "video": "live_race",
@@ -62087,14 +62208,15 @@
    "audio": "chatter",
    "care_away": 0,
    "care_back": 1,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "safe",
    "src": {
     "audio": "inferred",
-    "care": "default"
+    "care": "default",
+    "video": "manual"
    },
-   "video": null,
+   "video": "live_race",
    "where": "rejoin"
   },
   "2026-08-13T04-34-39-411000+00-00.jpg": {
@@ -66126,126 +66248,135 @@
    "audio": "chatter",
    "care_away": 0,
    "care_back": 1,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "safe",
    "src": {
     "audio": "inferred",
-    "care": "default"
+    "care": "default",
+    "video": "manual"
    },
-   "video": null,
+   "video": "live_race",
    "where": "rejoin"
   },
   "2026-08-13T04-44-19-026000+00-00.jpg": {
-   "audio": "chatter",
+   "audio": "silence",
    "care_away": 0,
    "care_back": 1,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "safe",
    "src": {
-    "audio": "inferred",
-    "care": "default"
+    "audio": "manual",
+    "care": "default",
+    "video": "manual"
    },
-   "video": null,
+   "video": "live_race",
    "where": "rejoin"
   },
   "2026-08-13T04-44-21-033000+00-00.jpg": {
    "audio": "chatter",
    "care_away": 0,
    "care_back": 1,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "safe",
    "src": {
     "audio": "inferred",
-    "care": "default"
+    "care": "default",
+    "video": "manual"
    },
-   "video": null,
+   "video": "live_race",
    "where": "rejoin"
   },
   "2026-08-13T04-44-23-034000+00-00.jpg": {
    "audio": "chatter",
    "care_away": 0,
    "care_back": 1,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "safe",
    "src": {
     "audio": "inferred",
-    "care": "default"
+    "care": "default",
+    "video": "manual"
    },
-   "video": null,
+   "video": "live_race",
    "where": "rejoin"
   },
   "2026-08-13T04-44-25-077000+00-00.jpg": {
    "audio": "chatter",
    "care_away": 0,
    "care_back": 1,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "safe",
    "src": {
     "audio": "inferred",
-    "care": "default"
+    "care": "default",
+    "video": "manual"
    },
-   "video": null,
+   "video": "live_race",
    "where": "rejoin"
   },
   "2026-08-13T04-44-27-083000+00-00.jpg": {
    "audio": "chatter",
    "care_away": 0,
    "care_back": 1,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "safe",
    "src": {
     "audio": "inferred",
-    "care": "default"
+    "care": "default",
+    "video": "manual"
    },
-   "video": null,
+   "video": "live_race",
    "where": "rejoin"
   },
   "2026-08-13T04-44-29-090000+00-00.jpg": {
    "audio": "chatter",
    "care_away": 0,
    "care_back": 1,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "safe",
    "src": {
     "audio": "inferred",
-    "care": "default"
+    "care": "default",
+    "video": "manual"
    },
-   "video": null,
+   "video": "inset",
    "where": "rejoin"
   },
   "2026-08-13T04-44-31-099000+00-00.jpg": {
    "audio": "chatter",
    "care_away": 0,
    "care_back": 1,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "safe",
    "src": {
     "audio": "inferred",
-    "care": "default"
+    "care": "default",
+    "video": "manual"
    },
-   "video": null,
+   "video": "inset",
    "where": "rejoin"
   },
   "2026-08-13T04-44-33-104000+00-00.jpg": {
    "audio": "chatter",
    "care_away": 0,
    "care_back": 1,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "safe",
    "src": {
     "audio": "inferred",
-    "care": "default"
+    "care": "default",
+    "video": "manual"
    },
-   "video": null,
+   "video": "inset",
    "where": "rejoin"
   },
   "2026-08-13T04-44-35-106000+00-00.jpg": {
@@ -66455,9 +66586,11 @@
  "schema": {
   "audio": {
    "ad_read": "talent reading scripted sponsor copy",
-   "chatter": "non-scripted filler - 'welcome back', track talk",
+   "chatter": "non-scripted filler - 'welcome back', etc.",
    "commentary": "the race call",
+   "commentary_outro": "commentary leading to a commercial break - 'we'll be right back', etc.",
    "music_bed": "bumper or transition music",
+   "package_audio": "cinematic-style non-commentary audio for a package segment that isn't an ad",
    "silence": "no significant audio",
    "spot_audio": "a commercial's own audio"
   },
