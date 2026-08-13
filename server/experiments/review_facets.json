@@ -438,8 +438,8 @@
    "audio": "commentary",
    "care_away": 0,
    "care_back": 0,
+   "confirmed": true,
    "phase": "pre_race",
-   "review": true,
    "risk": "safe",
    "src": {
     "audio": "default",
@@ -453,8 +453,8 @@
    "audio": "commentary",
    "care_away": 0,
    "care_back": 0,
+   "confirmed": true,
    "phase": "pre_race",
-   "review": true,
    "risk": "safe",
    "src": {
     "audio": "default",
@@ -468,8 +468,8 @@
    "audio": "commentary",
    "care_away": 0,
    "care_back": 0,
+   "confirmed": true,
    "phase": "pre_race",
-   "review": true,
    "risk": "safe",
    "src": {
     "audio": "default",
@@ -483,8 +483,8 @@
    "audio": "commentary",
    "care_away": 0,
    "care_back": 0,
+   "confirmed": true,
    "phase": "pre_race",
-   "review": true,
    "risk": "safe",
    "src": {
     "audio": "default",
