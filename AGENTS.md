@@ -26,6 +26,7 @@ native_host/         Firefox native messaging host for audio capture
   venv/                Python virtual environment (created by install.sh)
 server/              FastAPI application
   src/tv_commercial_detector/
+    audio_health.py    Detects silent (dead) audio capture from the received clips
     classify.py        Entry point for classification; dispatches to active classifier profile
     config.py          App configuration dataclass (AppConfig)
     frame_saver.py     Periodic frame saving; rolling in-memory buffer of recent frames
@@ -185,10 +186,44 @@ recording can be reviewed by pointing `DETECTOR_SAVE_DIR` at it or fed to
 directory; returning to a title already seen resumes appending to its directory.
 `GET /status` reports what's been written so far, and Ctrl-C prints a summary.
 
+### Pruning silent audio files
+
+`scripts/prune_silent_audio.py` removes audio clips whose peak amplitude is at
+or below `audio_silence_threshold` — the residue of capture bound to a sink the
+browser wasn't playing to. It touches only `audio/`; clips carry no metadata
+records of their own, so a removed clip dangles nothing and its frame stays. The
+dry run prints a per-day table, which is the quickest way to see when capture
+died and whether it has recovered.
+
+```bash
+uv run python scripts/prune_silent_audio.py            # dry run + per-day report
+uv run python scripts/prune_silent_audio.py --apply
+```
+
 Additional `AppConfig` fields:
 - `phash_threshold` — max perceptual hash distance for override matches (default: `10`)
 - `enable_llm_audio` — enable audio-based LLM classification (default: `false`)
 - `llm_model_name` — model name sent to llama.cpp, in case we're using llama.cpp in router mode (default: `LLAMA_MODEL_NAME` env var, or `"local"`)
+- `audio_silence_threshold` — peak amplitude (fraction of full scale) below which a clip counts as silent (default: `0.001`)
+- `audio_silence_clips` — consecutive silent clips before audio capture is called dead (default: `3`)
+
+### Audio health
+
+Dead audio capture is silent in both senses: clips keep arriving at the right
+length and cadence carrying nothing but zeros, and nothing downstream complains
+— the LLM just gets a silent clip and the save dir fills with useless WAVs. An
+entire summer of collection was lost this way before anyone noticed.
+
+`audio_health.py` measures the peak amplitude of every clip received by
+`/receive`. After `audio_silence_clips` consecutive silent ones it logs a
+warning (once on the transition, then at most every 5 minutes) and reports the
+condition in `/is_ad/status` as `audio_warning`, which the `/is_ad` page renders
+as a banner. Signal on any clip clears it.
+
+Frames arriving without audio are not reported: the extension only sends clips
+while the native host is connected, and running without it isn't a fault. Clips
+that can't be parsed as WAV neither start nor break a silent streak — a corrupt
+clip says nothing about whether the capture source is live.
 
 ### Routes
 
@@ -296,11 +331,38 @@ Configuration (server endpoint URL, capture interval) is stored via `browser.sto
 `native_host/audio_capture.py` is a Firefox [native messaging](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Native_messaging) host that gives the browser extension access to system audio.
 
 - **Protocol** — Firefox launches the host process and communicates via stdin/stdout using 4-byte little-endian length-prefixed JSON messages.
-- **Audio capture** — Opens a `sounddevice.InputStream` against the PulseAudio/PipeWire monitor source for the default sink (auto-detected via `pactl`). Incoming PCM is stored in a thread-safe rolling deque capped at `AUDIO_BUFFER_SECONDS` (default: 10 s).
+- **Audio capture** — Opens a `sounddevice.InputStream` against the PulseAudio/PipeWire monitor source of the sink **the browser is playing to**. Incoming PCM is stored in a thread-safe rolling deque capped at `AUDIO_BUFFER_SECONDS` (default: 10 s).
 - **Commands** accepted from the extension:
-  - `get_audio` — returns the last `duration_ms` milliseconds of audio as a base64-encoded WAV in `{"audio": "..."}`.
+  - `get_audio` — returns the last `duration_ms` milliseconds of audio as a base64-encoded WAV in `{"audio": "...", "source": "<monitor source>"}`.
+  - `status` — returns the current source, seconds buffered, seconds since the last non-zero sample, and where the browser is playing. Use it to diagnose silent capture.
   - `ping` — responds with `{"pong": true}` (health check).
 - **Standalone mode** — pass `--save-dir DIR` to periodically write WAV snapshots to disk for testing without the extension.
+
+### Following the browser's sink
+
+Monitoring the *default* sink is not sufficient: sinks change under the host
+(a Bluetooth speaker connects and takes the default, or the browser stays pinned
+to HDMI while the default moves elsewhere) and the monitor of a sink nothing
+plays to is a perfectly healthy source that returns pure digital silence. That
+failure is invisible — clips keep arriving at the right length and cadence, full
+of zeros.
+
+So `resolve_target()` looks through `pactl list sink-inputs` for a stream whose
+`application.name` / `application.process.binary` / `media.name` matches
+`AUDIO_STREAM_MATCH`, and captures that sink's monitor, preferring an uncorked
+(actually playing) stream over a corked one. It falls back to the default sink's
+monitor when the browser isn't playing — it may not have started yet — and to
+the default input device if `pactl` isn't available at all. A watcher thread
+re-resolves every `AUDIO_POLL_SECONDS` and rebinds the stream when the target
+moves, clearing the buffer so no clip straddles two sources.
+
+Setting `AUDIO_DEVICE` pins the device and disables detection and the watcher
+entirely.
+
+The host also warns when it has seen no non-zero sample for
+`AUDIO_SILENCE_WARN_SECONDS` *while the browser stream is uncorked* — a paused
+video is legitimately silent, so the uncorked check is what keeps the warning
+meaningful.
 
 ### Setup
 
@@ -321,7 +383,10 @@ cd native_host
 | `AUDIO_BUFFER_SECONDS` | `10` | Rolling buffer length in seconds |
 | `AUDIO_SAMPLE_RATE` | `44100` | Sample rate in Hz |
 | `AUDIO_CHANNELS` | `1` | Number of channels |
-| `AUDIO_DEVICE` | system default | `sounddevice` input device name or index |
+| `AUDIO_DEVICE` | auto-detected | `sounddevice` input device name or index; setting it disables sink detection |
+| `AUDIO_STREAM_MATCH` | `firefox` | Comma-separated substrings identifying the browser's playback stream |
+| `AUDIO_POLL_SECONDS` | `5` | How often to re-check where the browser is playing |
+| `AUDIO_SILENCE_WARN_SECONDS` | `30` | Warn after this long with no signal while the browser is playing |
 
 Logs are written to `native_host/audio_capture.log` (stderr redirected by the `run` wrapper).
 

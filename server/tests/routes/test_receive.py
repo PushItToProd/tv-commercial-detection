@@ -24,7 +24,9 @@ def _jpeg_bytes(color: tuple[int, int, int] = (0, 0, 0), size=(64, 64)) -> bytes
     return buf.getvalue()
 
 
-def _post_frame(client: TestClient, result: str, mocker, **form_fields):
+def _post_frame(
+    client: TestClient, result: str, mocker, audio: bytes | None = None, **form_fields
+):
     """POST a synthetic JPEG to /receive with classify_image mocked to *result*."""
     from tv_commercial_detector.classify import ClassificationResult
 
@@ -42,6 +44,8 @@ def _post_frame(client: TestClient, result: str, mocker, **form_fields):
         **form_fields,
     }
     files = {"image": ("frame.jpg", _jpeg_bytes(), "image/jpeg")}
+    if audio is not None:
+        files["audio"] = ("audio.wav", audio, "audio/wav")
     return client.post("/receive", data=data, files=files)
 
 
@@ -269,3 +273,28 @@ def test_flag_frames_invalid_label(client):
         json={"frames": [{"timestamp": "ts1", "label": "unknown"}]},
     )
     assert resp.status_code == 400
+
+
+# ---------------------------------------------------------------------------
+# Audio health
+# ---------------------------------------------------------------------------
+
+
+def test_silent_audio_surfaces_a_warning_on_status(client, mocker):
+    from tests.test_audio_health import silent_wav, tone_wav
+    from tv_commercial_detector.config import app_config
+
+    for _ in range(app_config.audio_silence_clips):
+        assert _post_frame(client, "content", mocker, audio=silent_wav(0.1)).status_code == 200
+    assert client.get("/is_ad/status").json()["audio_warning"] is not None
+
+    _post_frame(client, "content", mocker, audio=tone_wav(0.1))
+    assert client.get("/is_ad/status").json()["audio_warning"] is None
+
+
+def test_frames_without_audio_leave_status_clean(client, mocker):
+    from tv_commercial_detector.config import app_config
+
+    for _ in range(app_config.audio_silence_clips + 1):
+        _post_frame(client, "content", mocker)
+    assert client.get("/is_ad/status").json()["audio_warning"] is None

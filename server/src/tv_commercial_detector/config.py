@@ -15,6 +15,13 @@ class AppConfig:
     output_settings: dict = field(default_factory=lambda: {"ad": {}, "content": {}})
     classifier_profile: str = "nascar_on_fox"
     phash_threshold: int = 10
+    # Peak amplitude (fraction of full scale) below which a clip counts as
+    # silent. Dead capture reads exactly 0; the margin covers dither on a live
+    # but very quiet source.
+    audio_silence_threshold: float = 0.001
+    # Consecutive silent clips before the server calls audio capture dead. A
+    # real broadcast can be quiet for one clip; three in a row can't be.
+    audio_silence_clips: int = 3
 
 
 app_config = AppConfig()
