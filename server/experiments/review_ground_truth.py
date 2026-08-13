@@ -709,7 +709,7 @@ _HTML = r"""<!DOCTYPE html>
   Say what the frame <i>is</i>, not whether the label is right — agreement is worked out from that.
   <b>a</b> ad · <b>r</b> content/racing · <b>o</b> other (bumper, sponsor billboard, undecidable) ·
   <b>x</b> clear · <b>j/k</b> or arrows to move · <b>Enter</b> or click a frame to open it in context.
-  In context view, <b>←/→</b> walk the broadcast and <b>space</b> plays the clip.
+  In context view, <b>←/→</b> walk the broadcast, <b>space</b> plays the clip and <b>s</b> shows the frame in the contact sheet.
   Rulings save to <code>experiments/review_verdicts.json</code>.
 </div>
 <div class="legend" id="legend" style="display:none">
@@ -740,6 +740,7 @@ let THUMB = 112;
 let FOCUS = null;        // filename to highlight after a jump from the sheet
 let ROWS = [];           // the current cards page
 let SHEET = [];          // the whole filtered selection, contact-sheet view
+let NOTICE = "";         // one-shot message shown under the sheet
 let SEL = 0;
 
 // ── URL state ───────────────────────────────────────────────────────────────
@@ -803,12 +804,22 @@ async function loadSheet() {
   const r = await fetch(`/api/sheet?dataset=${DATASET}&filter=${FILTER}`);
   if (!r.ok) { $("#sheet").innerHTML = `<p class="warn">${esc(await r.text())}</p>`; return; }
   const d = await r.json();
+  // Arriving from the filmstrip, the frame may sit outside the current filter -
+  // the strip walks the whole broadcast. Widen to `all` once so the jump lands
+  // on the frame instead of silently on nothing.
+  if (FOCUS && FILTER !== "all" && !d.rows.some(n => n.filename === FOCUS)) {
+    FILTER = "all";
+    syncUrl(false);
+    NOTICE = "that frame is outside the previous filter — showing all";
+    return loadSheet();
+  }
   SHEET = d.rows;
   stats(d.counts);
   document.querySelectorAll("#controls button[data-f]").forEach(b =>
     b.classList.toggle("active", b.dataset.f === FILTER));
   $("#counter").textContent = `${d.total} frames`;
-  $("#pager").innerHTML = "";
+  $("#pager").innerHTML = NOTICE ? `<span class="warn">${esc(NOTICE)}</span>` : "";
+  NOTICE = "";
   const w = THUMB, h = Math.round(THUMB * 9 / 16);
   $("#sheet").innerHTML = SHEET.map((n, k) => `
     <div class="th ${n.gt} ${n.conflict ? "conflict" : ""} ${n.contradiction ? "contradiction" : ""} ${n.filename === FOCUS ? "focus" : ""}"
@@ -949,7 +960,8 @@ function showCtx() {
                 f.pred ? `model ${f.pred}` : "", f.ruling ? `ruled ${f.ruling}` : "",
                 f.seg_kind].filter(Boolean);
   $("#lb-meta").innerHTML = bits.map(esc).join(" &middot; ") +
-    `<span style="opacity:.45">&nbsp;←/→ step, Esc close</span>`;
+    ` <button id="lb-sheet" onclick="openInSheet()" title="Show this frame in the contact sheet (s)">▦ in sheet</button>` +
+    `<span style="opacity:.45">&nbsp;←/→ step, <b>s</b> sheet, Esc close</span>`;
 
   const au = $("#lb-audio");
   if (f.has_audio) {
@@ -971,6 +983,20 @@ function showCtx() {
 }
 
 function stepTo(k) { CTX_POS = Math.max(0, Math.min(k, CTX.length - 1)); showCtx(); }
+
+// Jump from the frame on screen straight to its place in the contact sheet.
+// The filmstrip walks the whole broadcast while the sheet shows only the
+// filtered selection, so the frame may not be in it; loadSheet widens the
+// filter rather than landing nowhere.
+function openInSheet() {
+  const f = CTX[CTX_POS];
+  if (!f) return;
+  FOCUS = f.filename;
+  closeLightbox();
+  VIEW = "sheet";
+  syncUrl(true);
+  load();
+}
 
 function closeLightbox() {
   $("#lightbox").classList.remove("open");
@@ -1015,6 +1041,7 @@ document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") return closeLightbox();
     if (e.key === "ArrowLeft"  || e.key === "k") { e.preventDefault(); return stepTo(CTX_POS - 1); }
     if (e.key === "ArrowRight" || e.key === "j") { e.preventDefault(); return stepTo(CTX_POS + 1); }
+    if (e.key === "s") { e.preventDefault(); return openInSheet(); }
     if (e.key === " ") {  // play/pause the clip for the frame on screen
       e.preventDefault();
       const au = $("#lb-audio");

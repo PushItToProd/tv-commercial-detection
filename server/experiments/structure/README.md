@@ -122,8 +122,11 @@ commentary carries the break boundary when the picture is ambiguous.
 The contact-sheet view drops the whole selection to bordered thumbnails for
 scanning in bulk: border by stored label, a dot for your ruling, an outline
 where a signal or the other pass disagrees. Clicking one opens the cards page
-holding that frame with it selected. Every option is a query param, so a view is
-linkable and the back button works.
+holding that frame with it selected, and `s` in the context view sends the frame
+on screen back to its place in the sheet. The filmstrip walks the whole
+broadcast, so a frame reached that way can sit outside the current filter; the
+sheet widens to `all` once rather than landing on nothing. Every option is a
+query param, so a view is linkable and the back button works.
 
 Two filters find the frames actually worth a human's time:
 
