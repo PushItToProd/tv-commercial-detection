@@ -935,15 +935,17 @@ function card(r, idx) {
          onclick="event.stopPropagation()"
          src="/audio/${DATASET}/${encodeURIComponent(r.filename)}"></audio>` : ""}
     ${reply ? `<div class="reply">${esc(reply)}</div>` : ""}
+    <!-- Acting on a card moves the selection to it, so the keyboard carries on
+         from where the mouse left off rather than from the last card walked. -->
     <div class="acts">
-      <button onclick="event.stopPropagation();mark(${idx},'ad')">ad</button>
-      <button onclick="event.stopPropagation();mark(${idx},'content')">content</button>
-      <button onclick="event.stopPropagation();mark(${idx},'other')">other</button>
-      <button onclick="event.stopPropagation();mark(${idx},null)">×</button>
+      <button onclick="event.stopPropagation();select(${idx});mark(${idx},'ad')">ad</button>
+      <button onclick="event.stopPropagation();select(${idx});mark(${idx},'content')">content</button>
+      <button onclick="event.stopPropagation();select(${idx});mark(${idx},'other')">other</button>
+      <button onclick="event.stopPropagation();select(${idx});mark(${idx},null)">×</button>
     </div>
     <div style="padding:0 .5rem .5rem"><input class="note" placeholder="note"
       value="${esc(r.verdict?.note ?? "")}" onclick="event.stopPropagation()"
-      onchange="note(${idx}, this.value)"></div>
+      onfocus="select(${idx})" onchange="note(${idx}, this.value)"></div>
   </div>`;
 }
 
