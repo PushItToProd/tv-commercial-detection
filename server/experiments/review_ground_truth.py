@@ -7,8 +7,19 @@ assigned by reading contact sheets, not by the operator. This app puts each
 labelled frame back in front of a human alongside every independent signal that
 bears on it, so the labels themselves can be checked.
 
-Nothing here writes to the experiment data. Human verdicts go to a separate
+Nothing here writes to the experiment data. Human rulings go to a separate
 `review_verdicts.json`, so the audit and the thing being audited stay distinct.
+
+A ruling records what the frame *is* — `ad`, `content` or `other` — not whether
+the stored label was right. Agreement follows from that, and the reverse does
+not: "disagree" on an `ad` label never says whether the reviewer meant content
+or one of the bumper and sponsor-billboard cases the labelling rule itself
+declines to decide. Each ruling also stores the label it was made against, so a
+later relabelling cannot quietly convert agreement into dissent.
+
+The captures overlap on 1572 frames, so one frame can be reviewed twice under
+two different stored labels. Rulings made elsewhere are shown on the card and
+the `contradicts` filter collects any frame ruled two ways.
 
 Usage:
     uv run python experiments/review_ground_truth.py
@@ -232,11 +243,74 @@ def save_verdicts(v: dict) -> None:
     tmp.replace(VERDICTS)
 
 
+VERDICT_LABELS = ("ad", "content", "other")
+
+
 class Verdict(BaseModel):
+    """A human ruling on one frame.
+
+    The ruling states what the frame actually is, rather than whether the stored
+    label is right, because agreement is derivable from that but not the other
+    way round: "disagree" on an `ad` label leaves it open whether the reviewer
+    meant content or something outside both. `other` covers the bumpers and
+    sponsor billboards the labelling rule itself declines to decide.
+    """
+
     dataset: str
     filename: str
-    verdict: str | None = None  # "agree" | "disagree" | "unsure" | None to clear
-    note: str = ""
+    verdict: str | None = None  # one of VERDICT_LABELS
+    note: str | None = None  # None leaves any existing note alone
+    clear: bool = False
+
+
+def ruling_agrees(v: dict | None, gt: str) -> bool | None:
+    if not v or not v.get("verdict"):
+        return None
+    return v["verdict"] == gt
+
+
+def gt_of(dataset: str, filename: str) -> str | None:
+    for r in DATASETS.get(dataset, ()):
+        if r["filename"] == filename:
+            return r["gt"]
+    return None
+
+
+def rulings_elsewhere(dataset: str, filename: str, store: dict) -> list[dict]:
+    """Rulings on this same frame recorded while reviewing a different dataset.
+
+    The captures overlap, so one frame can be reviewed twice under two different
+    stored labels. The ruling says what the frame *is*, so the two should match
+    whatever dataset they were made from; surfacing them is what lets a reviewer
+    notice when they do not.
+    """
+    out = []
+    for name, ds in store.items():
+        if name == dataset:
+            continue
+        rec = ds.get(filename)
+        if rec and rec.get("verdict"):
+            out.append({"dataset": name, "verdict": rec["verdict"],
+                        "judged": rec.get("judged")})
+    return out
+
+
+def annotate_rulings(dataset: str, rows: list[dict], store: dict) -> None:
+    """Attach other datasets' rulings, and flag any that contradict this one."""
+    mine = store.get(dataset, {})
+    others = {n: d for n, d in store.items() if n != dataset}
+    if not others:
+        for r in rows:
+            r["elsewhere"] = []
+            r["contradiction"] = False
+        return
+    for r in rows:
+        fn = r["filename"]
+        found = [{"dataset": n, "verdict": d[fn]["verdict"], "judged": d[fn].get("judged")}
+                 for n, d in others.items() if d.get(fn, {}).get("verdict")]
+        r["elsewhere"] = found
+        here = (mine.get(fn) or {}).get("verdict")
+        r["contradiction"] = bool(here) and any(f["verdict"] != here for f in found)
 
 
 # ── Filters ───────────────────────────────────────────────────────────────────
@@ -252,7 +326,12 @@ FILTERS = {
     "content": lambda r, v: r["gt"] == "content",
     "reviewed": lambda r, v: v is not None,
     "unreviewed": lambda r, v: v is None,
-    "disputed": lambda r, v: (v or {}).get("verdict") == "disagree",
+    # The label was wrong: a ruling was made and it is not what the label says.
+    "disputed": lambda r, v: ruling_agrees(v, r["gt"]) is False,
+    "confirmed": lambda r, v: ruling_agrees(v, r["gt"]) is True,
+    # Same frame ruled two different ways across datasets. Only reachable on the
+    # 1572-frame overlap, and always a mistake on the reviewer's part.
+    "contradicts": lambda r, v: bool(r.get("contradiction")),
     "all": lambda r, v: True,
 }
 
@@ -277,7 +356,9 @@ def app_factory(default_dataset: str) -> FastAPI:
         pred = FILTERS.get(filter)
         if pred is None:
             raise HTTPException(400, f"unknown filter {filter!r}")
-        verdicts = load_verdicts().get(dataset, {})
+        store = load_verdicts()
+        verdicts = store.get(dataset, {})
+        annotate_rulings(dataset, rows, store)
         sel = [r for r in rows if pred(r, verdicts.get(r["filename"]))]
         total = len(sel)
         per_page = max(1, min(per_page, 500))
@@ -298,30 +379,42 @@ def app_factory(default_dataset: str) -> FastAPI:
 
     @app.get("/api/summary")
     def summary() -> JSONResponse:
-        all_v = load_verdicts()
+        store = load_verdicts()
         out = {}
         for name, rows in DATASETS.items():
             if not rows:
                 continue
-            out[name] = counts_for(rows, all_v.get(name, {}))
+            annotate_rulings(name, rows, store)
+            out[name] = counts_for(rows, store.get(name, {}))
         return JSONResponse(out)
 
     @app.post("/api/verdict")
     def set_verdict(v: Verdict) -> JSONResponse:
         if v.dataset not in DATASETS:
             raise HTTPException(404, f"unknown dataset {v.dataset!r}")
+        if v.verdict is not None and v.verdict not in VERDICT_LABELS:
+            raise HTTPException(400, f"verdict must be one of {VERDICT_LABELS}")
         store = load_verdicts()
         ds = store.setdefault(v.dataset, {})
-        if v.verdict is None:
+        if v.clear:
             ds.pop(v.filename, None)
         else:
-            ds[v.filename] = {
-                "verdict": v.verdict,
-                "note": v.note,
-                "at": datetime.now(UTC).isoformat(timespec="seconds"),
-            }
+            rec = dict(ds.get(v.filename) or {})
+            if v.verdict is not None:
+                rec["verdict"] = v.verdict
+                # What the experiment claimed at the moment of the ruling, so a
+                # later relabelling cannot silently turn agreement into dissent.
+                rec["judged"] = gt_of(v.dataset, v.filename)
+            if v.note is not None:
+                rec["note"] = v.note
+            rec["at"] = datetime.now(UTC).isoformat(timespec="seconds")
+            ds[v.filename] = rec
         save_verdicts(store)
-        return JSONResponse({"ok": True, "verdict": ds.get(v.filename)})
+        return JSONResponse({
+            "ok": True,
+            "verdict": ds.get(v.filename),
+            "elsewhere": rulings_elsewhere(v.dataset, v.filename, store),
+        })
 
     @app.post("/api/reload")
     def reload() -> JSONResponse:
@@ -351,7 +444,6 @@ def counts_for(rows: list[dict], verdicts: dict) -> dict[str, int]:
         for k, fn in FILTERS.items():
             if fn(r, v):
                 c[k] += 1
-    c["agree"] = sum(1 for x in verdicts.values() if x.get("verdict") == "agree")
     return c
 
 
@@ -397,9 +489,11 @@ _HTML = r"""<!DOCTYPE html>
     width: 320px; display: flex; flex-direction: column; border: 2px solid #3a3a3a;
   }
   .card.sel { border-color: #7ab; box-shadow: 0 0 0 2px #7ab4; }
-  .card.agree    { border-color: #2a5; }
-  .card.disagree { border-color: #c33; }
-  .card.unsure   { border-color: #c92; }
+  /* Ruled, and the ruling matches the stored label / contradicts it / neither. */
+  .card.confirmed { border-color: #2a5; }
+  .card.disputed  { border-color: #c33; }
+  .card.other     { border-color: #c92; }
+  .card.contradiction { border-color: #d0f; box-shadow: 0 0 0 2px #d0f4; }
   .card img { width: 100%; display: block; cursor: zoom-in; background: #111; min-height: 80px; }
   .fn { padding: 0.25rem 0.5rem; font-size: 0.6rem; opacity: 0.35; word-break: break-all; }
   .rows { padding: 0.35rem 0.5rem; display: flex; flex-direction: column; gap: 0.22rem; font-size: 0.75rem; }
@@ -444,16 +538,19 @@ _HTML = r"""<!DOCTYPE html>
   <button data-f="model_flips">Model flips</button>
   <button data-f="ad">GT ad</button>
   <button data-f="content">GT content</button>
-  <button data-f="disputed">My disputes</button>
+  <button data-f="disputed">Label wrong</button>
+  <button data-f="confirmed">Label confirmed</button>
+  <button data-f="contradicts">My contradictions</button>
   <button data-f="unreviewed">Unreviewed</button>
   <button data-f="all">All</button>
   <button id="reload" title="Re-read the experiment files">⟳</button>
   <span id="counter"></span>
 </div>
 <div class="hint">
-  Click a card to select it. <b>a</b> agree with the label · <b>d</b> disagree · <b>u</b> unsure ·
-  <b>x</b> clear · <b>j/k</b> or arrows to move · click the image to zoom.
-  Verdicts save to <code>experiments/review_verdicts.json</code>.
+  Say what the frame <i>is</i>, not whether the label is right — agreement is worked out from that.
+  <b>a</b> ad · <b>c</b> content · <b>o</b> other (bumper, sponsor billboard, undecidable) ·
+  <b>x</b> clear · <b>j/k</b> or arrows to move · <b>Enter</b> to zoom.
+  Rulings save to <code>experiments/review_verdicts.json</code>.
 </div>
 <div class="grid" id="grid"></div>
 <div id="pager" style="margin-top:1rem;display:flex;gap:.5rem;align-items:center"></div>
@@ -489,8 +586,9 @@ function render(d) {
     ["conflict", "anchor", "bad"], ["cross_conflict", "cross-pass", "bad"],
     ["unanchored", "unanchored", ""],
     ["boundary", "boundary", ""], ["model_wrong", "model wrong", ""],
-    ["model_flips", "model flips", ""], ["reviewed", "reviewed", "good"],
-    ["disputed", "disputed", "bad"], ["all", "frames", ""],
+    ["reviewed", "ruled", "good"], ["confirmed", "confirmed", "good"],
+    ["disputed", "label wrong", "bad"], ["contradicts", "contradictions", "bad"],
+    ["all", "frames", ""],
   ].map(([k, lbl, cls]) => `<div class="stat ${cls}"><span class="val">${c[k] ?? 0}</span><span class="lbl">${lbl}</span></div>`).join("");
 
   document.querySelectorAll("#controls button").forEach(b =>
@@ -503,6 +601,15 @@ function render(d) {
        <span style="opacity:.5;font-size:.8rem">page ${d.page} of ${d.pages}</span>
        <button onclick="go(${Math.min(d.pages, d.page + 1)})">next →</button>` : "";
   paint();
+}
+
+// The stored label is what we are judging; a ruling that matches it confirms
+// it, one that differs disputes it, and "other" rejects the binary outright.
+function cardClass(r) {
+  const v = r.verdict?.verdict;
+  if (!v) return "";
+  const base = v === "other" ? "other" : (v === r.gt ? "confirmed" : "disputed");
+  return r.contradiction ? base + " contradiction" : base;
 }
 
 function card(r, idx) {
@@ -522,17 +629,28 @@ function card(r, idx) {
   if (r.p_ad !== undefined && r.p_ad !== null)
     rows.push(`<div class="row"><span class="k">p(ad)</span><span style="opacity:.6">${num(r.p_ad, 4)} (furn ${num(r.p_furniture)})</span></div>`);
 
+  if (v) {
+    const verdictOf = v === "other" ? "neither" : (v === r.gt ? "confirms label" : "label wrong");
+    rows.push(`<div class="row"><span class="k">my ruling</span>${badge(v)} <span style="opacity:.5;font-size:.68rem">${verdictOf}</span></div>`);
+  }
+  for (const e of (r.elsewhere || [])) {
+    const clash = v && e.verdict !== v;
+    rows.push(`<div class="row"><span class="k">ruled in ${esc(e.dataset)}</span>${badge(e.verdict)}` +
+      `${clash ? ' <span class="warn">← contradicts this ruling</span>'
+               : ` <span style="opacity:.45;font-size:.68rem">judging ${esc(e.judged ?? "?")}</span>`}</div>`);
+  }
+
   const reply = (r.preds || []).map(p => p.reply).find(x => x && x !== "(opencv)");
-  return `<div class="card ${v}" data-idx="${idx}" onclick="select(${idx})">
+  return `<div class="card ${cardClass(r)}" data-idx="${idx}" onclick="select(${idx})">
     <img src="/image/${DATASET}/${encodeURIComponent(r.filename)}" loading="lazy"
          onclick="event.stopPropagation();zoom(this.src)">
     <div class="fn">${esc(r.filename)}</div>
     <div class="rows">${rows.join("")}</div>
     ${reply ? `<div class="reply">${esc(reply)}</div>` : ""}
     <div class="acts">
-      <button onclick="event.stopPropagation();mark(${idx},'agree')">agree</button>
-      <button onclick="event.stopPropagation();mark(${idx},'disagree')">disagree</button>
-      <button onclick="event.stopPropagation();mark(${idx},'unsure')">?</button>
+      <button onclick="event.stopPropagation();mark(${idx},'ad')">ad</button>
+      <button onclick="event.stopPropagation();mark(${idx},'content')">content</button>
+      <button onclick="event.stopPropagation();mark(${idx},'other')">other</button>
       <button onclick="event.stopPropagation();mark(${idx},null)">×</button>
     </div>
     <div style="padding:0 .5rem .5rem"><input class="note" placeholder="note"
@@ -556,21 +674,25 @@ async function mark(idx, verdict) {
   const res = await fetch("/api/verdict", {
     method: "POST", headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ dataset: DATASET, filename: r.filename, verdict,
-                           note: r.verdict?.note ?? "" }),
+                           clear: verdict === null }),
   });
   const d = await res.json();
   r.verdict = d.verdict;
+  r.elsewhere = d.elsewhere ?? r.elsewhere ?? [];
+  r.contradiction = !!(d.verdict?.verdict &&
+    r.elsewhere.some(e => e.verdict !== d.verdict.verdict));
+  // Re-render just this card so the ruling row and any contradiction show up.
   const el = document.querySelectorAll(".card")[idx];
-  el.classList.remove("agree", "disagree", "unsure");
-  if (verdict) el.classList.add(verdict);
+  el.outerHTML = card(r, idx);
+  paint();
 }
 
+// Note only — leaves any existing ruling untouched.
 async function note(idx, text) {
   const r = ROWS[idx];
   await fetch("/api/verdict", {
     method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ dataset: DATASET, filename: r.filename,
-                           verdict: r.verdict?.verdict ?? "unsure", note: text }),
+    body: JSON.stringify({ dataset: DATASET, filename: r.filename, note: text }),
   });
 }
 
@@ -578,7 +700,7 @@ document.addEventListener("keydown", (e) => {
   if (e.target.tagName === "INPUT") return;
   if ($("#lightbox").classList.contains("open") && e.key === "Escape")
     return $("#lightbox").classList.remove("open");
-  const keys = { a: "agree", d: "disagree", u: "unsure" };
+  const keys = { a: "ad", c: "content", o: "other" };
   if (keys[e.key]) { mark(SEL, keys[e.key]); SEL = Math.min(SEL + 1, ROWS.length - 1); paint(); }
   else if (e.key === "x") mark(SEL, null);
   else if (e.key === "j" || e.key === "ArrowDown" || e.key === "ArrowRight") { SEL = Math.min(SEL + 1, ROWS.length - 1); paint(); }

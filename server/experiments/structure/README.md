@@ -96,9 +96,17 @@ The helper scripts used to produce and check it are kept:
 assigned by reading contact sheets rather than by the operator, so the numbers
 here are only as good as that reading.
 `experiments/review_ground_truth.py` puts each labelled frame back on screen
-next to every independent signal bearing on it, and records a human verdict per
+next to every independent signal bearing on it, and records a human ruling per
 frame in `review_verdicts.json` — kept separate from the experiment data so the
 audit and the thing audited never mix.
+
+A ruling says what the frame *is* (`ad`, `content`, `other`), not whether the
+label was right, because agreement follows from that and not the reverse:
+"disagree" on an `ad` label never says whether the reviewer meant content or one
+of the bumper and sponsor-billboard cases the labelling rule declines to decide.
+Rulings carry the label they were made against, and because the captures overlap
+the app shows any ruling made on the same frame while reviewing the other
+dataset, so ruling one frame two ways shows up instead of hiding in the JSON.
 
 ```bash
 uv run python experiments/review_ground_truth.py     # http://localhost:8766/

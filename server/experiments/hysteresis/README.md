@@ -54,7 +54,9 @@ usefully, the cases where it does not decide.
 The labels above were read off contact sheets, not supplied by the operator, so
 they carry an error bar of their own.
 `experiments/review_ground_truth.py` replays each labelled frame next to its
-signals and records a per-frame human verdict in `review_verdicts.json`.
+signals and records a per-frame human ruling — `ad`, `content` or `other` — in
+`review_verdicts.json`. See `structure/README.md` for why a ruling states what
+the frame is rather than whether the label was right.
 
 ```bash
 uv run python experiments/review_ground_truth.py --dataset cont   # :8766
