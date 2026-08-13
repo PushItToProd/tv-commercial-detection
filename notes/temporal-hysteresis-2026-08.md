@@ -192,21 +192,23 @@ Frames are the ones OpenCV does not settle, sampled at random:
 
 | arm | acc% | ad recall% | content recall% | median latency |
 |---|---|---|---|---|
-| **base** (production: one image, `prompt_nbc.txt`) | **89.1** | 89.2 | 89.0 | 1.09 s |
-| + textual context | 87.1 | 93.3 | 78.0 | 1.17 s |
-| + two previous frames as images | 81.7 | 78.3 | 86.6 | 1.51 s |
-| + both | 83.2 | 85.0 | 80.5 | 1.46 s |
+| **base** (production: one image, `prompt_nbc.txt`) | **88.5** | 87.9 | 89.0 | 1.08 s |
+| + textual context | 86.0 | 93.2 | 79.5 | 1.17 s |
+| + two previous frames as images | 84.2 | 80.0 | 88.1 | 1.50 s |
+| + both | 84.8 | 85.8 | 83.8 | 1.45 s |
 
-(101 frames, 202 verdicts per arm. Absolute latencies are inflated — four arms
-were hitting a two-slot server — but the comparison between them is fair.)
+(200 frames — 95 ad, 105 content — 400 verdicts per arm. Absolute latencies are
+inflated: four arms were hitting a two-slot server. The comparison between them
+is fair. Repeated verdicts on the same frame agree 91–94% of the time in every
+arm, which sets the noise floor: differences under ~3 points are not readable.)
 
-**Every form of context made it worse.** Handing the model the two preceding
-frames is the worst single change measured anywhere in this experiment, costing
-7.4 points; it appears to blend the images rather than classify the last one,
-despite being told which to answer about, and it costs 40% more latency.
+**Every form of context made it worse.** The base call wins outright, and the
+two arms carrying previous frames as images also cost 40% more latency for the
+privilege. The model appears to blend the images rather than classify the last
+one, despite being told which to answer about.
 
 The textual arm is more interesting than its score. It did not degrade
-uniformly — it moved ad recall up 4.1 points and content recall down 11.0. That
+uniformly — it moved ad recall up 5.3 points and content recall down 9.5. That
 is the injected prior doing exactly what it was told: the context block asserts
 that "a long stretch with no network bug at all is itself evidence of a break",
 which is true in general (93.5% of such frames are ads) but false for precisely
