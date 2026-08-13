@@ -112,6 +112,13 @@ dataset, so ruling one frame two ways shows up instead of hiding in the JSON.
 uv run python experiments/review_ground_truth.py     # http://localhost:8766/
 ```
 
+Clicking a frame opens it in context: the surrounding frames as a filmstrip in
+capture order, with the arrows walking the broadcast rather than the filtered
+page. A single frame rarely settles whether a break has started, and the
+filtered page is by construction a set of scattered oddities, so the neighbours
+are usually what decides. Each frame's audio clip plays alongside it — the
+commentary carries the break boundary when the picture is ambiguous.
+
 Two filters find the frames actually worth a human's time:
 
 - **Anchor conflicts** (27) — the USA/peacock bug was detected but the frame is

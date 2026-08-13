@@ -211,6 +211,25 @@ def summarize_preds(row: dict) -> None:
 
 
 DATASETS: dict[str, list[dict]] = {}
+# dataset -> filename -> position in DATASETS[dataset], for O(1) neighbour lookup.
+POSITIONS: dict[str, dict[str, int]] = {}
+
+
+def attach_audio(rows: list[dict]) -> None:
+    """Flag which frames have a clip, from one listing rather than a stat per row.
+
+    Clips sit in an `audio/` sibling of `images/` under the same stem. A frame
+    without one is normal - the extension only sends audio while the native host
+    is connected - so this decides whether to offer a player, not whether
+    anything is wrong.
+    """
+    if not rows:
+        return
+    audio_dir = Path(rows[0]["images_dir"]).parent / "audio"
+    stems = {p.stem for p in audio_dir.glob("*.wav")} if audio_dir.is_dir() else set()
+    for r in rows:
+        r["audio_dir"] = str(audio_dir)
+        r["has_audio"] = Path(r["filename"]).stem in stems
 
 
 def load_all() -> None:
@@ -226,8 +245,14 @@ def load_all() -> None:
     for rows in (structure, burst, cont):
         for r in rows:
             summarize_preds(r)
+        attach_audio(rows)
     DATASETS.clear()
     DATASETS.update({"structure": structure, "burst": burst, "cont": cont})
+    POSITIONS.clear()
+    POSITIONS.update({
+        name: {r["filename"]: n for n, r in enumerate(rows)}
+        for name, rows in DATASETS.items()
+    })
 
 
 # ── Verdicts ──────────────────────────────────────────────────────────────────
@@ -416,6 +441,54 @@ def app_factory(default_dataset: str) -> FastAPI:
             "elsewhere": rulings_elsewhere(v.dataset, v.filename, store),
         })
 
+    @app.get("/api/context")
+    def context(dataset: str, filename: str, radius: int = 10) -> JSONResponse:
+        """The frames either side of this one, in capture order.
+
+        Taken from the whole dataset rather than the current page: the point is
+        to see what the broadcast was doing around a frame, and the filtered
+        page is by construction a set of scattered oddities.
+        """
+        rows = DATASETS.get(dataset)
+        if rows is None:
+            raise HTTPException(404, f"unknown dataset {dataset!r}")
+        index = POSITIONS.get(dataset, {})
+        pos = index.get(filename)
+        if pos is None:
+            # Recording filenames carry a `+` for the UTC offset, and a query
+            # string decodes `+` as a space. The UI encodes it, but a
+            # hand-written URL will not.
+            pos = index.get(filename.replace(" ", "+"))
+        if pos is None:
+            raise HTTPException(404, f"no such frame {filename}")
+        radius = max(1, min(radius, 40))
+        lo, hi = max(0, pos - radius), min(len(rows), pos + radius + 1)
+        store = load_verdicts().get(dataset, {})
+        out = []
+        for r in rows[lo:hi]:
+            rec = store.get(r["filename"]) or {}
+            out.append({
+                "filename": r["filename"], "i": r["i"], "t": r.get("t"),
+                "gt": r["gt"], "anchor": r.get("anchor") or "",
+                "pred": r.get("pred"), "has_audio": r.get("has_audio"),
+                "seg_kind": r.get("seg_kind") or "",
+                "ruling": rec.get("verdict"),
+                "current": r["filename"] == filename,
+            })
+        return JSONResponse({"frames": out, "pos": pos - lo, "total": len(rows)})
+
+    @app.get("/audio/{dataset}/{filename}")
+    def audio(dataset: str, filename: str) -> FileResponse:
+        rows = DATASETS.get(dataset)
+        if not rows:
+            raise HTTPException(404, "unknown dataset")
+        if "/" in filename or ".." in filename:
+            raise HTTPException(400, "bad filename")
+        path = Path(rows[0]["audio_dir"]) / (Path(filename).stem + ".wav")
+        if not path.exists():
+            raise HTTPException(404, f"no clip for {filename}")
+        return FileResponse(path, media_type="audio/wav")
+
     @app.post("/api/reload")
     def reload() -> JSONResponse:
         """Re-read the experiment files. Useful while a replay is still running."""
@@ -504,6 +577,7 @@ _HTML = r"""<!DOCTYPE html>
   .badge.content { background: #060; color: #dfd; }
   .badge.unknown, .badge.none { background: #555; color: #ccc; }
   .warn { color: #f90; }
+  audio.clip { width: calc(100% - 1rem); margin: 0.15rem 0.5rem; height: 1.9rem; }
   .reply {
     margin: 0.25rem 0.5rem 0.4rem; padding: 0.35rem 0.45rem; background: #161616;
     border-radius: 4px; border-left: 2px solid #c60; font-size: 0.68rem;
@@ -514,11 +588,26 @@ _HTML = r"""<!DOCTYPE html>
   .note { width: 100%; background: #1a1a1a; color: #ccc; border: 1px solid #444;
           border-radius: 4px; font-size: 0.7rem; padding: 0.2rem 0.35rem; }
 
-  #lightbox { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.93);
-              align-items: center; justify-content: center; z-index: 100; }
+  #lightbox { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.95);
+              flex-direction: column; align-items: center; justify-content: center;
+              z-index: 100; padding: 1rem; gap: .5rem; }
   #lightbox.open { display: flex; }
-  #lightbox img { max-width: 96vw; max-height: 94vh; border-radius: 6px; }
+  #lb-img { max-width: 92vw; max-height: 66vh; border-radius: 6px; }
   #lb-close { position: fixed; top: .5rem; right: 1rem; font-size: 2.4rem; cursor: pointer; color: #fff; }
+  #lb-meta { font-size: .8rem; color: #ccc; display: flex; gap: 1rem; align-items: center; }
+  #lb-audio { height: 2rem; }
+
+  /* Filmstrip: the frames either side, in capture order. */
+  #strip { display: flex; gap: 3px; overflow-x: auto; max-width: 96vw; padding: .3rem 0 .5rem; }
+  .sf { flex: 0 0 auto; width: 104px; cursor: pointer; border: 2px solid transparent;
+        border-radius: 4px; overflow: hidden; background: #111; position: relative; }
+  .sf img { width: 100%; display: block; }
+  .sf .cap { font-size: .58rem; text-align: center; padding: 1px 0; color: #ccc; }
+  .sf.ad      { border-color: #a02; }
+  .sf.content { border-color: #060; }
+  .sf.cur     { border-color: #7ab; box-shadow: 0 0 0 2px #7ab; }
+  .sf .mark { position: absolute; top: 1px; right: 2px; font-size: .6rem;
+              background: #000a; border-radius: 2px; padding: 0 2px; }
 </style>
 </head>
 <body>
@@ -549,12 +638,19 @@ _HTML = r"""<!DOCTYPE html>
 <div class="hint">
   Say what the frame <i>is</i>, not whether the label is right — agreement is worked out from that.
   <b>a</b> ad · <b>c</b> content · <b>o</b> other (bumper, sponsor billboard, undecidable) ·
-  <b>x</b> clear · <b>j/k</b> or arrows to move · <b>Enter</b> to zoom.
+  <b>x</b> clear · <b>j/k</b> or arrows to move · <b>Enter</b> or click a frame to open it in context.
+  In context view, <b>←/→</b> walk the broadcast and <b>space</b> plays the clip.
   Rulings save to <code>experiments/review_verdicts.json</code>.
 </div>
 <div class="grid" id="grid"></div>
 <div id="pager" style="margin-top:1rem;display:flex;gap:.5rem;align-items:center"></div>
-<div id="lightbox"><span id="lb-close">&times;</span><img id="lb-img" src="" alt=""></div>
+<div id="lightbox">
+  <span id="lb-close" title="Close (Esc)">&times;</span>
+  <img id="lb-img" src="" alt="">
+  <div id="lb-meta"></div>
+  <audio id="lb-audio" controls preload="none"></audio>
+  <div id="strip"></div>
+</div>
 
 <script>
 let DATASET = __DEFAULT_DATASET__;
@@ -643,9 +739,13 @@ function card(r, idx) {
   const reply = (r.preds || []).map(p => p.reply).find(x => x && x !== "(opencv)");
   return `<div class="card ${cardClass(r)}" data-idx="${idx}" onclick="select(${idx})">
     <img src="/image/${DATASET}/${encodeURIComponent(r.filename)}" loading="lazy"
-         onclick="event.stopPropagation();zoom(this.src)">
+         title="Click to see this frame in context"
+         onclick="event.stopPropagation();zoom('${r.filename}')">
     <div class="fn">${esc(r.filename)}</div>
     <div class="rows">${rows.join("")}</div>
+    ${r.has_audio ? `<audio class="clip" controls preload="none"
+         onclick="event.stopPropagation()"
+         src="/audio/${DATASET}/${encodeURIComponent(r.filename)}"></audio>` : ""}
     ${reply ? `<div class="reply">${esc(reply)}</div>` : ""}
     <div class="acts">
       <button onclick="event.stopPropagation();mark(${idx},'ad')">ad</button>
@@ -667,7 +767,58 @@ function paint() {
 
 function select(i) { SEL = i; paint(); }
 function go(p) { PAGE = p; load(); }
-function zoom(src) { $("#lb-img").src = src; $("#lightbox").classList.add("open"); }
+
+// ── Lightbox: one frame in the context of its neighbours ────────────────────
+let CTX = [];      // the neighbouring frames, in capture order
+let CTX_POS = 0;   // which of them is on screen
+
+async function zoom(filename) {
+  const r = await fetch(`/api/context?dataset=${DATASET}&filename=${encodeURIComponent(filename)}&radius=12`);
+  if (!r.ok) return;
+  const d = await r.json();
+  CTX = d.frames; CTX_POS = d.pos;
+  $("#lightbox").classList.add("open");
+  showCtx();
+}
+
+function showCtx() {
+  const f = CTX[CTX_POS];
+  if (!f) return;
+  $("#lb-img").src = `/image/${DATASET}/${encodeURIComponent(f.filename)}`;
+  const bits = [`i=${f.i}`, f.t != null ? `t=${f.t.toFixed(1)}s` : "",
+                `label ${f.gt}`, f.anchor ? `anchor ${f.anchor}` : "",
+                f.pred ? `model ${f.pred}` : "", f.ruling ? `ruled ${f.ruling}` : "",
+                f.seg_kind].filter(Boolean);
+  $("#lb-meta").innerHTML = bits.map(esc).join(" &middot; ") +
+    `<span style="opacity:.45">&nbsp;←/→ step, Esc close</span>`;
+
+  const au = $("#lb-audio");
+  if (f.has_audio) {
+    au.style.display = "";
+    au.src = `/audio/${DATASET}/${encodeURIComponent(f.filename)}`;
+  } else {
+    au.style.display = "none";
+    au.removeAttribute("src");
+  }
+
+  $("#strip").innerHTML = CTX.map((n, k) => `
+    <div class="sf ${n.gt} ${k === CTX_POS ? "cur" : ""}" onclick="stepTo(${k})">
+      <img src="/image/${DATASET}/${encodeURIComponent(n.filename)}" loading="lazy">
+      ${n.ruling ? `<span class="mark">${esc(n.ruling[0].toUpperCase())}</span>` : ""}
+      <div class="cap">${n.i}</div>
+    </div>`).join("");
+  const cur = $("#strip").children[CTX_POS];
+  if (cur) cur.scrollIntoView({ block: "nearest", inline: "center" });
+}
+
+function stepTo(k) { CTX_POS = Math.max(0, Math.min(k, CTX.length - 1)); showCtx(); }
+
+function closeLightbox() {
+  $("#lightbox").classList.remove("open");
+  const au = $("#lb-audio");
+  au.pause();
+  au.removeAttribute("src");
+}
 
 async function mark(idx, verdict) {
   const r = ROWS[idx];
@@ -698,17 +849,30 @@ async function note(idx, text) {
 
 document.addEventListener("keydown", (e) => {
   if (e.target.tagName === "INPUT") return;
-  if ($("#lightbox").classList.contains("open") && e.key === "Escape")
-    return $("#lightbox").classList.remove("open");
+  // While the lightbox is open the arrows walk the broadcast, not the grid.
+  if ($("#lightbox").classList.contains("open")) {
+    if (e.key === "Escape") return closeLightbox();
+    if (e.key === "ArrowLeft"  || e.key === "k") { e.preventDefault(); return stepTo(CTX_POS - 1); }
+    if (e.key === "ArrowRight" || e.key === "j") { e.preventDefault(); return stepTo(CTX_POS + 1); }
+    if (e.key === " ") {  // play/pause the clip for the frame on screen
+      e.preventDefault();
+      const au = $("#lb-audio");
+      if (au.src) au.paused ? au.play() : au.pause();
+      return;
+    }
+    return;
+  }
   const keys = { a: "ad", c: "content", o: "other" };
   if (keys[e.key]) { mark(SEL, keys[e.key]); SEL = Math.min(SEL + 1, ROWS.length - 1); paint(); }
   else if (e.key === "x") mark(SEL, null);
   else if (e.key === "j" || e.key === "ArrowDown" || e.key === "ArrowRight") { SEL = Math.min(SEL + 1, ROWS.length - 1); paint(); }
   else if (e.key === "k" || e.key === "ArrowUp" || e.key === "ArrowLeft") { SEL = Math.max(SEL - 1, 0); paint(); }
-  else if (e.key === "Enter") { const el = document.querySelectorAll(".card img")[SEL]; if (el) zoom(el.src); }
+  else if (e.key === "Enter") { const r = ROWS[SEL]; if (r) zoom(r.filename); }
 });
 
-$("#lightbox").onclick = () => $("#lightbox").classList.remove("open");
+// Only the backdrop closes — clicks on the image, strip or player must not.
+$("#lightbox").onclick = (e) => { if (e.target.id === "lightbox") closeLightbox(); };
+$("#lb-close").onclick = closeLightbox;
 $("#dataset").onchange = (e) => { DATASET = e.target.value; PAGE = 1; load(); };
 document.querySelectorAll("#controls button[data-f]").forEach(b =>
   b.onclick = () => { FILTER = b.dataset.f; PAGE = 1; load(); });
