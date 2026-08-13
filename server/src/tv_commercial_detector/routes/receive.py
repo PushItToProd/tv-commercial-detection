@@ -9,6 +9,7 @@ from pathlib import Path
 from fastapi import APIRouter, File, Form, HTTPException, Response, UploadFile
 from pydantic import BaseModel
 
+from ..audio_health import record_clip
 from ..classify import classify_image
 from ..config import app_config
 from ..frame_saver import save_frames_batch
@@ -60,6 +61,7 @@ async def receive(
 
     frame_bytes = await image.read()
     audio_bytes = await audio.read() if audio is not None else None
+    record_clip(audio_bytes)
 
     # Write to a temp file so classify_image (which expects a path) can read it
     with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as tmp:

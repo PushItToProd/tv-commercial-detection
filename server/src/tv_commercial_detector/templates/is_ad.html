@@ -70,6 +70,12 @@
 
   <main class="vstack text-center gap-4" style="width:100%; height: 95vh;">
 
+    <div id="audio-warning" class="alert alert-warning d-none mb-0 mx-3 mt-3 py-2 fs-5" role="alert">
+      <strong>&#9888; Audio capture is silent.</strong>
+      <span id="audio-warning-detail"></span>
+      The native host is probably monitoring a sink the browser isn't playing to.
+    </div>
+
     <div class="text-center flex-grow-1 text-white">
       <h1 id="label" class="text-mega text-white mb-0">...</h1>
       <div id="classification-reason" class="mt-0 pt-0 fs-3 fst-italic"></div>
@@ -237,6 +243,22 @@ document.getElementById('enable-debounce-toggle').addEventListener('change', fun
 document.getElementById('btn-ad-input').addEventListener('click', () => triggerMatrix('ad'));
 document.getElementById('btn-race-input').addEventListener('click', () => triggerMatrix('content'));
 
+function formatDuration(seconds) {
+  if (!seconds || seconds < 60) return Math.round(seconds || 0) + 's';
+  if (seconds < 3600) return Math.round(seconds / 60) + 'm';
+  return (seconds / 3600).toFixed(1) + 'h';
+}
+
+function updateAudioWarning(warning) {
+  const el = document.getElementById('audio-warning');
+  if (!el) return;
+  el.classList.toggle('d-none', !warning);
+  if (!warning) return;
+  const parts = [`Last ${warning.silent_clips} clip(s) carried no signal`];
+  if (warning.silent_seconds) parts.push(`over ${formatDuration(warning.silent_seconds)}`);
+  document.getElementById('audio-warning-detail').textContent = parts.join(' ') + '.';
+}
+
 function applyData(data) {
   const c = data.classification;
   const reason = data.classification_reason;
@@ -279,6 +301,7 @@ function applyData(data) {
     pauseCountdownInterval = setInterval(updatePauseCountdown, 500);
   }
   updatePauseCountdown();
+  updateAudioWarning(data.audio_warning);
   const pauseBtn = document.getElementById('btn-pause-auto-switch');
   if (pauseBtn) pauseBtn.style.display = (data.auto_switch && !autoSwitchPausedUntil) ? '' : 'none';
 }

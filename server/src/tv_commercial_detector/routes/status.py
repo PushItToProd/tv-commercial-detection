@@ -7,6 +7,7 @@ from fastapi.responses import FileResponse, Response, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 
+from ..audio_health import warning as audio_warning
 from ..classify import list_profiles
 from ..config import app_config
 from ..state import last_image_path, sse_clients, state
@@ -36,6 +37,7 @@ def _get_status_data() -> dict:
         "auto_switch_paused_until": state.auto_switch_paused_until
         if state.is_auto_switch_paused()
         else None,
+        "audio_warning": audio_warning(),
     }
 
 
