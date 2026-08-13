@@ -31,7 +31,6 @@ Checkboxes key:
 
 - [ ] update my config to move outputs (`frames`, outputs from `check_classification.py`, etc.) into a separate folder outside my local project directory
 
-- [ ] take a path to a single folder to use for all outputs and data saved by the server
 - [ ] persist state in a better way (SQLite? Redis? JSON file on disk?) than just keeping it in a dataclass in memory
 - [ ] document expected values for `output_settings` in `AppConfig` (`config.py`)
 - [ ] use `pydantic-settings` for settings -- https://docs.pydantic.dev/latest/concepts/pydantic_settings/
@@ -55,7 +54,6 @@ Checkboxes key:
 - [ ] elegantly handle timeouts from both the llama.cpp server and the HDMI Matrix control server
 
 - [/] review jpg support one last time -- some places still assume png
-- [x] don't save compressed images into the same directory as their originals
 - [ ] build an abstraction layer for accessing image files and associated data
 
 - [ ] the receiver saves the received image as a file, but then `_classify_image` takes the file path and reads it as base64 -- maybe that can be cut out
@@ -171,7 +169,6 @@ Checkboxes key:
 
 - [ ] when I click "Report", it should include a unique ID (timestamp?) of the image reported so there's no race condition from hitting it a split second too late -- currently, I think there's a race condition where I could hit "Report" just as it changes and it would associate that with the wrong image (though it retains multiple images, so maybe it's fine)
 - [ ] ambitious: when I click "Report", temporarily update the classifier prompt to include the relevant screenshot as an example.
-- [ ] when I tap "Report", show a popup with all the recently captured frames and their classifications. let me pick which ones specifically were classified wrongly and save the whole batch
 
 - [ ] stretch: allow controlling YTTV (pause, rewind, etc.) from the web UI
 - [ ] include `incorrect_frames` in the `/review` endpoint so I can classify them

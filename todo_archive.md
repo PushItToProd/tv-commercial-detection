@@ -52,6 +52,7 @@ Checkboxes key:
     - [x] work out how to test
   - [x] clean up project structure
     - [x] move all code into a `src/` directory
+- [x] take a path to a single folder to use for all outputs and data saved by the server
 
 ### Classification/Receiver
 
@@ -62,6 +63,7 @@ Checkboxes key:
 
 - [x] multimodal classification with audio capture -- use Qwen3-Omni
   - [x] first just find a way to record a race broadcast with video and audio
+- [x] don't save compressed images into the same directory as their originals
 
 #### Review
 
@@ -133,3 +135,4 @@ Checkboxes key:
 - [x] add a button to just save the last few screenshots
 - [x] maybe use a CSS framework
 - [x] mobile-friendly UI so I can use it on my phone (another argument for using a CSS framework -- something like Bootstrap would probably make this easier)
+- [x] when I tap "Report", show a popup with all the recently captured frames and their classifications. let me pick which ones specifically were classified wrongly and save the whole batch
