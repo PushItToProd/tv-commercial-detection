@@ -58,12 +58,20 @@ S = HERE / "structure"
 # Deliberately small. Each value below was written down by the operator during
 # the review; nothing is here because it seemed like a category worth having.
 
+# The three produced values differ only in what they are selling: the broadcast
+# you are watching, another broadcast, or somebody's product. That is the
+# distinction the classifier keeps failing on - a `promo` is cut by the same
+# people as the show and carries the same corner bug, which is what fools the
+# network-logo anchor and the audio sensor at a break onset.
 VIDEO = {
     "live_race": "full-screen racing, including in-car and onboard",
     "inset": "racing in a box beside something else - interview, replay, studio",
     "side_by_side": "NASCAR NON STOP: race inset, commercial alongside",
     "bumper": "full-screen network transition banner or wipe",
-    "spot": "full-screen commercial",
+    "package": "produced, edited, not live, about this event - show opens, "
+               "driver features, hype pieces, victory-lane recaps",
+    "promo": "produced by the network to sell other programming",
+    "spot": "full-screen commercial for somebody else's product",
     "studio": "booth, desk, presenters, no racing on screen",
     "pit": "pit road, paddock, garage, driver interview",
     "crowd": "fans, grandstands, aerials of the venue",
@@ -128,6 +136,11 @@ GREEN_FLAG = 475
 NOTE_PATTERNS: list[tuple[str, str, str]] = [
     ("audio", "ad_read", r"ad read|sponsored bit|reading a spons|ad-read"),
     ("audio", "chatter", r"chatter|welcome back|typical chatter|talking about the track"),
+    # `promo` before `package`: both are produced network material and a note can
+    # mention the hype around a promo, but selling other programming is the more
+    # specific claim.
+    ("video", "promo", r"promotional piece|\bpromos?\b|ads? for their own|their own content"),
+    ("video", "package", r"hype|cinematic|show open|montage"),
     ("video", "bumper", r"transition(al)? banner|full-screen transition|\bwipe\b|\bbumper\b"),
     ("video", "inset", r"\binset\b|picture-in-picture|\bpip\b|squeeze"),
     ("video", "crowd", r"fans in the stands|\bcrowd\b|grandstand"),
@@ -359,11 +372,53 @@ def build() -> tuple[dict, dict]:
     return facets, stats
 
 
+MANUAL_AXES = ("video", "audio", "risk")
+
+
+def merge_preserving(fresh: dict, old: dict) -> tuple[dict, Counter]:
+    """Re-derive everything except what a human touched.
+
+    This script regenerates from scratch every run, so without this a re-run
+    would silently undo the review it exists to support. A value is the
+    operator's if its `src` says `manual`; a frame is theirs if it is
+    `confirmed`. Both survive, including a *cleared* value - the absence of one
+    they deliberately removed is as much a decision as a value they set.
+    """
+    kept = Counter()
+    for fn, o in old.items():
+        n = fresh.get(fn)
+        if n is None:
+            continue
+        osrc = o.get("src") or {}
+        for axis in MANUAL_AXES:
+            if osrc.get(axis) != "manual":
+                continue
+            if axis in o:
+                n[axis] = o[axis]
+            else:
+                n.pop(axis, None)
+            n.setdefault("src", {})[axis] = "manual"
+            kept[f"manual {axis}"] += 1
+        if osrc.get("care") == "manual":
+            n["care_away"], n["care_back"] = o.get("care_away"), o.get("care_back")
+            n.setdefault("src", {})["care"] = "manual"
+            kept["manual care"] += 1
+        if o.get("confirmed"):
+            n["confirmed"] = True
+            n.pop("review", None)   # already looked at; do not re-flag it
+            kept["confirmed"] += 1
+    return fresh, kept
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--write", action="store_true")
     args = ap.parse_args()
     facets, stats = build()
+    old, _ = (lambda d: (d.get("facets", {}), d.get("schema", {})))(
+        json.load(open(OUT)) if OUT.exists() else {})
+    facets, kept = merge_preserving(facets, old)
+    stats["needs review"] = sum(1 for f in facets.values() if f.get("review"))
 
     print(f"{stats['frames']} frames faceted\n")
     for group in ("phase", "where", "video", "audio", "risk"):
@@ -375,6 +430,10 @@ def main() -> None:
     print("\nprovenance:")
     for k in sorted(k for k in stats if k.startswith("src:")):
         print(f"    {k[4:]:22s} {stats[k]:5d}")
+    if kept:
+        print("\npreserved from your edits:")
+        for k, n in sorted(kept.items()):
+            print(f"    {k:22s} {n:5d}")
     print(f"\nflagged for review: {stats['needs review']}")
     extras = sum(1 for f in facets.values() if f.get("signal_idea"))
     art = sum(1 for f in facets.values() if f.get("artifact"))

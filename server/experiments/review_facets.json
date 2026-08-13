@@ -1566,9 +1566,10 @@
    "review": true,
    "risk": "safe",
    "src": {
-    "care": "inferred"
+    "care": "inferred",
+    "video": "inferred"
    },
-   "video": null,
+   "video": "package",
    "where": "rejoin"
   },
   "2026-08-13T02-09-12-237000+00-00.jpg": {
@@ -1579,9 +1580,10 @@
    "review": true,
    "risk": "safe",
    "src": {
-    "care": "inferred"
+    "care": "inferred",
+    "video": "inferred"
    },
-   "video": null,
+   "video": "package",
    "where": "rejoin"
   },
   "2026-08-13T02-09-14-240000+00-00.jpg": {
@@ -1592,9 +1594,10 @@
    "review": true,
    "risk": "safe",
    "src": {
-    "care": "inferred"
+    "care": "inferred",
+    "video": "inferred"
    },
-   "video": null,
+   "video": "package",
    "where": "rejoin"
   },
   "2026-08-13T02-09-16-242000+00-00.jpg": {
@@ -1605,9 +1608,10 @@
    "review": true,
    "risk": "safe",
    "src": {
-    "care": "inferred"
+    "care": "inferred",
+    "video": "inferred"
    },
-   "video": null,
+   "video": "package",
    "where": "rejoin"
   },
   "2026-08-13T02-09-18-242000+00-00.jpg": {
@@ -1618,9 +1622,10 @@
    "review": true,
    "risk": "safe",
    "src": {
-    "care": "inferred"
+    "care": "inferred",
+    "video": "inferred"
    },
-   "video": null,
+   "video": "package",
    "where": "rejoin"
   },
   "2026-08-13T02-09-20-244000+00-00.jpg": {
@@ -1631,9 +1636,10 @@
    "review": true,
    "risk": "safe",
    "src": {
-    "care": "inferred"
+    "care": "inferred",
+    "video": "inferred"
    },
-   "video": null,
+   "video": "package",
    "where": "rejoin"
   },
   "2026-08-13T02-09-22-245000+00-00.jpg": {
@@ -1644,9 +1650,10 @@
    "review": true,
    "risk": "safe",
    "src": {
-    "care": "inferred"
+    "care": "inferred",
+    "video": "inferred"
    },
-   "video": null,
+   "video": "package",
    "where": "rejoin"
   },
   "2026-08-13T02-09-24-255000+00-00.jpg": {
@@ -1657,9 +1664,10 @@
    "review": true,
    "risk": "safe",
    "src": {
-    "care": "inferred"
+    "care": "inferred",
+    "video": "inferred"
    },
-   "video": null,
+   "video": "package",
    "where": "rejoin"
   },
   "2026-08-13T02-09-26-259000+00-00.jpg": {
@@ -1670,9 +1678,10 @@
    "review": true,
    "risk": "safe",
    "src": {
-    "care": "inferred"
+    "care": "inferred",
+    "video": "inferred"
    },
-   "video": null,
+   "video": "package",
    "where": "rejoin"
   },
   "2026-08-13T02-09-28-274000+00-00.jpg": {
@@ -1683,9 +1692,10 @@
    "review": true,
    "risk": "safe",
    "src": {
-    "care": "inferred"
+    "care": "inferred",
+    "video": "inferred"
    },
-   "video": null,
+   "video": "package",
    "where": "rejoin"
   },
   "2026-08-13T02-09-30-275000+00-00.jpg": {
@@ -1696,9 +1706,10 @@
    "review": true,
    "risk": "safe",
    "src": {
-    "care": "inferred"
+    "care": "inferred",
+    "video": "inferred"
    },
-   "video": null,
+   "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-09-32-277000+00-00.jpg": {
@@ -1709,9 +1720,10 @@
    "review": true,
    "risk": "safe",
    "src": {
-    "care": "inferred"
+    "care": "inferred",
+    "video": "inferred"
    },
-   "video": null,
+   "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-09-34-278000+00-00.jpg": {
@@ -1722,9 +1734,10 @@
    "review": true,
    "risk": "safe",
    "src": {
-    "care": "inferred"
+    "care": "inferred",
+    "video": "inferred"
    },
-   "video": null,
+   "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-09-36-280000+00-00.jpg": {
@@ -1735,9 +1748,10 @@
    "review": true,
    "risk": "safe",
    "src": {
-    "care": "inferred"
+    "care": "inferred",
+    "video": "inferred"
    },
-   "video": null,
+   "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-09-38-282000+00-00.jpg": {
@@ -1748,9 +1762,10 @@
    "review": true,
    "risk": "safe",
    "src": {
-    "care": "inferred"
+    "care": "inferred",
+    "video": "inferred"
    },
-   "video": null,
+   "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-09-40-282000+00-00.jpg": {
@@ -1761,9 +1776,10 @@
    "review": true,
    "risk": "safe",
    "src": {
-    "care": "inferred"
+    "care": "inferred",
+    "video": "inferred"
    },
-   "video": null,
+   "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-09-42-309000+00-00.jpg": {
@@ -1774,9 +1790,10 @@
    "review": true,
    "risk": "safe",
    "src": {
-    "care": "inferred"
+    "care": "inferred",
+    "video": "inferred"
    },
-   "video": null,
+   "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-09-44-310000+00-00.jpg": {
@@ -1787,9 +1804,10 @@
    "review": true,
    "risk": "safe",
    "src": {
-    "care": "inferred"
+    "care": "inferred",
+    "video": "inferred"
    },
-   "video": null,
+   "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-09-46-311000+00-00.jpg": {
@@ -1800,9 +1818,10 @@
    "review": true,
    "risk": "safe",
    "src": {
-    "care": "inferred"
+    "care": "inferred",
+    "video": "inferred"
    },
-   "video": null,
+   "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-09-48-312000+00-00.jpg": {
@@ -1813,9 +1832,10 @@
    "review": true,
    "risk": "safe",
    "src": {
-    "care": "inferred"
+    "care": "inferred",
+    "video": "inferred"
    },
-   "video": null,
+   "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-09-50-320000+00-00.jpg": {
@@ -1826,9 +1846,10 @@
    "review": true,
    "risk": "safe",
    "src": {
-    "care": "inferred"
+    "care": "inferred",
+    "video": "inferred"
    },
-   "video": null,
+   "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-09-52-321000+00-00.jpg": {
@@ -1839,9 +1860,10 @@
    "review": true,
    "risk": "safe",
    "src": {
-    "care": "inferred"
+    "care": "inferred",
+    "video": "inferred"
    },
-   "video": null,
+   "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-09-54-322000+00-00.jpg": {
@@ -1852,9 +1874,10 @@
    "review": true,
    "risk": "safe",
    "src": {
-    "care": "inferred"
+    "care": "inferred",
+    "video": "inferred"
    },
-   "video": null,
+   "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-09-56-323000+00-00.jpg": {
@@ -1865,9 +1888,10 @@
    "review": true,
    "risk": "safe",
    "src": {
-    "care": "inferred"
+    "care": "inferred",
+    "video": "inferred"
    },
-   "video": null,
+   "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-09-58-326000+00-00.jpg": {
@@ -1878,9 +1902,10 @@
    "review": true,
    "risk": "safe",
    "src": {
-    "care": "inferred"
+    "care": "inferred",
+    "video": "inferred"
    },
-   "video": null,
+   "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-10-00-327000+00-00.jpg": {
@@ -1891,9 +1916,10 @@
    "review": true,
    "risk": "safe",
    "src": {
-    "care": "inferred"
+    "care": "inferred",
+    "video": "inferred"
    },
-   "video": null,
+   "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-10-02-348000+00-00.jpg": {
@@ -1904,9 +1930,10 @@
    "review": true,
    "risk": "safe",
    "src": {
-    "care": "inferred"
+    "care": "inferred",
+    "video": "inferred"
    },
-   "video": null,
+   "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-10-04-356000+00-00.jpg": {
@@ -1917,9 +1944,10 @@
    "review": true,
    "risk": "safe",
    "src": {
-    "care": "inferred"
+    "care": "inferred",
+    "video": "inferred"
    },
-   "video": null,
+   "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-10-06-358000+00-00.jpg": {
@@ -1930,9 +1958,10 @@
    "review": true,
    "risk": "safe",
    "src": {
-    "care": "inferred"
+    "care": "inferred",
+    "video": "inferred"
    },
-   "video": null,
+   "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-10-08-359000+00-00.jpg": {
@@ -1943,9 +1972,10 @@
    "review": true,
    "risk": "safe",
    "src": {
-    "care": "inferred"
+    "care": "inferred",
+    "video": "inferred"
    },
-   "video": null,
+   "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-10-10-362000+00-00.jpg": {
@@ -1956,9 +1986,10 @@
    "review": true,
    "risk": "safe",
    "src": {
-    "care": "inferred"
+    "care": "inferred",
+    "video": "inferred"
    },
-   "video": null,
+   "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-10-12-363000+00-00.jpg": {
@@ -1969,9 +2000,10 @@
    "review": true,
    "risk": "safe",
    "src": {
-    "care": "inferred"
+    "care": "inferred",
+    "video": "inferred"
    },
-   "video": null,
+   "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-10-14-365000+00-00.jpg": {
@@ -1982,9 +2014,10 @@
    "review": true,
    "risk": "safe",
    "src": {
-    "care": "default"
+    "care": "default",
+    "video": "inferred"
    },
-   "video": null,
+   "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-10-16-366000+00-00.jpg": {
@@ -1995,9 +2028,10 @@
    "review": true,
    "risk": "safe",
    "src": {
-    "care": "default"
+    "care": "default",
+    "video": "inferred"
    },
-   "video": null,
+   "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-10-18-367000+00-00.jpg": {
@@ -2008,9 +2042,10 @@
    "review": true,
    "risk": "safe",
    "src": {
-    "care": "default"
+    "care": "default",
+    "video": "inferred"
    },
-   "video": null,
+   "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-10-20-369000+00-00.jpg": {
@@ -3817,9 +3852,10 @@
    "review": true,
    "risk": "safe",
    "src": {
-    "care": "inferred"
+    "care": "inferred",
+    "video": "inferred"
    },
-   "video": null,
+   "video": "package",
    "where": "rejoin"
   },
   "2026-08-13T02-14-40-962000+00-00.jpg": {
@@ -3830,9 +3866,10 @@
    "review": true,
    "risk": "safe",
    "src": {
-    "care": "inferred"
+    "care": "inferred",
+    "video": "inferred"
    },
-   "video": null,
+   "video": "package",
    "where": "rejoin"
   },
   "2026-08-13T02-14-42-963000+00-00.jpg": {
@@ -3843,9 +3880,10 @@
    "review": true,
    "risk": "safe",
    "src": {
-    "care": "inferred"
+    "care": "inferred",
+    "video": "inferred"
    },
-   "video": null,
+   "video": "package",
    "where": "rejoin"
   },
   "2026-08-13T02-14-44-964000+00-00.jpg": {
@@ -3856,9 +3894,10 @@
    "review": true,
    "risk": "safe",
    "src": {
-    "care": "inferred"
+    "care": "inferred",
+    "video": "inferred"
    },
-   "video": null,
+   "video": "package",
    "where": "rejoin"
   },
   "2026-08-13T02-14-46-965000+00-00.jpg": {
@@ -3869,9 +3908,10 @@
    "review": true,
    "risk": "safe",
    "src": {
-    "care": "inferred"
+    "care": "inferred",
+    "video": "inferred"
    },
-   "video": null,
+   "video": "package",
    "where": "rejoin"
   },
   "2026-08-13T02-14-48-978000+00-00.jpg": {
@@ -3882,9 +3922,10 @@
    "review": true,
    "risk": "safe",
    "src": {
-    "care": "inferred"
+    "care": "inferred",
+    "video": "inferred"
    },
-   "video": null,
+   "video": "package",
    "where": "rejoin"
   },
   "2026-08-13T02-14-50-980000+00-00.jpg": {
@@ -3895,9 +3936,10 @@
    "review": true,
    "risk": "safe",
    "src": {
-    "care": "inferred"
+    "care": "inferred",
+    "video": "inferred"
    },
-   "video": null,
+   "video": "package",
    "where": "rejoin"
   },
   "2026-08-13T02-14-52-984000+00-00.jpg": {
@@ -3908,9 +3950,10 @@
    "review": true,
    "risk": "safe",
    "src": {
-    "care": "inferred"
+    "care": "inferred",
+    "video": "inferred"
    },
-   "video": null,
+   "video": "package",
    "where": "rejoin"
   },
   "2026-08-13T02-14-54-984000+00-00.jpg": {
@@ -3921,9 +3964,10 @@
    "review": true,
    "risk": "safe",
    "src": {
-    "care": "inferred"
+    "care": "inferred",
+    "video": "inferred"
    },
-   "video": null,
+   "video": "package",
    "where": "rejoin"
   },
   "2026-08-13T02-14-56-986000+00-00.jpg": {
@@ -3934,9 +3978,10 @@
    "review": true,
    "risk": "safe",
    "src": {
-    "care": "inferred"
+    "care": "inferred",
+    "video": "inferred"
    },
-   "video": null,
+   "video": "package",
    "where": "rejoin"
   },
   "2026-08-13T02-14-58-986000+00-00.jpg": {
@@ -3947,9 +3992,10 @@
    "review": true,
    "risk": "safe",
    "src": {
-    "care": "inferred"
+    "care": "inferred",
+    "video": "inferred"
    },
-   "video": null,
+   "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-15-00-988000+00-00.jpg": {
@@ -3960,9 +4006,10 @@
    "review": true,
    "risk": "safe",
    "src": {
-    "care": "inferred"
+    "care": "inferred",
+    "video": "inferred"
    },
-   "video": null,
+   "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-15-02-989000+00-00.jpg": {
@@ -3973,9 +4020,10 @@
    "review": true,
    "risk": "safe",
    "src": {
-    "care": "inferred"
+    "care": "inferred",
+    "video": "inferred"
    },
-   "video": null,
+   "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-15-04-990000+00-00.jpg": {
@@ -3986,9 +4034,10 @@
    "review": true,
    "risk": "safe",
    "src": {
-    "care": "inferred"
+    "care": "inferred",
+    "video": "inferred"
    },
-   "video": null,
+   "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-15-07-013000+00-00.jpg": {
@@ -3999,9 +4048,10 @@
    "review": true,
    "risk": "safe",
    "src": {
-    "care": "inferred"
+    "care": "inferred",
+    "video": "inferred"
    },
-   "video": null,
+   "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-15-09-014000+00-00.jpg": {
@@ -4012,9 +4062,10 @@
    "review": true,
    "risk": "safe",
    "src": {
-    "care": "inferred"
+    "care": "inferred",
+    "video": "inferred"
    },
-   "video": null,
+   "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-15-11-015000+00-00.jpg": {
@@ -4025,9 +4076,10 @@
    "review": true,
    "risk": "safe",
    "src": {
-    "care": "inferred"
+    "care": "inferred",
+    "video": "inferred"
    },
-   "video": null,
+   "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-15-13-016000+00-00.jpg": {
@@ -4038,9 +4090,10 @@
    "review": true,
    "risk": "safe",
    "src": {
-    "care": "inferred"
+    "care": "inferred",
+    "video": "inferred"
    },
-   "video": null,
+   "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-15-15-017000+00-00.jpg": {
@@ -4051,9 +4104,10 @@
    "review": true,
    "risk": "safe",
    "src": {
-    "care": "inferred"
+    "care": "inferred",
+    "video": "inferred"
    },
-   "video": null,
+   "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-15-17-018000+00-00.jpg": {
@@ -4064,9 +4118,10 @@
    "review": true,
    "risk": "safe",
    "src": {
-    "care": "inferred"
+    "care": "inferred",
+    "video": "inferred"
    },
-   "video": null,
+   "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-15-19-035000+00-00.jpg": {
@@ -4077,9 +4132,10 @@
    "review": true,
    "risk": "safe",
    "src": {
-    "care": "inferred"
+    "care": "inferred",
+    "video": "inferred"
    },
-   "video": null,
+   "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-15-21-036000+00-00.jpg": {
@@ -4090,9 +4146,10 @@
    "review": true,
    "risk": "safe",
    "src": {
-    "care": "inferred"
+    "care": "inferred",
+    "video": "inferred"
    },
-   "video": null,
+   "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-15-23-038000+00-00.jpg": {
@@ -4103,9 +4160,10 @@
    "review": true,
    "risk": "safe",
    "src": {
-    "care": "inferred"
+    "care": "inferred",
+    "video": "inferred"
    },
-   "video": null,
+   "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-15-25-039000+00-00.jpg": {
@@ -4116,9 +4174,10 @@
    "review": true,
    "risk": "safe",
    "src": {
-    "care": "inferred"
+    "care": "inferred",
+    "video": "inferred"
    },
-   "video": null,
+   "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-15-27-042000+00-00.jpg": {
@@ -4129,9 +4188,10 @@
    "review": true,
    "risk": "safe",
    "src": {
-    "care": "inferred"
+    "care": "inferred",
+    "video": "inferred"
    },
-   "video": null,
+   "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-15-29-042000+00-00.jpg": {
@@ -4142,9 +4202,10 @@
    "review": true,
    "risk": "safe",
    "src": {
-    "care": "inferred"
+    "care": "inferred",
+    "video": "inferred"
    },
-   "video": null,
+   "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-15-31-045000+00-00.jpg": {
@@ -4155,9 +4216,10 @@
    "review": true,
    "risk": "safe",
    "src": {
-    "care": "inferred"
+    "care": "inferred",
+    "video": "inferred"
    },
-   "video": null,
+   "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-15-33-046000+00-00.jpg": {
@@ -4168,9 +4230,10 @@
    "review": true,
    "risk": "safe",
    "src": {
-    "care": "inferred"
+    "care": "inferred",
+    "video": "inferred"
    },
-   "video": null,
+   "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-15-35-047000+00-00.jpg": {
@@ -4181,9 +4244,10 @@
    "review": true,
    "risk": "safe",
    "src": {
-    "care": "inferred"
+    "care": "inferred",
+    "video": "inferred"
    },
-   "video": null,
+   "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-15-37-087000+00-00.jpg": {
@@ -4194,9 +4258,10 @@
    "review": true,
    "risk": "safe",
    "src": {
-    "care": "inferred"
+    "care": "inferred",
+    "video": "inferred"
    },
-   "video": null,
+   "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-15-39-088000+00-00.jpg": {
@@ -4207,9 +4272,10 @@
    "review": true,
    "risk": "safe",
    "src": {
-    "care": "inferred"
+    "care": "inferred",
+    "video": "inferred"
    },
-   "video": null,
+   "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-15-41-091000+00-00.jpg": {
@@ -4217,12 +4283,14 @@
    "care_away": 0,
    "care_back": 0,
    "phase": "pre_race",
+   "review": true,
    "risk": "safe",
    "src": {
     "audio": "default",
-    "care": "default"
+    "care": "default",
+    "video": "inferred"
    },
-   "video": null,
+   "video": "package",
    "where": "interior"
   },
   "2026-08-13T02-15-43-091000+00-00.jpg": {
@@ -8657,8 +8725,8 @@
    "audio": "commentary",
    "care_away": 0,
    "care_back": 3,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "safe",
    "src": {
     "audio": "default",
@@ -9552,8 +9620,8 @@
    "audio": "ad_read",
    "care_away": 2,
    "care_back": 0,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "safe",
    "src": {
     "audio": "inferred",
@@ -9567,8 +9635,8 @@
    "audio": "ad_read",
    "care_away": 2,
    "care_back": 0,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "safe",
    "src": {
     "audio": "inferred",
@@ -9582,8 +9650,8 @@
    "audio": "ad_read",
    "care_away": 2,
    "care_back": 0,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "safe",
    "src": {
     "audio": "inferred",
@@ -9597,8 +9665,8 @@
    "audio": "ad_read",
    "care_away": 2,
    "care_back": 0,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "safe",
    "src": {
     "audio": "inferred",
@@ -9612,8 +9680,8 @@
    "audio": "ad_read",
    "care_away": 2,
    "care_back": 0,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "safe",
    "src": {
     "audio": "inferred",
@@ -9627,8 +9695,8 @@
    "audio": "ad_read",
    "care_away": 2,
    "care_back": 0,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "safe",
    "src": {
     "audio": "inferred",
@@ -9642,8 +9710,8 @@
    "audio": "ad_read",
    "care_away": 2,
    "care_back": 0,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "safe",
    "src": {
     "audio": "inferred",
@@ -9657,8 +9725,8 @@
    "audio": "ad_read",
    "care_away": 2,
    "care_back": 0,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "fraught",
    "signal_idea": true,
    "src": {
@@ -9672,13 +9740,13 @@
   "2026-08-13T02-28-47-459000+00-00.jpg": {
    "audio": "chatter",
    "care_away": 0,
-   "care_back": 3,
+   "care_back": 2,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "safe",
    "src": {
     "audio": "inferred",
-    "care": "default",
+    "care": "manual",
     "video": "derived"
    },
    "video": "live_race",
@@ -13759,8 +13827,8 @@
    "audio": "commentary",
    "care_away": 0,
    "care_back": 3,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "safe",
    "src": {
     "audio": "default",
@@ -15941,22 +16009,23 @@
    "care_away": 3,
    "care_back": 0,
    "phase": "race",
+   "review": true,
    "risk": "safe",
    "signal_idea": true,
    "src": {
     "audio": "default",
     "care": "default",
-    "video": "derived"
+    "video": "inferred"
    },
-   "video": "side_by_side",
+   "video": "promo",
    "where": "in_break"
   },
   "2026-08-13T02-43-48-320000+00-00.jpg": {
    "audio": "spot_audio",
    "care_away": 3,
    "care_back": 0,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "safe",
    "src": {
     "audio": "default",
@@ -18652,8 +18721,8 @@
    "audio": "spot_audio",
    "care_away": 3,
    "care_back": 0,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "safe",
    "src": {
     "audio": "default",
@@ -20094,8 +20163,8 @@
    "audio": "commentary",
    "care_away": 0,
    "care_back": 3,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "safe",
    "src": {
     "audio": "default",
@@ -21340,8 +21409,8 @@
    "audio": null,
    "care_away": 1,
    "care_back": 0,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "safe",
    "src": {
     "care": "default",
@@ -21354,8 +21423,8 @@
    "audio": null,
    "care_away": 1,
    "care_back": 0,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "safe",
    "src": {
     "care": "default",
@@ -22474,8 +22543,8 @@
    "audio": "ad_read",
    "care_away": 2,
    "care_back": 0,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "safe",
    "src": {
     "audio": "inferred",
@@ -22488,8 +22557,8 @@
    "audio": "ad_read",
    "care_away": 2,
    "care_back": 0,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "safe",
    "src": {
     "audio": "inferred",
@@ -22502,8 +22571,8 @@
    "audio": "ad_read",
    "care_away": 2,
    "care_back": 0,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "safe",
    "src": {
     "audio": "inferred",
@@ -22516,8 +22585,8 @@
    "audio": "ad_read",
    "care_away": 2,
    "care_back": 0,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "safe",
    "src": {
     "audio": "inferred",
@@ -22530,8 +22599,8 @@
    "audio": "ad_read",
    "care_away": 2,
    "care_back": 0,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "safe",
    "src": {
     "audio": "inferred",
@@ -22545,8 +22614,8 @@
    "audio": "ad_read",
    "care_away": 2,
    "care_back": 0,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "safe",
    "src": {
     "audio": "inferred",
@@ -22560,8 +22629,8 @@
    "audio": "ad_read",
    "care_away": 2,
    "care_back": 0,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "safe",
    "src": {
     "audio": "inferred",
@@ -22575,8 +22644,8 @@
    "audio": "ad_read",
    "care_away": 2,
    "care_back": 0,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "safe",
    "src": {
     "audio": "inferred",
@@ -22589,8 +22658,8 @@
    "audio": "ad_read",
    "care_away": 2,
    "care_back": 0,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "safe",
    "src": {
     "audio": "inferred",
@@ -22603,8 +22672,8 @@
    "audio": "ad_read",
    "care_away": 2,
    "care_back": 0,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "safe",
    "src": {
     "audio": "inferred",
@@ -22617,8 +22686,8 @@
    "audio": "ad_read",
    "care_away": 2,
    "care_back": 0,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "safe",
    "src": {
     "audio": "inferred",
@@ -22631,8 +22700,8 @@
    "audio": "ad_read",
    "care_away": 2,
    "care_back": 0,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "safe",
    "src": {
     "audio": "inferred",
@@ -24242,90 +24311,90 @@
    "audio": "spot_audio",
    "care_away": 3,
    "care_back": 0,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "fraught",
    "src": {
     "audio": "default",
     "care": "default",
     "video": "inferred"
    },
-   "video": "live_race",
+   "video": "promo",
    "where": "in_break"
   },
   "2026-08-13T03-03-41-804000+00-00.jpg": {
    "audio": "spot_audio",
    "care_away": 3,
    "care_back": 0,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "fraught",
    "src": {
     "audio": "default",
     "care": "default",
     "video": "inferred"
    },
-   "video": "live_race",
+   "video": "promo",
    "where": "in_break"
   },
   "2026-08-13T03-03-43-805000+00-00.jpg": {
    "audio": "spot_audio",
    "care_away": 3,
    "care_back": 0,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "fraught",
    "src": {
     "audio": "default",
     "care": "default",
     "video": "inferred"
    },
-   "video": "live_race",
+   "video": "promo",
    "where": "in_break"
   },
   "2026-08-13T03-03-45-809000+00-00.jpg": {
    "audio": "spot_audio",
    "care_away": 3,
    "care_back": 0,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "fraught",
    "src": {
     "audio": "default",
     "care": "default",
     "video": "inferred"
    },
-   "video": "live_race",
+   "video": "promo",
    "where": "in_break"
   },
   "2026-08-13T03-03-47-812000+00-00.jpg": {
    "audio": "spot_audio",
    "care_away": 3,
    "care_back": 0,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "fraught",
    "src": {
     "audio": "default",
     "care": "default",
     "video": "inferred"
    },
-   "video": "live_race",
+   "video": "promo",
    "where": "in_break"
   },
   "2026-08-13T03-03-49-817000+00-00.jpg": {
    "audio": "spot_audio",
    "care_away": 3,
    "care_back": 0,
+   "confirmed": true,
    "phase": "race",
-   "review": true,
    "risk": "fraught",
    "src": {
     "audio": "default",
     "care": "default",
     "video": "inferred"
    },
-   "video": "live_race",
+   "video": "promo",
    "where": "in_break"
   },
   "2026-08-13T03-03-51-824000+00-00.jpg": {
@@ -24340,7 +24409,7 @@
     "care": "default",
     "video": "inferred"
    },
-   "video": "live_race",
+   "video": "promo",
    "where": "in_break"
   },
   "2026-08-13T03-03-53-827000+00-00.jpg": {
@@ -24355,7 +24424,7 @@
     "care": "default",
     "video": "inferred"
    },
-   "video": "live_race",
+   "video": "promo",
    "where": "in_break"
   },
   "2026-08-13T03-03-55-828000+00-00.jpg": {
@@ -24370,7 +24439,7 @@
     "care": "default",
     "video": "inferred"
    },
-   "video": "live_race",
+   "video": "promo",
    "where": "in_break"
   },
   "2026-08-13T03-03-57-830000+00-00.jpg": {
@@ -24385,7 +24454,7 @@
     "care": "default",
     "video": "inferred"
    },
-   "video": "live_race",
+   "video": "promo",
    "where": "in_break"
   },
   "2026-08-13T03-03-59-856000+00-00.jpg": {
@@ -24400,7 +24469,7 @@
     "care": "default",
     "video": "inferred"
    },
-   "video": "live_race",
+   "video": "promo",
    "where": "in_break"
   },
   "2026-08-13T03-04-01-859000+00-00.jpg": {
@@ -24415,7 +24484,7 @@
     "care": "default",
     "video": "inferred"
    },
-   "video": "live_race",
+   "video": "promo",
    "where": "in_break"
   },
   "2026-08-13T03-04-03-863000+00-00.jpg": {
@@ -66351,9 +66420,11 @@
    "crowd": "fans, grandstands, aerials of the venue",
    "inset": "racing in a box beside something else - interview, replay, studio",
    "live_race": "full-screen racing, including in-car and onboard",
+   "package": "produced, edited, not live, about this event - show opens, driver features, hype pieces, victory-lane recaps",
    "pit": "pit road, paddock, garage, driver interview",
+   "promo": "produced by the network to sell other programming",
    "side_by_side": "NASCAR NON STOP: race inset, commercial alongside",
-   "spot": "full-screen commercial",
+   "spot": "full-screen commercial for somebody else's product",
    "studio": "booth, desk, presenters, no racing on screen"
   },
   "where": {
