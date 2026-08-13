@@ -128,9 +128,12 @@ categories the classifiers cannot emit, so agreement against it is undefined.
 
 The contact-sheet view drops the whole selection to bordered thumbnails for
 scanning in bulk, with a dot for your ruling and an outline where a signal or
-the other pass disagrees. Clicking one opens the cards page
-holding that frame with it selected, and `s` in the context view sends the frame
-on screen back to its place in the sheet. The filmstrip walks the whole
+the other pass disagrees. Arrows move over it the same way they move
+over the cards. Clicking a thumbnail moves the focus to it; clicking the one
+already focused — or `Enter` — opens the cards page holding it, so losing your
+place in a sheet of thousands takes a deliberate second action. `s` sends the
+frame in hand the other way, from the cards or the context view back to its
+place in the sheet. The filmstrip walks the whole
 broadcast, so a frame reached that way can sit outside the current filter; the
 sheet widens to `all` once rather than landing on nothing. Every option is a
 query param, so a view is linkable and the back button works.

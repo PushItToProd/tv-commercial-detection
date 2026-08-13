@@ -845,7 +845,8 @@ _HTML = r"""<!DOCTYPE html>
 <div class="hint">
   Say what the frame <i>is</i>, not whether the label is right — agreement is worked out from that.
   <b>a</b> ad · <b>r</b> content/racing · <b>o</b> other (bumper, sponsor billboard, undecidable) ·
-  <b>x</b> clear · <b>←/→</b> or <b>j/k</b> move one card, <b>↑/↓</b> move a row · <b>Enter</b> or click a frame to open it in context.
+  <b>x</b> clear · <b>←/→</b> or <b>j/k</b> move one card, <b>↑/↓</b> move a row · <b>Enter</b> or click a frame to open it in context ·
+  <b>s</b> shows it in the contact sheet · shift+click two frames then <b>e</b> to rule the run.
   In context view, <b>←/→</b> walk the broadcast, <b>space</b> plays the clip and <b>s</b> shows the frame in the contact sheet.
   <br>Border says what the frame is — <b style="color:#f55">red</b> ad, <b style="color:#4d4">green</b> content,
   <b style="color:#fb3">amber</b> neither — your ruling where you made one, otherwise the stored label.
@@ -863,7 +864,8 @@ _HTML = r"""<!DOCTYPE html>
   <span>dot: your ruling (red ad, green content, amber other)</span>
   <span><b style="color:#fa0">amber outline</b> conflicts with a signal or the other pass</span>
   <span><b style="color:#d0f">magenta</b> ruled two ways</span>
-  <span>click a thumbnail to open its page in the cards view</span>
+  <span>click a thumbnail to focus it, click the focused one (or <b>Enter</b>) to open its cards page</span>
+  <span>arrows move · shift+click two frames then <b>e</b> to rule the run</span>
 </div>
 <div class="grid" id="grid"></div>
 <div id="sheet" style="display:none"></div>
@@ -922,6 +924,7 @@ let FOCUS = null;        // filename to highlight after a jump from the sheet
 let ROWS = [];           // the current cards page
 let SHEET = [];          // the whole filtered selection, contact-sheet view
 let NOTICE = "";         // one-shot message shown under the sheet
+let WIDEN_FOR_FOCUS = false;  // this load was asked to reveal a specific frame
 let SEL = 0;
 
 // ── URL state ───────────────────────────────────────────────────────────────
@@ -994,8 +997,14 @@ async function loadSheet() {
   const d = await r.json();
   // Arriving from the filmstrip, the frame may sit outside the current filter -
   // the strip walks the whole broadcast. Widen to `all` once so the jump lands
-  // on the frame instead of silently on nothing.
-  if (FOCUS && FILTER !== "all" && !d.rows.some(n => n.filename === FOCUS)) {
+  // on the frame instead of silently on nothing. Only for that deliberate
+  // "show me this frame" move: a reload after a sweep must not yank the filter
+  // out from under a run that has just stopped matching it.
+  // Consumed whether or not it fires, so it cannot leak into a later load.
+  const widen = WIDEN_FOR_FOCUS;
+  WIDEN_FOR_FOCUS = false;
+  if (widen && FOCUS && FILTER !== "all"
+      && !d.rows.some(n => n.filename === FOCUS)) {
     FILTER = "all";
     syncUrl(false);
     NOTICE = "that frame is outside the previous filter — showing all";
@@ -1012,7 +1021,7 @@ async function loadSheet() {
   $("#sheet").innerHTML = SHEET.map((n, k) => `
     <div class="th ${n.gt} ${n.conflict ? "conflict" : ""} ${n.contradiction ? "contradiction" : ""} ${n.filename === FOCUS ? "focus" : ""}"
          style="width:${w}px;height:${h}px"
-         onclick="event.shiftKey ? shiftPick(${k}) : jumpTo(${k})"
+         onclick="event.shiftKey ? shiftPick(${k}) : sheetClick(${k})"
          title="i=${n.i} · label ${esc(n.gt)}${n.ruling ? " · ruled " + esc(n.ruling) : ""}">
       <img src="/image/${DATASET}/${encodeURIComponent(n.filename)}" loading="lazy">
       ${n.ruling ? `<span class="dot ${n.ruling}"></span>` : ""}
@@ -1021,6 +1030,24 @@ async function loadSheet() {
   if (FOCUS) document.querySelector(".th.focus")
     ?.scrollIntoView({ block: "center", behavior: "smooth" });
   if (BLINK_NEXT) { BLINK_NEXT = false; blinkFocus(".th.focus"); }
+}
+
+// A plain click moves the focus; clicking the frame already focused is what
+// opens it. Two meanings on one button, ordered so the destructive one - losing
+// your place in a sheet of thousands - needs the deliberate second click.
+function sheetClick(k) {
+  const n = SHEET[k];
+  if (!n) return;
+  if (n.filename === FOCUS) return jumpTo(k);
+  stopBlink();
+  FOCUS = n.filename;
+  syncUrl(false);
+  paintSheetFocus();
+}
+
+function paintSheetFocus() {
+  document.querySelectorAll(".th").forEach((el, i) =>
+    el.classList.toggle("focus", !!SHEET[i] && SHEET[i].filename === FOCUS));
 }
 
 // Position within the filtered selection decides which cards page holds it.
@@ -1165,7 +1192,9 @@ function focusCard(i) { setSel(i); }
 // the sheet a plain click navigates away, so there is no way to place a start
 // without leaving. The same gesture then means the same thing in both views.
 let ANCHOR = null;   // index of an open range's first end
-let RANGE = null;    // {lo, hi} once closed
+let RANGE = null;    // {lo, hi, end} once closed; `end` is the second click,
+                     // which is where attention was last and so where the
+                     // focus returns when the editor closes.
 
 // Whichever list the current view is showing; range indices are into this.
 function viewList() { return VIEW === "sheet" ? SHEET : ROWS; }
@@ -1175,9 +1204,16 @@ function shiftPick(i) {
   if (ANCHOR === null || RANGE) {          // start over
     ANCHOR = i; RANGE = null;
   } else {
-    RANGE = { lo: Math.min(ANCHOR, i), hi: Math.max(ANCHOR, i) };
+    RANGE = { lo: Math.min(ANCHOR, i), hi: Math.max(ANCHOR, i), end: i };
   }
   paintRange();
+}
+
+// Where the eye was when the range was closed. Returning here beats returning
+// to whatever was focused before the range was picked, which is somewhere the
+// reviewer has since moved on from.
+function rangeEndFrame() {
+  return RANGE ? viewList()[RANGE.end] : null;
 }
 
 function clearRange() { ANCHOR = null; RANGE = null; paintRange(); }
@@ -1230,19 +1266,35 @@ function stopBlink() {
   document.querySelectorAll(".blink").forEach(el => el.classList.remove("blink"));
 }
 
-// How many cards sit on one row of the wrapped grid, measured rather than
-// derived from the CSS width, so up/down follow what is actually on screen at
-// whatever the window size is.
-function columnCount() {
-  const cards = document.querySelectorAll(".card");
-  if (cards.length < 2) return 1;
-  const top = cards[0].offsetTop;
+// How many tiles sit on one row of a wrapped grid, measured rather than derived
+// from the CSS width, so up/down follow what is actually on screen at whatever
+// the window size and thumbnail size are.
+function columnCount(selector) {
+  const tiles = document.querySelectorAll(selector);
+  if (tiles.length < 2) return 1;
+  const top = tiles[0].offsetTop;
   let n = 0;
-  for (const c of cards) {
-    if (c.offsetTop !== top) break;
+  for (const t of tiles) {
+    if (t.offsetTop !== top) break;
     n++;
   }
   return Math.max(1, n);
+}
+
+// The sheet's focus is a filename rather than an index, since the list it
+// indexes is rebuilt on every load; the index is derived when needed.
+function sheetIndex() {
+  return SHEET.findIndex(n => n.filename === FOCUS);
+}
+
+function setSheetSel(k) {
+  const n = SHEET[Math.max(0, Math.min(k, SHEET.length - 1))];
+  if (!n) return;
+  stopBlink();
+  FOCUS = n.filename;
+  syncUrl(false);
+  paintSheetFocus();
+  document.querySelector(".th.focus")?.scrollIntoView({ block: "nearest" });
 }
 function go(p) { PAGE = p; FOCUS = null; syncUrl(true); load(); }
 
@@ -1297,15 +1349,21 @@ function stepTo(k) { CTX_POS = Math.max(0, Math.min(k, CTX.length - 1)); showCtx
 // The filmstrip walks the whole broadcast while the sheet shows only the
 // filtered selection, so the frame may not be in it; loadSheet widens the
 // filter rather than landing nowhere.
+function showInSheet(filename) {
+  if (!filename) return;
+  FOCUS = filename;
+  VIEW = "sheet";
+  BLINK_NEXT = true;
+  WIDEN_FOR_FOCUS = true;
+  syncUrl(true);
+  load();
+}
+
 function openInSheet() {
   const f = CTX[CTX_POS];
   if (!f) return;
-  FOCUS = f.filename;
   closeLightbox();
-  VIEW = "sheet";
-  BLINK_NEXT = true;
-  syncUrl(true);
-  load();
+  showInSheet(f.filename);
 }
 
 function closeLightbox() {
@@ -1403,7 +1461,22 @@ function paintBulkChoice() {
   $("#bulknotehint").textContent = hint || "";
 }
 
-function closeBulk() { $("#bulk").classList.remove("open"); }
+function closeBulk() {
+  const end = rangeEndFrame();
+  $("#bulk").classList.remove("open");
+  if (!end) return;
+  FOCUS = end.filename;
+  syncUrl(false);
+  if (VIEW === "sheet") {
+    paintSheetFocus();
+    document.querySelector(".th.focus")?.scrollIntoView({ block: "center", behavior: "smooth" });
+  } else {
+    SEL = RANGE.end;
+    paint();
+    document.querySelectorAll(".card")[SEL]
+      ?.scrollIntoView({ block: "center", behavior: "smooth" });
+  }
+}
 
 async function saveBulk() {
   const frames = rangeFrames();
@@ -1448,6 +1521,11 @@ document.addEventListener("keydown", (e) => {
   if (e.metaKey || e.ctrlKey || e.altKey) return;
   if (e.key === "e" && RANGE) { e.preventDefault(); return openBulk(); }
   if (e.key === "Escape" && (RANGE || ANCHOR !== null)) return clearRange();
+  // `s` means the same thing wherever a frame is in hand: show it in the sheet.
+  if (e.key === "s" && VIEW === "cards") {
+    e.preventDefault();
+    return showInSheet(ROWS[SEL]?.filename);
+  }
   // While the lightbox is open the arrows walk the broadcast, not the grid.
   if ($("#lightbox").classList.contains("open")) {
     if (e.key === "Escape") return closeLightbox();
@@ -1462,7 +1540,18 @@ document.addEventListener("keydown", (e) => {
     }
     return;
   }
-  if (VIEW !== "cards") return;
+  // The sheet moves the same way as the cards, over its own grid. No ruling
+  // keys here: a thumbnail is too small to rule on, which is what `Enter` is
+  // for - it opens the frame where the evidence is.
+  if (VIEW === "sheet") {
+    const at = sheetIndex();
+    if (e.key === "j" || e.key === "ArrowRight") { e.preventDefault(); return setSheetSel(at + 1); }
+    if (e.key === "k" || e.key === "ArrowLeft") { e.preventDefault(); return setSheetSel(at - 1); }
+    if (e.key === "ArrowDown") { e.preventDefault(); return setSheetSel(at + columnCount(".th")); }
+    if (e.key === "ArrowUp") { e.preventDefault(); return setSheetSel(at - columnCount(".th")); }
+    if (e.key === "Enter" && at >= 0) { e.preventDefault(); return jumpTo(at); }
+    return;
+  }
   // `r` for racing, not `c`: `c` collided with cmd-c. The modifier guard above
   // now stops that anyway, but the binding is not worth reclaiming.
   const keys = { a: "ad", r: "content", o: "other" };
@@ -1472,8 +1561,8 @@ document.addEventListener("keydown", (e) => {
   // up/down by a whole row. paint() scrolls whatever lands off-screen.
   else if (e.key === "j" || e.key === "ArrowRight") { e.preventDefault(); setSel(SEL + 1); }
   else if (e.key === "k" || e.key === "ArrowLeft") { e.preventDefault(); setSel(SEL - 1); }
-  else if (e.key === "ArrowDown") { e.preventDefault(); setSel(SEL + columnCount()); }
-  else if (e.key === "ArrowUp") { e.preventDefault(); setSel(SEL - columnCount()); }
+  else if (e.key === "ArrowDown") { e.preventDefault(); setSel(SEL + columnCount(".card")); }
+  else if (e.key === "ArrowUp") { e.preventDefault(); setSel(SEL - columnCount(".card")); }
   else if (e.key === "Enter") { const r = ROWS[SEL]; if (r) zoom(r.filename); }
 });
 
@@ -1505,6 +1594,13 @@ document.querySelectorAll("#controls button[data-f]").forEach(b =>
   b.onclick = () => { FILTER = b.dataset.f; PAGE = 1; FOCUS = null; syncUrl(true); load(); });
 $("#reload").onclick = async () => { await fetch("/api/reload", { method: "POST" }); load(); };
 $("#viewtoggle").onclick = () => {
+  // Leaving the sheet, carry the focused thumbnail to the cards page holding
+  // it - otherwise focusing a frame deep in the sheet and switching would land
+  // on page 1 with the focus nowhere in sight.
+  if (VIEW === "sheet" && FOCUS) {
+    const at = SHEET.findIndex(n => n.filename === FOCUS);
+    if (at >= 0) PAGE = Math.floor(at / PER_PAGE) + 1;
+  }
   VIEW = VIEW === "sheet" ? "cards" : "sheet";
   BLINK_NEXT = true;
   syncUrl(true); load();
