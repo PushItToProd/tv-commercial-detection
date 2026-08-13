@@ -1,0 +1,134 @@
+{
+ "opencv only|stateless": {
+  "acc": 0.8106806282722513,
+  "steady": 0.8245853215178368,
+  "switches": 12,
+  "flaps": 0,
+  "ad_shown": 1808.0,
+  "race_missed": 0.0,
+  "lat_med": 0.5,
+  "lat_max": 60,
+  "missed_tr": 11
+ },
+ "opencv only|debounce2": {
+  "acc": 0.8115183246073299,
+  "steady": 0.8245853215178368,
+  "switches": 12,
+  "flaps": 0,
+  "ad_shown": 1798.0,
+  "race_missed": 2.0,
+  "lat_med": 1.0,
+  "lat_max": 60,
+  "missed_tr": 11
+ },
+ "opencv only|hsmm": {
+  "acc": 0.808586387434555,
+  "steady": 0.8252669847761872,
+  "switches": 28,
+  "flaps": 0,
+  "ad_shown": 1400.0,
+  "race_missed": 428.0,
+  "lat_med": 4.0,
+  "lat_max": 60,
+  "missed_tr": 7
+ },
+ "opencv+furniture|stateless": {
+  "acc": 0.9585340314136126,
+  "steady": 0.9756873437855033,
+  "switches": 96,
+  "flaps": 36,
+  "ad_shown": 242.0,
+  "race_missed": 154.0,
+  "lat_med": 1.0,
+  "lat_max": 9,
+  "missed_tr": 0
+ },
+ "opencv+furniture|debounce2": {
+  "acc": 0.9583246073298429,
+  "steady": 0.9777323335605544,
+  "switches": 68,
+  "flaps": 15,
+  "ad_shown": 248.0,
+  "race_missed": 150.0,
+  "lat_med": 1.0,
+  "lat_max": 10,
+  "missed_tr": 0
+ },
+ "opencv+furniture|hsmm": {
+  "acc": 0.9556020942408378,
+  "steady": 0.9747784594410361,
+  "switches": 36,
+  "flaps": 0,
+  "ad_shown": 172.0,
+  "race_missed": 252.0,
+  "lat_med": 1.0,
+  "lat_max": 10,
+  "missed_tr": 0
+ },
+ "opencv+audio|stateless": {
+  "acc": 0.966282722513089,
+  "steady": 0.9827311974551238,
+  "switches": 80,
+  "flaps": 35,
+  "ad_shown": 240.0,
+  "race_missed": 82.0,
+  "lat_med": 1.0,
+  "lat_max": 15,
+  "missed_tr": 0
+ },
+ "opencv+audio|debounce2": {
+  "acc": 0.9656544502617801,
+  "steady": 0.9856850715746421,
+  "switches": 48,
+  "flaps": 8,
+  "ad_shown": 232.0,
+  "race_missed": 96.0,
+  "lat_med": 2.0,
+  "lat_max": 17,
+  "missed_tr": 0
+ },
+ "opencv+audio|hsmm": {
+  "acc": 0.9702617801047121,
+  "steady": 0.989093387866394,
+  "switches": 34,
+  "flaps": 0,
+  "ad_shown": 242.0,
+  "race_missed": 42.0,
+  "lat_med": 1.0,
+  "lat_max": 18,
+  "missed_tr": 0
+ },
+ "opencv+audio+furniture|stateless": {
+  "acc": 0.9675392670157068,
+  "steady": 0.9831856396273574,
+  "switches": 84,
+  "flaps": 35,
+  "ad_shown": 224.0,
+  "race_missed": 86.0,
+  "lat_med": 0.5,
+  "lat_max": 16,
+  "missed_tr": 0
+ },
+ "opencv+audio+furniture|debounce2": {
+  "acc": 0.9656544502617801,
+  "steady": 0.984776187230175,
+  "switches": 56,
+  "flaps": 13,
+  "ad_shown": 238.0,
+  "race_missed": 90.0,
+  "lat_med": 1.0,
+  "lat_max": 17,
+  "missed_tr": 0
+ },
+ "opencv+audio+furniture|hsmm": {
+  "acc": 0.9486910994764398,
+  "steady": 0.964099068393547,
+  "switches": 36,
+  "flaps": 0,
+  "ad_shown": 286.0,
+  "race_missed": 204.0,
+  "lat_med": 1.0,
+  "lat_max": 10,
+  "missed_tr": 0
+ }
+}

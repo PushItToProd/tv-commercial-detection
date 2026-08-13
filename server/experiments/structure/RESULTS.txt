@@ -1,0 +1,396 @@
+# Raw output of every analysis behind notes/broadcast-structure-2026-08.md
+# Regenerate with: bash experiments/structure/run_all.sh
+
+################ ground_truth.py ################
+
+35 segments over 2:39:35
+
+  #     start       end      dur  label    kind     frames
+  0   0:00:00   0:01:08      70s  content           0-34
+  1   0:01:10   0:04:44     217s  ad       full     35-142
+  2   0:04:46   0:07:05     140s  content           143-212
+  3   0:07:07   0:10:03     178s  ad       full     213-301
+  4   0:10:05   0:20:59     656s  content           302-628
+  5   0:21:01   0:22:57     118s  ad       full     629-687
+  6   0:22:59   0:36:20     803s  content           688-1087
+  7   0:36:22   0:38:20     120s  ad       nonstop  1088-1147
+  8   0:38:22   0:44:47     387s  content           1148-1340
+  9   0:44:49   0:46:48     120s  ad       nonstop  1341-1400
+ 10   0:46:50   0:51:11     263s  content           1401-1531
+ 11   0:51:13   0:53:57     166s  ad       full     1532-1614
+ 12   0:53:59   0:55:31      94s  content           1615-1661
+ 13   0:55:33   0:58:36     184s  ad       full     1662-1753
+ 14   0:58:38   1:07:45     550s  content           1754-2027
+ 15   1:07:47   1:10:26     160s  ad       full     2028-2107
+ 16   1:10:28   1:14:47     261s  content           2108-2237
+ 17   1:14:49   1:17:23     156s  ad       full     2238-2315
+ 18   1:17:25   1:26:39     556s  content           2316-2592
+ 19   1:26:41   1:28:41     122s  ad       nonstop  2593-2653
+ 20   1:28:43   1:36:48     487s  content           2654-2896
+ 21   1:36:50   1:39:07     138s  ad       full     2897-2965
+ 22   1:39:09   1:43:54     287s  content           2966-3108
+ 23   1:43:56   1:46:04     130s  ad       full     3109-3173
+ 24   1:46:06   1:55:52     588s  content           3174-3466
+ 25   1:55:54   1:57:52     120s  ad       nonstop  3467-3526
+ 26   1:57:54   2:10:26     754s  content           3527-3902
+ 27   2:10:28   2:13:27     180s  ad       full     3903-3992
+ 28   2:13:29   2:15:11     104s  content           3993-4044
+ 29   2:15:13   2:17:51     160s  ad       full     4045-4124
+ 30   2:17:53   2:27:01     550s  content           4125-4398
+ 31   2:27:03   2:29:01     120s  ad       nonstop  4399-4458
+ 32   2:29:03   2:36:47     465s  content           4459-4690
+ 33   2:36:49   2:38:47     120s  ad       nonstop  4691-4750
+ 34   2:38:49   2:39:35      48s  content           4751-4774
+
+frames: 4775  ad 1254 (26.3%)  content 3521
+
+wrote /home/joe/Code/projects/tv-commercial-detector/server/experiments/structure/truth.json
+
+################ analyse_structure.py ################
+
+
+==========================================================================
+SEGMENT DURATIONS
+==========================================================================
+NON STOP break   n= 6  min=  120  med=  120  max=  122  mean=  121  sd=  0.7
+                 all: [120, 120, 120, 120, 120, 122]
+full break       n=11  min=  118  med=  160  max=  217  mean=  163  sd= 26.3
+                 all: [118, 130, 138, 156, 160, 160, 166, 178, 180, 184, 216]
+content          n=18  min=   48  med=  426  max=  803  mean=  392  sd=235.7
+                 all: [48, 70, 94, 104, 140, 260, 262, 286, 387, 465, 487, 549, 549, 555, 587, 655, 754, 802]
+
+==========================================================================
+AD LOAD AND CADENCE
+==========================================================================
+broadcast 2:39:35   ad 41.9 min (26.3%)   17 breaks, one every 9.4 min
+break-to-break start gap: min=261s med=598s max=921s
+kind sequence: F F F N N F F F F N F F N F F N N
+
+==========================================================================
+THE CONSTRAINT A STATE MACHINE COULD USE
+==========================================================================
+shortest break of any kind        118s
+shortest interior content run      94s
+NON STOP breaks are 120-122s (n=6) - effectively a fixed 120 s
+
+so, once a state is entered, a change of mind inside these windows is
+noise by construction, not evidence.
+
+==========================================================================
+SPOT GRID INSIDE FULL BREAKS
+==========================================================================
+  break @0:01:10  217s  black at [68, 84, 150]  quiet at [0, 2, 30, 32, 60, 62, 64, 66, 90, 92, 120, 122, 150, 152, 154]
+  break @0:07:07  178s  black at [120, 122]  quiet at [0, 2, 18, 20, 22, 30, 32, 46, 48, 76, 78, 102, 104, 106, 108, 110, 120, 122, 124, 126]
+  break @0:21:01  118s  black at []  quiet at [2, 30, 32, 44, 46, 48, 50, 74, 76]
+  break @0:51:13  166s  black at [162, 164]  quiet at [8, 10, 38, 40, 52, 66, 68, 86, 88, 98, 100, 132, 134, 162, 164]
+  break @0:55:33  184s  black at [154, 156]  quiet at [0, 2, 16, 18, 74, 76, 90, 92, 94, 96, 98, 100, 124, 126]
+  break @1:07:47  160s  black at [72]  quiet at [44, 46, 48, 50, 76, 78, 80, 90, 92, 104, 106, 108, 110, 112, 114, 120]
+  break @1:14:49  156s  black at [120, 122]  quiet at [2, 4, 46, 48, 62, 64, 76, 78, 92, 94, 96, 122, 124, 126, 154]
+  break @1:36:50  138s  black at []  quiet at [30, 32, 36, 38, 46, 48, 60, 62, 88, 90, 92, 120, 122]
+  break @1:43:56  130s  black at [96]  quiet at [32, 34, 36, 38, 46, 48, 50, 52, 54, 80, 82, 96, 98]
+  break @2:10:28  180s  black at [138, 140, 160, 172]  quiet at [18, 20, 48, 50, 52, 62, 64, 80, 82, 92, 94, 96, 98, 100, 102, 104, 108, 110, 112, 114, 172, 174]
+  break @2:15:13  160s  black at []  quiet at [6, 8, 10, 16, 66, 68, 78, 80, 82, 96, 98, 132, 134]
+
+==========================================================================
+BLACK FRAMES: WHERE DO THEY FALL AT ALL?
+==========================================================================
+17 near-black frames  ->  Counter({'ad': 17})
+3 of them are within 3 frames of a segment edge
+
+################ audio_probe.py ################
+
+4775 clips, 1254 ad / 3521 content, 35 segments
+
+--- single features, AUC (blocked CV not needed for a rank stat) ---
+  b400_800       AUC 0.118
+  b60_150        AUC 0.871
+  b5000_11025    AUC 0.776
+  b0_60          AUC 0.750
+  env_p50_db     AUC 0.732
+  rms_db         AUC 0.731
+  stationarity   AUC 0.714
+  b800_2000      AUC 0.289
+  flatness       AUC 0.711
+  b2000_5000     AUC 0.313
+
+--- model comparison ---
+  instant (4 s clip)       blocked AUC 0.959 acc 0.922   |  random-split (leaky) AUC 0.967 acc 0.930
+  trailing 30 s window     blocked AUC 0.969 acc 0.937   |  random-split (leaky) AUC 0.987 acc 0.956
+
+--- where it matters: frames OpenCV cannot settle ---
+  1415 undecided clips (877 ad / 538 content)
+  trailing-window AUC on those 0.936  acc 0.882
+
+--- and on the two hardest stretches ---
+  bug-less pylon racing    n= 293 truth=content  audio says ad on 0% of frames
+  full break @2:10         n=  90 truth=ad  audio says ad on 90% of frames
+
+################ evaluate.py ################
+
+4775 frames, 34 true transitions, 41.8 min of ad
+
+evidence                 policy       acc%  steady%   sw  flap  ad_shown  race_miss  lat_med  miss
+--------------------------------------------------------------------------------------------------
+opencv only              stateless   81.07    82.46   12     0     1808s         0s       1s    11
+opencv only              debounce2   81.15    82.46   12     0     1798s         2s       2s    11
+opencv only              hsmm        80.86    82.53   28     0     1400s       428s       8s     7
+
+opencv+furniture         stateless   95.85    97.57   96    36      242s       154s       2s     0
+opencv+furniture         debounce2   95.83    97.77   68    15      248s       150s       2s     0
+opencv+furniture         hsmm        95.56    97.48   36     0      172s       252s       2s     0
+
+opencv+audio             stateless   96.63    98.27   80    35      240s        82s       2s     0
+opencv+audio             debounce2   96.57    98.57   48     8      232s        96s       4s     0
+opencv+audio             hsmm        97.03    98.91   34     0      242s        42s       2s     0
+
+opencv+audio+furniture   stateless   96.75    98.32   84    35      224s        86s       1s     0
+opencv+audio+furniture   debounce2   96.57    98.48   56    13      238s        90s       2s     0
+opencv+audio+furniture   hsmm        94.87    96.41   36     0      286s       204s       2s     0
+
+(true switch count is 34; 'miss' counts transitions never followed)
+
+################ sensitivity.py ################
+
+true transitions: 34
+
+min_ad sweep (min_content=40, cusum=2.0)
+   frames   sec    acc%   sw  flap  ad_shown  race_miss
+        0     0   96.82   34     0      268s        36s
+       10    20   96.82   34     0      268s        36s
+       20    40   96.82   34     0      268s        36s
+       30    60   96.82   34     0      268s        36s
+       40    80   96.82   34     0      268s        36s
+       50   100   97.03   34     0      242s        42s
+       55   110   96.92   34     0      242s        52s
+       58   116   96.88   34     0      240s        58s
+       65   130   96.71   34     0      224s        90s
+       80   160   95.56   34     0      178s       246s
+
+min_content sweep (min_ad=50, cusum=2.0)
+   frames   sec    acc%   sw  flap  ad_shown  race_miss
+        0     0   92.75   42     2      242s       450s
+        5    10   94.89   38     0      242s       246s
+       10    20   95.96   36     0      242s       144s
+       20    40   95.96   36     0      242s       144s
+       30    60   97.03   34     0      242s        42s
+       40    80   97.03   34     0      242s        42s
+       46    92   96.94   34     0      250s        42s
+       55   110   96.71   34     0      272s        42s
+       70   140   96.17   34     0      324s        42s
+
+cusum threshold sweep (min_ad=50, min_content=40)
+     nats    acc%   sw  flap  ad_shown  race_miss
+      0.5   96.21   34     0      340s        22s
+      1.0   96.25   34     0      334s        24s
+      1.5   97.05   34     0      252s        30s
+      2.0   97.03   34     0      242s        42s
+      3.0   97.01   34     0      234s        52s
+      4.0   96.73   34     0      246s        66s
+      6.0   96.23   34     0      270s        90s
+
+nonstop forced length (min_ad=50, min_content=40, cusum=2.0)
+    0 frames  acc  97.03  sw  34  flap  0  ad_shown   252s  race_miss    32s
+   30 frames  acc  97.03  sw  34  flap  0  ad_shown   252s  race_miss    32s
+   55 frames  acc  97.03  sw  34  flap  0  ad_shown   252s  race_miss    32s
+   60 frames  acc  97.03  sw  34  flap  0  ad_shown   242s  race_miss    42s
+   65 frames  acc  96.40  sw  34  flap  0  ad_shown   242s  race_miss   102s
+   90 frames  acc  93.40  sw  33  flap  0  ad_shown   242s  race_miss   388s
+
+################ cross_check_frames.py ################
+
+169 labelled frames usable  (100 ad / 69 content)
+dates: [np.str_('2026-03-11'), np.str_('2026-03-12'), np.str_('2026-03-13'), np.str_('2026-03-14'), np.str_('2026-07-05')]
+
+single features:
+  left      AUC 0.473   ad median 0.0012  content median 0.0025
+  topl      AUC 0.509   ad median 0.0003  content median 0.0021
+  topr      AUC 0.301   ad median 0.0000  content median 0.0068
+  lower     AUC 0.375   ad median 0.0002  content median 0.0010
+  all       AUC 0.501   ad median 0.0038  content median 0.0027
+  edge_all  AUC 0.291   ad median 0.0802  content median 0.1075
+
+fused, blocked by capture date: AUC 0.845  acc 0.793
+
+pipeline agreement on the 21 of these with a stored verdict: 21/21
+
+################ check_corrections.py ################
+
+364 reports, 283 of them per-frame errors
+Counter({('content', 'ad'): 173, ('ad', 'content'): 110})
+121 of them have a usable burst window
+
+  71 truly ad / 50 truly content
+
+single features on the error set:
+  left      AUC 0.455
+  topl      AUC 0.524
+  topr      AUC 0.489
+  lower     AUC 0.443
+  all       AUC 0.443
+  edge_all  AUC 0.414
+
+fused, blocked by capture date: AUC 0.536  acc 0.587
+majority-class baseline on this set: 0.587
+
+The shipped pipeline scores 0.000 on these by construction - every one
+is a frame it got wrong. Anything above 0.587 is signal it did not have.
+
+################ cross_check_audio.py ################
+
+train: 4775 USA/NBC clips (1254 ad)
+test:  1523 FS1 anchored clips (172 ad) on 2026-05-17
+       skipped {'no audio': 8}
+
+transferred, instantaneous 4 s model:  AUC 0.915  acc 0.909
+  accuracy at the untuned 0.5 threshold: 0.852
+  majority-class baseline: 0.887
+
+for reference, trained within FS1 (first half -> second): AUC 0.922
+
+See the module docstring before quoting either number.
+
+################ transcript_cues.py ################
+
+transcript covers 0 - 2:39:35 of 2:39:35
+
+17 breaks and 17 returns inside the transcript
+
+75 control windows (33 inside breaks)
+
+cue                           pre-break   control   ctrl/ad
+------------------------------------------------------------
+we'll be back                   0/17       0/75      0/33  
+when we come back               1/17       0/75      0/33  
+coming up next                  1/17       0/75      0/33  
+next / next here on             2/17       0/75      0/33  
+stay with us                    0/17       0/75      0/33  
+side-by-side                    2/17       1/75      0/33  
+NASCAR NON STOP                 0/17       0/75      0/33  
+you won't miss                  0/17       0/75      0/33  
+back after this                 0/17       0/75      0/33  
+a break                         0/17       0/75      0/33  
+brought to you by               2/17       0/75      0/33  
+green flag (control phrase)     1/17       2/75      0/33  
+
+--- any cue at all, per break ---
+  0:01:10 full     coming up next, next / next here on, brought to you by
+  0:07:07 full     next / next here on
+  0:21:01 full     -
+  0:36:22 nonstop  when we come back
+  0:44:49 nonstop  -
+  0:51:13 full     -
+  0:55:33 full     -
+  1:07:47 full     -
+  1:14:49 full     -
+  1:26:41 nonstop  -
+  1:36:50 full     -
+  1:43:56 full     -
+  1:55:54 nonstop  -
+  2:10:28 full     side-by-side, brought to you by
+  2:15:13 full     -
+  2:27:03 nonstop  side-by-side
+  2:36:49 nonstop  -
+
+--- the last thing said before each break ---
+  0:01:10 [ -12.4s] you're watching the USA Sports pre-race show presented by Sonic what is the seven dollar
+  0:07:07 [  -0.2s] Check your socials because there's big news in the sports world.
+  0:21:01 [  -0.5s] Now, I was looking for fun ways to tell you that Mint's offer of unlimited premium wireless for $15 a month is back.
+  0:36:22 [  -5.1s] Tell you when we come back as Blaney leads the way.
+  0:44:49 [  -9.3s] 15 to go in stage one here at Iowa Speedway.
+  0:51:13 [  -2.0s] and an eventful start for Tyler Reddick and Eric Jones.
+  0:55:33 [  -0.8s] For Jim, life's big moments happen in seconds,
+  1:07:47 [  -1.0s] You work hard
+  1:14:49 [  -5.3s] whoever trusted me in the car with this has made a terrible mistake yep
+  1:26:41 [ -12.2s] start of this race for him as well bubble wallace leads up to starting 26th in this iowa corn 350.
+  1:36:50 [  -0.1s] Repair SafeLight.
+  1:43:56 [  -1.5s] 59 laps remaining in this second stage of the Iowa Corn 350.
+  1:55:54 [  -4.5s] to win in this season.
+  2:10:28 [  -1.6s] Ross Chastain, great work from the track house driver.
+  2:15:13 [  -1.6s] Any sort of issue messes up the timing
+  2:27:03 [  -6.5s] as he runs side-by-side with Chase Elliott.
+  2:36:49 [  -9.2s] on board shows us the difference between him and Denny Hamlin. Chastain runs for Bell Leeds.
+
+--- the first thing said after each return (the ad read) ---
+  0:04:46 [  +0.9s] Oh, yeah.
+  0:04:46 [  +4.3s] Very fitting on Pro Football Hall of Fame Induction Weekend
+  0:10:05 [  +8.7s] It's an 86 degree day here in Iowa, Newton, Iowa.
+  0:10:05 [ +14.1s] And the cars roll for a very crucial race in the big picture scheme of things.
+  0:22:59 [  +0.2s] Brace yourself for something fuel nominal.
+  0:22:59 [  +7.2s] Unleaded 88 is cheaper, cleaner, and greener than regular unleaded,
+  0:38:22 [  +4.7s] has built a four and a half second lead already speaking of good progress time to have a look at
+  0:38:22 [  +8.8s] which drivers are on the move brought to you by bush light have a look at that there is employee
+  0:46:50 [  +3.1s] Corn 350 powered by ethanol here on USA Sports and this never-ending quest for race leader Ryan
+  0:46:50 [  +9.9s] Blaney to get through this traffic. Well, success as far as Chris Buescher is concerned. The 17 is
+  0:53:59 [  +3.6s] Pump unleaded 88, grown by Iowa corn farmers.
+  0:53:59 [  +7.6s] Ally, banking built for life today.
+  0:58:38 [  +0.3s] We'll watch this right rear right side up.
+  0:58:38 [  +2.3s] but the jack gets dropped before the right rear is tight, forcing the jack man to come back and jack it up.
+  1:10:28 [  +3.4s] Seven of Suarez also back to 30th.
+  1:10:28 [  +5.9s] Didn't have a whole lot of track position.
+  1:17:25 [  +1.5s] Stay tuned for the premiere of NASCAR Americana, presented by
+  1:17:25 [  +4.6s] by Bush Light. From its roots on southern back roads to its rise as a national institution,
+  1:28:43 [  +6.9s] 350 powered by ethanol here at Iowa Speedway.
+  1:28:43 [ +11.0s] It is a warm day, mid-80s, really humid, but look at those grandstands.
+  1:39:09 [  +0.9s] Have a listen to the radio.
+  1:39:09 [  +2.2s] We're speeding.
+  1:46:06 [  +3.0s] And Marty, Kyle Larson has spent an extended period in his pit box.
+  1:46:06 [  +7.9s] What's the latest?
+  1:57:54 [  +3.8s] You're looking at race leader in this Iowa corn 350 powered by ethanol, Christopher Bell.
+  1:57:54 [ +10.6s] He's had to work his way through traffic.
+  2:13:29 [  +0.9s] Credit One Bank for what's ahead.
+  2:13:29 [  +4.3s] Progressive.
+  2:17:53 [  +4.9s] you can take your game anywhere. Let's take a look at today's driving factors presented
+  2:17:53 [  +8.7s] by DraftKings. Well, you're going to need some help from pit road. Find that track position
+  2:29:03 [  +6.2s] the ones to watch presented by Credit One Bank Steve you're up first well I'm gonna start with
+  2:29:03 [ +10.8s] Ty Gibbs, driver of the 54 top 10 in all three short track races this year,
+  2:38:49 [  +3.2s] 84 laps to go in the Iowa Corn 350, powered by ethanol.
+  2:38:49 [  +7.9s] You're watching NASCAR on USA Sports.
+
+--- words enriched in the 40 s before a break ---
+  buescher         x 17.2   pre   4  control   0
+  tight            x 12.9   pre   3  control   0
+  speaking         x 12.9   pre   3  control   0
+  jack             x 12.9   pre   3  control   0
+  pit              x  9.9   pre  16  control   6
+  tires            x  9.5   pre  11  control   4
+  rear             x  8.6   pre   4  control   1
+  corn             x  8.6   pre   4  control   1
+  road             x  7.8   pre   9  control   4
+  work             x  7.2   pre   5  control   2
+  point            x  7.2   pre   5  control   2
+  lead             x  6.5   pre   6  control   3
+  fuel             x  6.5   pre   6  control   3
+  difference       x  6.5   pre   3  control   1
+  came             x  6.5   pre   3  control   1
+  saying           x  5.7   pre   4  control   2
+  man              x  5.4   pre   5  control   3
+  front            x  4.3   pre  10  control   9
+  left             x  4.3   pre   7  control   6
+  would            x  4.3   pre   4  control   3
+
+################ cue_policy.py ################
+
+transcript covers 4774 of 4775 frames; 29 cue utterances
+
+policy                    acc%   sw  flap  ad_shown  race_miss  onset lag
+state machine            97.03   34     0      242s        42s       7.5s
++ verbal cue             97.11   34     0      234s        42s       7.1s
+
+per-break onset lag (s):
+  frame    35 full     base   4s -> cued   2s   (cue armed)
+  frame   213 full     base   6s -> cued   2s   (cue armed)
+  frame   629 full     base   2s -> cued   2s
+  frame  1088 nonstop  base   2s -> cued   2s   (cue armed)
+  frame  1341 nonstop  base   2s -> cued   2s
+  frame  1532 full     base  12s -> cued  12s
+  frame  1662 full     base   2s -> cued   2s
+  frame  2028 full     base  12s -> cued  12s
+  frame  2238 full     base   4s -> cued   4s
+  frame  2593 nonstop  base   2s -> cued   2s
+  frame  2897 full     base  10s -> cued  10s
+  frame  3109 full     base  36s -> cued  36s
+  frame  3467 nonstop  base   2s -> cued   2s
+  frame  3903 full     base  20s -> cued  18s   (cue armed)
+  frame  4045 full     base   8s -> cued   8s
+  frame  4399 nonstop  base   2s -> cued   2s   (cue armed)
+  frame  4691 nonstop  base   2s -> cued   2s
