@@ -29454,15 +29454,15 @@
    "where": "interior"
   },
   "2026-08-13T03-15-39-831000+00-00.jpg": {
-   "audio": "ad_read",
-   "care_away": 2,
-   "care_back": 0,
+   "audio": "silence",
+   "care_away": 0,
+   "care_back": 1,
    "confirmed": true,
    "phase": "race",
    "risk": "fraught",
    "src": {
-    "audio": "inferred",
-    "care": "default",
+    "audio": "manual",
+    "care": "manual",
     "risk": "manual",
     "video": "manual"
    },
@@ -29470,15 +29470,15 @@
    "where": "interior"
   },
   "2026-08-13T03-15-41-848000+00-00.jpg": {
-   "audio": "ad_read",
-   "care_away": 2,
-   "care_back": 0,
+   "audio": "commentary",
+   "care_away": 0,
+   "care_back": 2,
    "confirmed": true,
    "phase": "race",
    "risk": "fraught",
    "src": {
-    "audio": "inferred",
-    "care": "default",
+    "audio": "manual",
+    "care": "manual",
     "risk": "manual",
     "video": "manual"
    },
