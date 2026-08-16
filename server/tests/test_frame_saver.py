@@ -7,6 +7,15 @@ import pytest
 from tv_commercial_detector.config import app_config, audio_dir, images_dir
 from tv_commercial_detector.frame_saver import CLASSIFICATIONS_FILE, save_frames_batch
 from tv_commercial_detector.state import FrameEntry
+from tv_commercial_detector.video_timebase import VideoTimebase
+
+TIMEBASE_KEYS = (
+    "video_id",
+    "video_duration",
+    "is_live",
+    "seekable_start",
+    "seekable_end",
+)
 
 
 @pytest.fixture
@@ -17,7 +26,9 @@ def save_dir(tmp_path):
     app_config.save_dir = original
 
 
-def _entry(timestamp="2026-01-01T08:00:00.000001", audio=None) -> FrameEntry:
+def _entry(
+    timestamp="2026-01-01T08:00:00.000001", audio=None, timebase=None
+) -> FrameEntry:
     return FrameEntry(
         timestamp=timestamp,
         frame_bytes=b"fake-image-bytes",
@@ -30,6 +41,7 @@ def _entry(timestamp="2026-01-01T08:00:00.000001", audio=None) -> FrameEntry:
         video_offset=None,
         state_classification=None,
         audio_bytes=audio,
+        **({"timebase": timebase} if timebase is not None else {}),
     )
 
 
@@ -66,6 +78,38 @@ def test_writes_classifications_metadata_at_save_dir_root(save_dir):
     assert records[0]["save_reason"] == "periodic"
     assert records[0]["page_url"] == "https://tv.youtube.com/watch/abc"
     assert records[0]["note"] == "hi"
+
+
+def test_writes_timebase_fields(save_dir):
+    save_frames_batch(
+        [
+            _entry(
+                timebase=VideoTimebase(
+                    video_id="1LaATJR0CeM",
+                    duration=11982.4,
+                    is_live=False,
+                    seekable_start=0.0,
+                    seekable_end=11982.4,
+                )
+            )
+        ],
+        "test",
+    )
+    record = json.loads((save_dir / CLASSIFICATIONS_FILE).read_text())
+    assert record["video_id"] == "1LaATJR0CeM"
+    assert record["video_duration"] == pytest.approx(11982.4)
+    assert record["is_live"] is False
+    assert record["seekable_start"] == pytest.approx(0.0)
+    assert record["seekable_end"] == pytest.approx(11982.4)
+
+
+def test_timebase_fields_present_but_null_when_unreported(save_dir):
+    """A frame from an extension predating these fields still saves, and the
+    keys are there so a reader never has to distinguish absent from unknown."""
+    save_frames_batch([_entry()], "test")
+    record = json.loads((save_dir / CLASSIFICATIONS_FILE).read_text())
+    for key in TIMEBASE_KEYS:
+        assert key in record and record[key] is None
 
 
 def test_batch_index_distinguishes_frames_sharing_a_timestamp(save_dir):

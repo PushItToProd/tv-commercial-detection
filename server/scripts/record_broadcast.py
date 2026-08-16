@@ -27,6 +27,12 @@ convention so `frame_timestamp()` can order them.
 A broadcast that changes title mid-stream (a pre-race show rolling into the
 race) starts a new directory; going back to a title already seen resumes
 appending to its directory.
+
+Each record also carries the player's timebase — `video_id`, `video_duration`,
+`is_live`, `seekable_start`, `seekable_end` — which is what says whether
+`video_offset` is a position in the program or just time since the player
+loaded. See `video_timebase.py`; the parsing is shared with the detector's
+`/receive` so both receivers write the same thing.
 """
 
 import argparse
@@ -42,6 +48,10 @@ from urllib.parse import urlparse
 
 import uvicorn
 from fastapi import APIRouter, FastAPI, File, Form, UploadFile
+
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+
+from tv_commercial_detector.video_timebase import parse_timebase  # noqa: E402
 
 DEFAULT_PORT = 11680
 
@@ -204,6 +214,10 @@ def build_app(recorder: Recorder) -> FastAPI:
         video_title: str = Form(default=""),
         network_name: str = Form(default=""),
         video_offset: str = Form(default=""),
+        video_id: str = Form(default=""),
+        video_duration: str = Form(default=""),
+        seekable_start: str = Form(default=""),
+        seekable_end: str = Form(default=""),
     ):
         if image is None:
             # The extension skips the screenshot while paused or seeking.
@@ -232,6 +246,9 @@ def build_app(recorder: Recorder) -> FastAPI:
             / broadcast_slug(page_title, video_title, network_name)
         )
         offset = float(video_offset) if video_offset else None
+        timebase = parse_timebase(
+            video_id, video_duration, seekable_start, seekable_end
+        )
         record = {
             "filename": filename,
             "timestamp": captured,
@@ -241,6 +258,7 @@ def build_app(recorder: Recorder) -> FastAPI:
             "video_title": video_title,
             "network_name": network_name,
             "video_offset": offset,
+            **timebase.as_record(),
             "is_paused": as_bool(is_paused),
             "is_seeking": as_bool(is_seeking),
             "has_audio": audio_bytes is not None,

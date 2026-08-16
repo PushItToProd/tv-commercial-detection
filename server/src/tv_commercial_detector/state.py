@@ -2,10 +2,12 @@ import asyncio
 import tempfile
 import time
 from collections import deque
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+
+from .video_timebase import VideoTimebase
 
 
 @dataclass
@@ -21,6 +23,10 @@ class FrameEntry:
     video_offset: float | None
     state_classification: str | None  # state.classification at time of receipt
     audio_bytes: bytes | None = None  # WAV audio captured alongside this frame
+    # What `video_offset` is measured against; see video_timebase.py. Defaults
+    # to an all-unknown timebase, so a frame from an extension predating these
+    # fields still saves.
+    timebase: VideoTimebase = field(default_factory=VideoTimebase)
 
 
 @dataclass
