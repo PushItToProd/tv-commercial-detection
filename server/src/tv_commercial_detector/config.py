@@ -22,6 +22,10 @@ class AppConfig:
     # Consecutive silent clips before the server calls audio capture dead. A
     # real broadcast can be quiet for one clip; three in a row can't be.
     audio_silence_clips: int = 3
+    # How long without any report from the extension before its last reading is
+    # called stale rather than current. The capture interval is a few seconds,
+    # so this is several missed ticks. 0 disables the check.
+    video_report_stale_seconds: float = 30.0
 
 
 app_config = AppConfig()

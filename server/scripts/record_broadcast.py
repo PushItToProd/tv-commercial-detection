@@ -177,7 +177,8 @@ class Recorder:
             )
         if self.skipped:
             lines.append(
-                f"  ({self.skipped} requests carried no image — paused or seeking)"
+                f"  ({self.skipped} requests carried no image"
+                f" — paused, seeking, or no video on the page)"
             )
         return "Recorded:\n" + "\n".join(lines)
 
@@ -220,7 +221,8 @@ def build_app(recorder: Recorder) -> FastAPI:
         seekable_end: str = Form(default=""),
     ):
         if image is None:
-            # The extension skips the screenshot while paused or seeking.
+            # The extension skips the screenshot while paused or seeking, or
+            # when it can't find a player element on the page at all.
             recorder.skipped += 1
             return {"recorded": False, "reason": "no image"}
 
@@ -282,11 +284,14 @@ def build_app(recorder: Recorder) -> FastAPI:
     async def video_state(
         is_paused: str = Form(default=""),
         is_seeking: str = Form(default=""),
+        no_video: str = Form(default=""),
         page_title: str = Form(default=""),
         video_title: str = Form(default=""),
     ):
         status = (
-            "paused"
+            "no video on page"
+            if as_bool(no_video)
+            else "paused"
             if as_bool(is_paused)
             else "seeking"
             if as_bool(is_seeking)

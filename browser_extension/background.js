@@ -191,7 +191,11 @@ function videoStateUrl(endpointUrl) {
   return u.toString();
 }
 
-async function postVideoState(isPaused, isSeeking) {
+// `noVideo` says the extension is running but found no player element on the
+// page. Worth telling the server about: without it, a tick that finds nothing
+// is indistinguishable from a paused video, because the server just holds its
+// last reading.
+async function postVideoState(isPaused, isSeeking, noVideo = false) {
   // if (!captureState.running) return;
 
   let config = {};
@@ -215,16 +219,17 @@ async function postVideoState(isPaused, isSeeking) {
   const form = new FormData();
   form.append('is_paused', isPaused ? 'true' : 'false');
   form.append('is_seeking', isSeeking ? 'true' : 'false');
+  form.append('no_video', noVideo ? 'true' : 'false');
   form.append('page_title', tab.title ?? '');
   form.append('page_url', tab.url ?? '');
 
-  bgLog('video state change → ' + JSON.stringify({ isPaused, isSeeking }), 'debug');
+  bgLog('video state change → ' + JSON.stringify({ isPaused, isSeeking, noVideo }), 'debug');
 
   await Promise.all(endpoints.map(async url => {
     const stateUrl = videoStateUrl(url);
     try {
       const res = await fetch(stateUrl, { method: 'POST', body: form });
-      const note = isPaused ? 'paused' : isSeeking ? 'seeking' : 'resumed';
+      const note = noVideo ? 'no video' : isPaused ? 'paused' : isSeeking ? 'seeking' : 'resumed';
       if (res.ok) {
         bgLog(`State → ${stateUrl} ${res.status} (${note})`, 'ok');
       } else {
@@ -270,16 +275,16 @@ async function doCapture() {
     // 1. get video info from page
     const videoInfo = await getTabVideoInfo(tab);
 
-    // Skip this tick if there's no video at all. Say so loudly once it's
-    // happening repeatedly: the server can't tell a silent extension from a
-    // genuinely paused video — it just holds its last reading — so a run of
-    // these is the only local sign that its state has gone stale.
+    // No video on the page: report that rather than going quiet, so the server
+    // doesn't leave a stale `paused` standing in for it, and log the streak
+    // locally so it's visible in the popup too.
     if (!videoInfo) {
       noVideoStreak++;
       bgLog(
         `No video found — skipping (${noVideoStreak} in a row).`,
         noVideoStreak > 2 ? 'err' : ''
       );
+      await postVideoState(false, false, true);
       return;
     }
     noVideoStreak = 0;

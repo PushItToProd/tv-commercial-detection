@@ -243,6 +243,7 @@ Additional `AppConfig` fields:
 - `llm_model_name` — model name sent to llama.cpp, in case we're using llama.cpp in router mode (default: `LLAMA_MODEL_NAME` env var, or `"local"`)
 - `audio_silence_threshold` — peak amplitude (fraction of full scale) below which a clip counts as silent (default: `0.001`)
 - `audio_silence_clips` — consecutive silent clips before audio capture is called dead (default: `3`)
+- `video_report_stale_seconds` — seconds without a report from the extension before its last reading is called stale; `0` disables the check (default: `30.0`)
 
 ### Audio health
 
@@ -262,12 +263,48 @@ while the native host is connected, and running without it isn't a fault. Clips
 that can't be parsed as WAV neither start nor break a silent streak — a corrupt
 clip says nothing about whether the capture source is live.
 
+### Video reporting status
+
+`state.paused` and `state.seeking` are the last reading the extension sent, and
+on their own they can't say whether that reading still describes anything. The
+server holds them until something replaces them, so a stopped extension, a
+closed tab, a page with no player on it and a genuinely paused video all present
+identically — as `paused`, which is also the startup default. That ambiguity is
+what made a stuck capture look like a paused video for as long as it took to
+notice by hand.
+
+`AppState.video_status()` collapses the flags and the report age into one value,
+and is what the `/is_ad` page renders. Most severe first:
+
+| Status | Meaning |
+|---|---|
+| `waiting` | Nothing has ever reported; `paused` is a default, not a reading |
+| `stale` | Reported once, but not within `video_report_stale_seconds` |
+| `no_video` | Extension is reporting and can't find a player element |
+| `paused` / `seeking` / `playing` | A current reading |
+
+`no_video` is reported by the extension (a `no_video` form field on `/receive`
+and `/video-state`); `waiting` and `stale` are inferred from `last_report_at`,
+which every call to either endpoint refreshes. Ordering is by severity because a
+reading nobody has confirmed recently says nothing about the player regardless
+of what it holds — `stale` therefore outranks `no_video`, and `paused` outranks
+`seeking` to match what the page has always shown for a scrub on a paused video.
+
+`/is_ad/status` carries `report_age` and `stale_after_seconds` alongside
+`video_status` so the page can age a reading into `stale` on a local timer. It
+has to be able to: nothing arriving is the whole signal, so there is no push
+coming to announce it.
+
+None of this gates matrix switching. Without frames there is nothing to
+classify and no switch to make, so the status is purely diagnostic — it exists
+so the `/is_ad` page stops showing a confident answer it has no basis for.
+
 ### Routes
 
 | Method | Path | Description |
 |---|---|---|
 | `POST` | `/receive` | Accept a screenshot + playback state from the extension |
-| `POST` | `/video-state` | Update playback state only (no image) |
+| `POST` | `/video-state` | Update playback state only (no image), including `no_video` |
 | `POST` | `/report_wrong` | Report that the current classification is wrong |
 | `POST` | `/capture` | Save current in-memory recent frames to disk |
 | `GET` | `/recent_frames` | List in-memory recent frames with timestamps and classifications |
@@ -390,10 +427,9 @@ Sticky state gets a timeout for the same reason: `isSeeking` is cleared after
 `SEEK_TIMEOUT_MS` because an element torn down mid-seek never fires `seeked`,
 and a latched flag suppresses every subsequent capture.
 
-The server has no way to tell a silent extension from a genuinely paused video
-— `state.paused` just holds its last reading, and starts out `True` — so a tick
-that finds no video logs its consecutive count in the popup rather than passing
-silently.
+A tick that finds no player element POSTs `no_video=true` to `/video-state`
+instead of going quiet, and logs its consecutive count in the popup. See "Video
+reporting status" for why the server can't infer that condition on its own.
 
 ---
 

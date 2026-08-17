@@ -41,6 +41,8 @@ def reset_state():
     s.classification = None
     s.paused = True
     s.seeking = False
+    s.no_video = False
+    s.last_report_at = None
     s.auto_switch = True
     s.enable_debounce = False
     s.last_result = None
@@ -54,6 +56,7 @@ def reset_state():
 
     app_config.matrix_url = "http://localhost:5000"
     app_config.enable_debounce = False
+    app_config.video_report_stale_seconds = 30.0
     # Empty output_settings means matrix.apply_matrix_settings is a no-op.
     app_config.output_settings = {"ad": {}, "content": {}}
     yield

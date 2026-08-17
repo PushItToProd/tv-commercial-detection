@@ -23,11 +23,21 @@ def _get_status_data() -> dict:
     output_settings = app_config.output_settings
     ad_view_label = output_settings.get("ad", {}).get("label", "Ad view")
     race_view_label = output_settings.get("content", {}).get("label", "Race view")
+    stale_after = app_config.video_report_stale_seconds
     return {
         "classification": state.classification,
         "classification_reason": state.classification_reason,
         "paused": state.paused,
         "seeking": state.seeking,
+        "no_video": state.no_video,
+        # The collapsed view of the three flags above plus the report age, and
+        # what the status page renders. `report_age` and `stale_after_seconds`
+        # go along with it so a client can age the reading into `stale` itself
+        # between updates — the case where nothing arrives is exactly the case
+        # where no push is coming to announce it.
+        "video_status": state.video_status(stale_after),
+        "report_age": state.report_age(),
+        "stale_after_seconds": stale_after,
         "pending": state.is_pending_change(),
         "auto_switch": state.auto_switch,
         "enable_debounce": state.enable_debounce,

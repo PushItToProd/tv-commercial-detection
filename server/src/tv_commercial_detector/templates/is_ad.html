@@ -259,14 +259,64 @@ function updateAudioWarning(warning) {
   document.getElementById('audio-warning-detail').textContent = parts.join(' ') + '.';
 }
 
+// Last status payload and when it arrived, so the indicator can be re-rendered
+// on a timer without re-running the rest of applyData (which reloads the frame
+// image every call).
+let lastData = null;
+let lastDataAt = 0;
+
+// The server's status was true when it was sent; only the passage of time since
+// can change it, and only in one direction. A reading that goes unrefreshed
+// ages into `stale` here, because the case where nothing arrives is exactly the
+// case where no push is coming to say so.
+function effectiveVideoStatus() {
+  if (!lastData) return null;
+  if (lastData.report_age === null || lastData.report_age === undefined) return 'waiting';
+  const staleAfter = lastData.stale_after_seconds;
+  const age = lastData.report_age + (Date.now() - lastDataAt) / 1000;
+  if (staleAfter > 0 && age > staleAfter) return 'stale';
+  return lastData.video_status;
+}
+
+function reportAge() {
+  if (!lastData || lastData.report_age === null || lastData.report_age === undefined) return null;
+  return lastData.report_age + (Date.now() - lastDataAt) / 1000;
+}
+
+function renderVideoStatus() {
+  const el = document.getElementById('paused-indicator');
+  if (!el || !lastData) return;
+  const status = effectiveVideoStatus();
+  let text;
+  if (status === 'waiting') {
+    text = '⚠ NO REPORTS — IS THE EXTENSION RUNNING?';
+  } else if (status === 'stale') {
+    text = `⚠ NO SIGNAL FOR ${formatDuration(reportAge())}`;
+  } else if (status === 'no_video') {
+    text = '⚠ NO VIDEO ON PAGE';
+  } else if (status === 'paused') {
+    text = '⏸ PAUSED';
+  } else if (status === 'seeking') {
+    text = '⏳ SEEKING';
+  } else {
+    text = lastData.pending ? '⏳ PENDING CHANGE' : '';
+  }
+  el.textContent = text;
+  // Anything but a current reading means the classification beside it is only
+  // the last one we happened to hear, so say so rather than showing it plainly.
+  const untrusted = status === 'waiting' || status === 'stale' || status === 'no_video';
+  el.classList.toggle('text-warning', untrusted);
+  el.classList.toggle('text-white', !untrusted);
+  document.getElementById('label').style.opacity = untrusted ? '0.35' : '';
+}
+
 function applyData(data) {
+  lastData = data;
+  lastDataAt = Date.now();
   const c = data.classification;
   const reason = data.classification_reason;
-  const paused = data.paused;
-  const seeking = data.seeking;
   const el = document.getElementById('label');
   const reasonEl = document.getElementById('classification-reason');
-  const pausedEl = document.getElementById('paused-indicator');
   if (c === 'ad') {
     document.body.style.background = '#cc0033';
     el.textContent = 'AD';
@@ -278,8 +328,7 @@ function applyData(data) {
     el.textContent = c === null ? '...' : '?';
   }
   reasonEl.textContent = reason || '';
-  const pending = data.pending;
-  pausedEl.textContent = paused ? '⏸ PAUSED' : seeking ? '⏳ SEEKING' : pending ? '⏳ PENDING CHANGE' : '';
+  renderVideoStatus();
   updateButtons(c);
   const frameEl = document.getElementById('last-frame');
   frameEl.src = '/is_ad/last_frame?t=' + Date.now();
@@ -310,6 +359,9 @@ const evtSource = new EventSource('/is_ad/stream');
 evtSource.onmessage = function(event) {
   applyData(JSON.parse(event.data));
 };
+
+// Age the last reading locally; nothing arriving is itself the signal here.
+setInterval(renderVideoStatus, 1000);
 
 // Classifier profile selector
 (function() {

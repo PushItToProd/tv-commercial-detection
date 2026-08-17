@@ -140,6 +140,60 @@ def test_receive_no_image_no_paused_no_seeking(client):
     assert resp.status_code == 400
 
 
+def test_receive_no_image_no_video(client):
+    """No player element on the page is a reading of its own, not a 400."""
+    resp = client.post(
+        "/receive",
+        data={"is_paused": "false", "is_seeking": "false", "no_video": "true"},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["no_video"] is True
+    assert state_module.state.video_status(30) == "no_video"
+
+
+def test_receive_frame_clears_no_video(client, mocker):
+    """A frame is proof of a player, whatever the last tick said."""
+    state_module.state.no_video = True
+    resp = _post_frame(client, "content", mocker)
+    assert resp.status_code == 200
+    assert state_module.state.no_video is False
+    assert state_module.state.video_status(30) == "playing"
+
+
+def test_receive_marks_the_report(client, mocker):
+    assert state_module.state.report_age() is None
+    _post_frame(client, "content", mocker)
+    assert state_module.state.report_age() is not None
+
+
+# ---------------------------------------------------------------------------
+# POST /video-state
+# ---------------------------------------------------------------------------
+
+
+def test_video_state_no_video(client):
+    resp = client.post("/video-state", data={"no_video": "true"})
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["no_video"] is True
+    assert body["video_status"] == "no_video"
+    assert state_module.state.no_video is True
+
+
+def test_video_state_resumed_clears_no_video(client):
+    state_module.state.no_video = True
+    resp = client.post("/video-state", data={"is_paused": "false"})
+    assert resp.status_code == 200
+    assert resp.json()["video_status"] == "playing"
+    assert state_module.state.no_video is False
+
+
+def test_video_state_marks_the_report(client):
+    assert state_module.state.report_age() is None
+    client.post("/video-state", data={"is_paused": "true"})
+    assert state_module.state.report_age() is not None
+
+
 def test_receive_triggers_matrix_on_state_change(client, mocker):
     state_module.state.classification = None
     state_module.state.auto_switch = True

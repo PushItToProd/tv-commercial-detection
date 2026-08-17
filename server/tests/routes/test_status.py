@@ -1,6 +1,6 @@
 """Tests for SSE and JSON status endpoints."""
 
-
+import time
 
 from tv_commercial_detector import state as state_module
 
@@ -21,6 +21,43 @@ def test_is_ad_status_reflects_state(client):
     body = resp.json()
     assert body["classification"] == "ad"
     assert body["paused"] is False
+
+
+# ---------------------------------------------------------------------------
+# video_status reporting
+# ---------------------------------------------------------------------------
+
+
+def test_status_waiting_before_any_report(client):
+    """Nothing has reported yet, so `paused` must not be presented as fact."""
+    body = client.get("/is_ad/status").json()
+    assert body["video_status"] == "waiting"
+    assert body["report_age"] is None
+    assert body["no_video"] is False
+
+
+def test_status_carries_staleness_inputs(client):
+    """The page ages the reading into `stale` itself, so it needs both numbers."""
+    state_module.state.mark_report()
+    body = client.get("/is_ad/status").json()
+    assert body["stale_after_seconds"] == 30.0
+    assert 0 <= body["report_age"] < 5
+
+
+def test_status_no_video(client):
+    state_module.state.no_video = True
+    state_module.state.mark_report()
+    body = client.get("/is_ad/status").json()
+    assert body["video_status"] == "no_video"
+    assert body["no_video"] is True
+
+
+def test_status_stale(client):
+    state_module.state.paused = False
+    state_module.state.last_report_at = time.monotonic() - 60
+    body = client.get("/is_ad/status").json()
+    assert body["video_status"] == "stale"
+    assert body["paused"] is False  # the raw reading is still reported as-is
 
 
 def test_is_ad_html(client):

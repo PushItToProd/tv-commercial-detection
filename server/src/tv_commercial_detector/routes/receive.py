@@ -30,6 +30,7 @@ async def receive(
     audio: UploadFile | None = File(default=None),
     is_paused: str = Form(default=""),
     is_seeking: str = Form(default=""),
+    no_video: str = Form(default=""),
     page_title: str = Form(default="?"),
     page_url: str = Form(default=""),
     video_title: str = Form(default=""),
@@ -42,11 +43,19 @@ async def receive(
 ):
     state.paused = is_paused_bool = is_paused.lower() in ("true", "1", "yes")
     state.seeking = is_seeking_bool = is_seeking.lower() in ("true", "1", "yes")
+    state.no_video = no_video_bool = no_video.lower() in ("true", "1", "yes")
+    state.mark_report()
     offset_secs: float | None = float(video_offset) if video_offset else None
     timebase = parse_timebase(video_id, video_duration, seekable_start, seekable_end)
     offset_str = f"{offset_secs:.1f}s" if offset_secs is not None else "?"
 
     if image is None:
+        # No player element on the page at all — the paused and seeking flags
+        # describe nothing, so this is reported ahead of them.
+        if no_video_bool:
+            print(f"No video on page  |  page: {page_title}")
+            await broadcast_status()
+            return {"classification": state.classification, "no_video": True}
         if is_seeking_bool:
             print(f"Seeking (no image)  |  offset: {offset_str}  |  page: {page_title}")
             await broadcast_status()
@@ -187,6 +196,7 @@ class FlagFramesRequest(BaseModel):
 async def video_state(
     is_paused: str = Form(default=""),
     is_seeking: str = Form(default=""),
+    no_video: str = Form(default=""),
     page_title: str = Form(default="?"),
     page_url: str = Form(default=""),
     video_title: str = Form(default=""),
@@ -194,8 +204,10 @@ async def video_state(
 ):
     state.paused = is_paused_bool = is_paused.lower() in ("true", "1", "yes")
     state.seeking = is_seeking_bool = is_seeking.lower() in ("true", "1", "yes")
+    state.no_video = no_video_bool = no_video.lower() in ("true", "1", "yes")
+    state.mark_report()
 
-    status = "paused" if is_paused_bool else "seeking" if is_seeking_bool else "resumed"
+    status = state.video_status(app_config.video_report_stale_seconds)
     print(f"Video state: {status}  |  page: {page_title}")
 
     await broadcast_status()
@@ -203,6 +215,8 @@ async def video_state(
         "classification": state.classification,
         "paused": is_paused_bool,
         "seeking": is_seeking_bool,
+        "no_video": no_video_bool,
+        "video_status": status,
     }
 
 
