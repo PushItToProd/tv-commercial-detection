@@ -14,7 +14,12 @@
   const RECENT_SEEK_WINDOW_MS = 3000;
 
   const iState = window.__videoInteractionState;
-  const video = iState?.videoElement;
+  // Re-resolve on every tick rather than trusting the stored element: it may
+  // have been detached, or may never have been the real player at all (see
+  // track_interactions.js). `resolve` is missing in a tab still running an
+  // older copy of the content script, which is only replaced on page reload.
+  const video =
+    typeof iState?.resolve === 'function' ? iState.resolve() : iState?.videoElement;
   if (!video) return null;
 
   const videoTitle = document.querySelector('.ypc-video-title-text')?.textContent ?? null;

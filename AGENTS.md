@@ -355,11 +355,45 @@ The receiver container is exposed on `RECEIVER_PORT` (default `11679`).
 - **No build step** — the extension runs directly from source.
 - Key files:
   - `background.js` — alarm-driven screenshot loop, sends frames to the server via `multipart/form-data` POST to `/receive`.
-  - `content_scripts/track_interactions.js` — injected into every page; reports play/pause/seek events back to the background script.
-  - `content_scripts/get_video_bounds.js` — injected on demand; finds the `<video>` element bounds for cropping.
+  - `content_scripts/track_interactions.js` — injected into every page; decides which `<video>` is the player and reports its play/pause/seek events back to the background script.
+  - `content_scripts/get_video_bounds.js` — injected on demand; reads the tracked element's playing state, timebase and bounding rect.
   - `popup.html` / `popup.js` — configuration UI (server URL, capture interval, start/stop).
 
 Configuration (server endpoint URL, capture interval) is stored via `browser.storage.local`.
+
+### Choosing the page's player element
+
+A page routinely holds several `<video>` elements — the main player, a muted
+browse-row preview, an ad slot that never plays — and which one is the real
+player is not decidable when the content script runs. Resolving it once at
+`document_idle` is unrecoverable in both directions: a player that hasn't
+loaded metadata (nothing has been played in the tab yet) can't be recognized at
+all, and an element that never plays reports `paused` forever while the real
+video runs beside it. Neither has a repair path, because a MutationObserver
+only ever sees *newly added* nodes.
+
+So `resolve()` is called on every capture tick, on the observer, and on a
+`RESCAN_MS` timer. It keeps the current element while it stays in the document,
+and re-ranks only when there is none — playing beats loaded-metadata beats
+never-loaded, ties broken by rendered area. Ownership otherwise moves only when
+another element fires `play` while the current one is paused, ended or
+detached; starting playback is the one unambiguous signal of which element the
+user is watching.
+
+Listeners are attached to every `<video>` seen and never removed. Events are
+instead ignored unless they come from the current element, which is what keeps
+a still-playing preview from speaking for a player the user paused, and
+suppresses the `pause` an element fires when it's removed from the document —
+reported, that would tell the server the video stopped when it hadn't.
+
+Sticky state gets a timeout for the same reason: `isSeeking` is cleared after
+`SEEK_TIMEOUT_MS` because an element torn down mid-seek never fires `seeked`,
+and a latched flag suppresses every subsequent capture.
+
+The server has no way to tell a silent extension from a genuinely paused video
+— `state.paused` just holds its last reading, and starts out `True` — so a tick
+that finds no video logs its consecutive count in the popup rather than passing
+silently.
 
 ---
 

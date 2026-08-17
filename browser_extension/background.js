@@ -13,6 +13,9 @@ const AUDIO_DURATION_MS = 4000;
 const ALARM_NAME = 'frame-capture';
 const LOG_MAX = 60;
 
+// Consecutive capture ticks that found no video element.
+let noVideoStreak = 0;
+
 // ── log helper ──────────────────────────────────────────────────────────────
 
 function bgLog(msg, type = '') {
@@ -118,12 +121,14 @@ function cropImage(dataUrl, rect) {
 
 async function screenshotTabAsBlob(tab, videoInfo) {
   // 2. screenshot (PNG so the crop step has lossless input before JPEG encoding)
-  const dataUrl = await browser.tabs.captureTab(tab.tabId, { format: 'png' });
+  // `tab.id`, not `tab.tabId`: captureTab treats a missing id as "the active
+  // tab", which silently captures whatever the user is looking at instead of
+  // the monitored tab.
+  const dataUrl = await browser.tabs.captureTab(tab.id, { format: 'png' });
 
   // 3. crop to the video rect
   const finalUrl = await cropImage(dataUrl, videoInfo);
-  blob = dataUrlToBlob(finalUrl);
-  return blob;
+  return dataUrlToBlob(finalUrl);
 }
 
 function buildFormData(tab, tabState, blob, audioBlob = null) {
@@ -265,8 +270,19 @@ async function doCapture() {
     // 1. get video info from page
     const videoInfo = await getTabVideoInfo(tab);
 
-    // skip this tick if there's no video at all
-    if (!videoInfo) { bgLog('No video found — skipping.', ''); return; }
+    // Skip this tick if there's no video at all. Say so loudly once it's
+    // happening repeatedly: the server can't tell a silent extension from a
+    // genuinely paused video — it just holds its last reading — so a run of
+    // these is the only local sign that its state has gone stale.
+    if (!videoInfo) {
+      noVideoStreak++;
+      bgLog(
+        `No video found — skipping (${noVideoStreak} in a row).`,
+        noVideoStreak > 2 ? 'err' : ''
+      );
+      return;
+    }
+    noVideoStreak = 0;
 
     const isPaused = !videoInfo.playing;
     const isSeeking = videoInfo.seeking || videoInfo.recentlySeeked;
