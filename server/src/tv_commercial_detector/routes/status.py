@@ -30,9 +30,11 @@ def _get_status_data() -> dict:
         "paused": state.paused,
         "seeking": state.seeking,
         "no_video": state.no_video,
-        # The collapsed view of the three flags above plus the report age, and
-        # what the status page renders. `report_age` and `stale_after_seconds`
-        # go along with it so a client can age the reading into `stale` itself
+        "capture_stopped": state.capture_stopped,
+        "stop_reason": state.capture_stop_reason,
+        # The collapsed view of the flags above plus the report age, and what
+        # the status page renders. `report_age` and `stale_after_seconds` go
+        # along with it so a client can age the reading into `stale` itself
         # between updates — the case where nothing arrives is exactly the case
         # where no push is coming to announce it.
         "video_status": state.video_status(stale_after),

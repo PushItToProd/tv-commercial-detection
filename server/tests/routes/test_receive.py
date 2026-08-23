@@ -194,6 +194,62 @@ def test_video_state_marks_the_report(client):
     assert state_module.state.report_age() is not None
 
 
+def test_video_state_capture_stopped(client):
+    resp = client.post(
+        "/video-state", data={"capture_stopped": "true", "stop_reason": "user"}
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["capture_stopped"] is True
+    assert body["stop_reason"] == "user"
+    assert body["video_status"] == "stopped"
+
+
+def test_video_state_capture_stopped_tab_closed(client):
+    resp = client.post(
+        "/video-state", data={"capture_stopped": "true", "stop_reason": "tab_closed"}
+    )
+    assert resp.json()["stop_reason"] == "tab_closed"
+    assert state_module.state.capture_stop_reason is state_module.StopReason.TAB_CLOSED
+
+
+def test_video_state_unknown_stop_reason_is_dropped(client):
+    """Still a stop, but with no reason to show."""
+    resp = client.post(
+        "/video-state", data={"capture_stopped": "true", "stop_reason": "who knows"}
+    )
+    body = resp.json()
+    assert body["video_status"] == "stopped"
+    assert body["stop_reason"] is None
+
+
+def test_video_state_stop_preserves_the_last_playback_reading(client):
+    """Stopping says nothing about the page, so don't overwrite what it said."""
+    client.post("/video-state", data={"is_paused": "true"})
+    client.post("/video-state", data={"capture_stopped": "true", "stop_reason": "user"})
+    assert state_module.state.paused is True
+    assert state_module.state.video_status(30) == "stopped"
+
+
+def test_video_state_report_clears_capture_stopped(client):
+    state_module.state.capture_stopped = True
+    state_module.state.capture_stop_reason = state_module.StopReason.USER
+    resp = client.post("/video-state", data={"is_paused": "false"})
+    assert resp.json()["video_status"] == "playing"
+    assert state_module.state.capture_stopped is False
+    assert state_module.state.capture_stop_reason is None
+
+
+def test_receive_frame_clears_capture_stopped(client, mocker):
+    """A frame arriving is proof capture is running again."""
+    state_module.state.capture_stopped = True
+    state_module.state.capture_stop_reason = state_module.StopReason.TAB_CLOSED
+    _post_frame(client, "content", mocker)
+    assert state_module.state.capture_stopped is False
+    assert state_module.state.capture_stop_reason is None
+    assert state_module.state.video_status(30) == "playing"
+
+
 def test_receive_triggers_matrix_on_state_change(client, mocker):
     state_module.state.classification = None
     state_module.state.auto_switch = True

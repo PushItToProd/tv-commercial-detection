@@ -61,7 +61,12 @@ async function startCapture() {
   doCapture();
 }
 
-function stopCapture() {
+// `reason` is one of the tokens the server knows: 'user', 'tab_closed',
+// 'no_endpoints'. Capture ending is reported rather than left for the server to
+// infer from the silence that follows, which it can only read as something
+// having gone wrong.
+function stopCapture(reason = 'user') {
+  const wasRunning = captureState.running;
   captureState.running = false;
   captureState.tabId = null;
   if (captureState.audioPort) {
@@ -69,6 +74,7 @@ function stopCapture() {
     captureState.audioPort = null;
   }
   browser.alarms.clear(ALARM_NAME);
+  if (wasRunning) postCaptureStopped(reason);
 }
 
 function restartAlarm(intervalSeconds) {
@@ -87,7 +93,7 @@ browser.alarms.onAlarm.addListener(alarm => {
 
 browser.tabs.onRemoved.addListener(tabId => {
   if (captureState.running && tabId === captureState.tabId) {
-    stopCapture();
+    stopCapture('tab_closed');
     bgLog('Monitored tab closed — capture stopped.', 'err');
   }
 });
@@ -191,13 +197,9 @@ function videoStateUrl(endpointUrl) {
   return u.toString();
 }
 
-// `noVideo` says the extension is running but found no player element on the
-// page. Worth telling the server about: without it, a tick that finds nothing
-// is indistinguishable from a paused video, because the server just holds its
-// last reading.
-async function postVideoState(isPaused, isSeeking, noVideo = false) {
-  // if (!captureState.running) return;
-
+// POST a form to /video-state on every configured endpoint. `note` is only for
+// the popup log.
+async function postState(form, note) {
   let config = {};
   try {
     ({ config = {} } = await browser.storage.local.get('config'));
@@ -209,6 +211,26 @@ async function postVideoState(isPaused, isSeeking, noVideo = false) {
   const endpoints = config.endpoints ?? [];
   if (endpoints.length === 0) return;
 
+  await Promise.all(endpoints.map(async url => {
+    const stateUrl = videoStateUrl(url);
+    try {
+      const res = await fetch(stateUrl, { method: 'POST', body: form });
+      if (res.ok) {
+        bgLog(`State → ${stateUrl} ${res.status} (${note})`, 'ok');
+      } else {
+        bgLog(`State → ${stateUrl} ${res.status} ${res.statusText}`, 'err');
+      }
+    } catch (e) {
+      bgLog(`State POST ${stateUrl} failed: ${e.message}`, 'err');
+    }
+  }));
+}
+
+// `noVideo` says the extension is running but found no player element on the
+// page. Worth telling the server about: without it, a tick that finds nothing
+// is indistinguishable from a paused video, because the server just holds its
+// last reading.
+async function postVideoState(isPaused, isSeeking, noVideo = false) {
   let tab;
   try {
     tab = await browser.tabs.get(captureState.tabId);
@@ -225,20 +247,17 @@ async function postVideoState(isPaused, isSeeking, noVideo = false) {
 
   bgLog('video state change → ' + JSON.stringify({ isPaused, isSeeking, noVideo }), 'debug');
 
-  await Promise.all(endpoints.map(async url => {
-    const stateUrl = videoStateUrl(url);
-    try {
-      const res = await fetch(stateUrl, { method: 'POST', body: form });
-      const note = noVideo ? 'no video' : isPaused ? 'paused' : isSeeking ? 'seeking' : 'resumed';
-      if (res.ok) {
-        bgLog(`State → ${stateUrl} ${res.status} (${note})`, 'ok');
-      } else {
-        bgLog(`State → ${stateUrl} ${res.status} ${res.statusText}`, 'err');
-      }
-    } catch (e) {
-      bgLog(`State POST ${stateUrl} failed: ${e.message}`, 'err');
-    }
-  }));
+  const note = noVideo ? 'no video' : isPaused ? 'paused' : isSeeking ? 'seeking' : 'resumed';
+  await postState(form, note);
+}
+
+// Deliberately does not look up the monitored tab: the commonest reason to send
+// this is that the tab no longer exists.
+async function postCaptureStopped(reason) {
+  const form = new FormData();
+  form.append('capture_stopped', 'true');
+  form.append('stop_reason', reason);
+  await postState(form, `capture stopped: ${reason}`);
 }
 
 async function doCapture() {
@@ -255,7 +274,8 @@ async function doCapture() {
   const endpoints = config.endpoints ?? [];
   if (endpoints.length === 0) {
     bgLog('No endpoints configured — stopping.', 'err');
-    stopCapture();
+    // Nothing to notify, by definition — the reason is recorded for the log.
+    stopCapture('no_endpoints');
     return;
   }
 
@@ -265,7 +285,7 @@ async function doCapture() {
     tab = await browser.tabs.get(captureState.tabId);
   } catch (e) {
     bgLog('Monitored tab is gone — stopping.', 'err');
-    stopCapture();
+    stopCapture('tab_closed');
     return;
   }
 
@@ -353,7 +373,7 @@ browser.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       sendResponse({ ok: true });
       break;
     case 'stopCapture':
-      stopCapture();
+      stopCapture('user');
       sendResponse({ ok: true });
       break;
     case 'restartCaptureAlarm':

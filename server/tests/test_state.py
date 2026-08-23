@@ -1,8 +1,14 @@
 """Tests for AppState — transitions, debounce, and SSE queue helpers."""
 
+import json
 import time
 
-from tv_commercial_detector.state import AppState
+from tv_commercial_detector.state import (
+    AppState,
+    StopReason,
+    VideoStatus,
+    parse_stop_reason,
+)
 
 
 def test_defaults():
@@ -11,6 +17,8 @@ def test_defaults():
     assert s.paused is True
     assert s.seeking is False
     assert s.no_video is False
+    assert s.capture_stopped is False
+    assert s.capture_stop_reason is None
     assert s.last_report_at is None
     assert s.auto_switch is True
     assert s.enable_debounce is True
@@ -117,6 +125,55 @@ def test_mark_report_clears_staleness():
     assert s.video_status(30) == "stale"
     s.mark_report()
     assert s.video_status(30) == "playing"
+
+
+def test_video_status_stopped():
+    s = AppState()
+    s.capture_stopped = True
+    s.mark_report()
+    assert s.video_status(30) is VideoStatus.STOPPED
+
+
+def test_video_status_stopped_outranks_stale():
+    """The silence after a stop is expected, so don't report it as a fault."""
+    s = AppState()
+    s.capture_stopped = True
+    s.last_report_at = time.monotonic() - 3600
+    assert s.video_status(30) is VideoStatus.STOPPED
+
+
+def test_video_status_stopped_needs_a_report():
+    """A stop we were never told about is still `waiting`, not `stopped`."""
+    s = AppState()
+    s.capture_stopped = True
+    assert s.video_status(30) is VideoStatus.WAITING
+
+
+# ---------------------------------------------------------------------------
+# VideoStatus / StopReason
+# ---------------------------------------------------------------------------
+
+
+def test_video_status_serializes_as_its_value():
+    """Clients see plain strings, not "VideoStatus.PAUSED"."""
+    assert json.dumps({"s": VideoStatus.PAUSED}) == '{"s": "paused"}'
+    assert f"{VideoStatus.NO_VIDEO}" == "no_video"
+
+
+def test_video_status_compares_equal_to_its_string():
+    s = AppState()
+    s.mark_report()
+    assert s.video_status(30) == "paused"
+
+
+def test_parse_stop_reason_known():
+    assert parse_stop_reason("tab_closed") is StopReason.TAB_CLOSED
+
+
+def test_parse_stop_reason_unknown_is_none():
+    """A reason we don't recognize is dropped rather than shown to the user."""
+    assert parse_stop_reason("<img src=x>") is None
+    assert parse_stop_reason("") is None
 
 
 # ---------------------------------------------------------------------------

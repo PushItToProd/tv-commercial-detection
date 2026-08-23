@@ -14,7 +14,13 @@ from ..classify import classify_image
 from ..config import app_config
 from ..frame_saver import save_frames_batch
 from ..phash_override import add_override
-from ..state import FrameEntry, last_image_path, recent_frames, state
+from ..state import (
+    FrameEntry,
+    last_image_path,
+    parse_stop_reason,
+    recent_frames,
+    state,
+)
 from ..video_timebase import parse_timebase
 from .status import broadcast_status
 from .trigger_matrix import apply_matrix_settings
@@ -22,6 +28,11 @@ from .trigger_matrix import apply_matrix_settings
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+def as_bool(value: str) -> bool:
+    """Parse a boolean posted as a form field."""
+    return value.lower() in ("true", "1", "yes")
 
 
 @router.post("/receive")
@@ -41,9 +52,13 @@ async def receive(
     seekable_start: str = Form(default=""),
     seekable_end: str = Form(default=""),
 ):
-    state.paused = is_paused_bool = is_paused.lower() in ("true", "1", "yes")
-    state.seeking = is_seeking_bool = is_seeking.lower() in ("true", "1", "yes")
-    state.no_video = no_video_bool = no_video.lower() in ("true", "1", "yes")
+    state.paused = is_paused_bool = as_bool(is_paused)
+    state.seeking = is_seeking_bool = as_bool(is_seeking)
+    state.no_video = no_video_bool = as_bool(no_video)
+    # A request that reached here is proof capture is running, whatever the
+    # last thing we heard was.
+    state.capture_stopped = False
+    state.capture_stop_reason = None
     state.mark_report()
     offset_secs: float | None = float(video_offset) if video_offset else None
     timebase = parse_timebase(video_id, video_duration, seekable_start, seekable_end)
@@ -197,25 +212,39 @@ async def video_state(
     is_paused: str = Form(default=""),
     is_seeking: str = Form(default=""),
     no_video: str = Form(default=""),
+    capture_stopped: str = Form(default=""),
+    stop_reason: str = Form(default=""),
     page_title: str = Form(default="?"),
     page_url: str = Form(default=""),
     video_title: str = Form(default=""),
     network_name: str = Form(default=""),
 ):
-    state.paused = is_paused_bool = is_paused.lower() in ("true", "1", "yes")
-    state.seeking = is_seeking_bool = is_seeking.lower() in ("true", "1", "yes")
-    state.no_video = no_video_bool = no_video.lower() in ("true", "1", "yes")
+    if as_bool(capture_stopped):
+        # A stop says nothing about the page, only that we've quit watching it,
+        # so the last playback reading is left standing rather than overwritten
+        # with the defaults of a request that never described the player.
+        state.capture_stopped = True
+        state.capture_stop_reason = parse_stop_reason(stop_reason)
+    else:
+        state.capture_stopped = False
+        state.capture_stop_reason = None
+        state.paused = as_bool(is_paused)
+        state.seeking = as_bool(is_seeking)
+        state.no_video = as_bool(no_video)
     state.mark_report()
 
     status = state.video_status(app_config.video_report_stale_seconds)
-    print(f"Video state: {status}  |  page: {page_title}")
+    detail = f" ({state.capture_stop_reason})" if state.capture_stop_reason else ""
+    print(f"Video state: {status}{detail}  |  page: {page_title}")
 
     await broadcast_status()
     return {
         "classification": state.classification,
-        "paused": is_paused_bool,
-        "seeking": is_seeking_bool,
-        "no_video": no_video_bool,
+        "paused": state.paused,
+        "seeking": state.seeking,
+        "no_video": state.no_video,
+        "capture_stopped": state.capture_stopped,
+        "stop_reason": state.capture_stop_reason,
         "video_status": status,
     }
 

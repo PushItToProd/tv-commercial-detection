@@ -272,11 +272,20 @@ let lastDataAt = 0;
 function effectiveVideoStatus() {
   if (!lastData) return null;
   if (lastData.report_age === null || lastData.report_age === undefined) return 'waiting';
+  // An explicit stop already explains the silence, so it is never aged into
+  // `stale` — staleness is an inference, and this isn't a guess.
+  if (lastData.video_status === 'stopped') return 'stopped';
   const staleAfter = lastData.stale_after_seconds;
   const age = lastData.report_age + (Date.now() - lastDataAt) / 1000;
   if (staleAfter > 0 && age > staleAfter) return 'stale';
   return lastData.video_status;
 }
+
+const STOP_REASONS = {
+  user: 'stopped from the popup',
+  tab_closed: 'the tab was closed',
+  no_endpoints: 'no endpoints configured',
+};
 
 function reportAge() {
   if (!lastData || lastData.report_age === null || lastData.report_age === undefined) return null;
@@ -290,6 +299,9 @@ function renderVideoStatus() {
   let text;
   if (status === 'waiting') {
     text = '⚠ NO REPORTS — IS THE EXTENSION RUNNING?';
+  } else if (status === 'stopped') {
+    const why = STOP_REASONS[lastData.stop_reason];
+    text = '⏹ CAPTURE STOPPED' + (why ? ` — ${why}` : '');
   } else if (status === 'stale') {
     text = `⚠ NO SIGNAL FOR ${formatDuration(reportAge())}`;
   } else if (status === 'no_video') {
@@ -304,7 +316,8 @@ function renderVideoStatus() {
   el.textContent = text;
   // Anything but a current reading means the classification beside it is only
   // the last one we happened to hear, so say so rather than showing it plainly.
-  const untrusted = status === 'waiting' || status === 'stale' || status === 'no_video';
+  const untrusted =
+    status === 'waiting' || status === 'stopped' || status === 'stale' || status === 'no_video';
   el.classList.toggle('text-warning', untrusted);
   el.classList.toggle('text-white', !untrusted);
   document.getElementById('label').style.opacity = untrusted ? '0.35' : '';

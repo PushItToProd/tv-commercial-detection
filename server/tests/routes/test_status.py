@@ -60,6 +60,26 @@ def test_status_stale(client):
     assert body["paused"] is False  # the raw reading is still reported as-is
 
 
+def test_status_capture_stopped(client):
+    state_module.state.capture_stopped = True
+    state_module.state.capture_stop_reason = state_module.StopReason.TAB_CLOSED
+    state_module.state.mark_report()
+    body = client.get("/is_ad/status").json()
+    assert body["video_status"] == "stopped"
+    assert body["capture_stopped"] is True
+    assert body["stop_reason"] == "tab_closed"
+
+
+def test_status_serializes_enums_as_strings(client):
+    """The payload is JSON, so these must be values and not enum reprs."""
+    state_module.state.capture_stopped = True
+    state_module.state.capture_stop_reason = state_module.StopReason.USER
+    state_module.state.mark_report()
+    raw = client.get("/is_ad/status").text
+    assert '"video_status":"stopped"' in raw.replace(" ", "")
+    assert '"stop_reason":"user"' in raw.replace(" ", "")
+
+
 def test_is_ad_html(client):
     resp = client.get("/is_ad")
     assert resp.status_code == 200

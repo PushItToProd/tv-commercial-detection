@@ -4,6 +4,7 @@ import time
 from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime
+from enum import StrEnum
 from pathlib import Path
 from typing import Any
 
@@ -29,17 +30,46 @@ class FrameEntry:
     timebase: VideoTimebase = field(default_factory=VideoTimebase)
 
 
-# What the player is doing, as far as the server can tell. The extension
-# reports the last three plus `no_video`; the first two are inferred from how
-# long it has been since it reported anything at all. `video_status()` collapses
-# them into one value, most severe first, because a reading nobody has confirmed
-# recently says nothing about the player regardless of what it holds.
-VIDEO_WAITING = "waiting"  # nothing has ever been reported
-VIDEO_STALE = "stale"  # reported once, but not recently
-VIDEO_NO_VIDEO = "no_video"  # extension is reporting; it can't find a player
-VIDEO_PAUSED = "paused"
-VIDEO_SEEKING = "seeking"
-VIDEO_PLAYING = "playing"
+class VideoStatus(StrEnum):
+    """What the player is doing, as far as the server can tell.
+
+    Declared most severe first, which is the order `video_status()` resolves
+    them in: a reading nobody has confirmed recently says nothing about the
+    player regardless of what it holds, and an explanation the extension gave
+    us beats one the server had to infer from silence.
+
+    A StrEnum so the members serialize as their own values over JSON and
+    compare equal to the strings clients already send and receive.
+    """
+
+    WAITING = "waiting"  # nothing has ever been reported
+    STOPPED = "stopped"  # the extension said it stopped capturing
+    STALE = "stale"  # reported once, but not recently
+    NO_VIDEO = "no_video"  # extension is reporting; it can't find a player
+    PAUSED = "paused"
+    SEEKING = "seeking"
+    PLAYING = "playing"
+
+
+class StopReason(StrEnum):
+    """Why capture stopped, as reported by the extension.
+
+    Validated against this set rather than passed through as free text: the
+    value reaches the status page, and a fixed vocabulary is the difference
+    between a label and whatever a client felt like sending.
+    """
+
+    USER = "user"  # Stop clicked in the popup
+    TAB_CLOSED = "tab_closed"  # monitored tab went away
+    NO_ENDPOINTS = "no_endpoints"  # nothing configured to post to
+
+
+def parse_stop_reason(value: str) -> StopReason | None:
+    """Coerce a reported stop reason, or None if it isn't one we know."""
+    try:
+        return StopReason(value)
+    except ValueError:
+        return None
 
 
 @dataclass
@@ -52,6 +82,11 @@ class AppState:
     paused: bool = True
     seeking: bool = False
     no_video: bool = False
+    # Set when the extension says it stopped capturing, cleared by any report
+    # that isn't a stop. Knowing capture ended on purpose beats inferring
+    # something went wrong from the silence that follows.
+    capture_stopped: bool = False
+    capture_stop_reason: StopReason | None = None
     # time.monotonic() of the last report from the extension, or None if it has
     # never reported. Monotonic because only the elapsed time matters, and it's
     # served to clients as an age rather than an absolute time.
@@ -78,7 +113,7 @@ class AppState:
             return None
         return time.monotonic() - self.last_report_at
 
-    def video_status(self, stale_after: float) -> str:
+    def video_status(self, stale_after: float) -> VideoStatus:
         """Collapse the reported flags and report age into one status.
 
         `stale_after` is a number of seconds; 0 or less disables the staleness
@@ -86,18 +121,22 @@ class AppState:
         """
         age = self.report_age()
         if age is None:
-            return VIDEO_WAITING
+            return VideoStatus.WAITING
+        # An explicit stop outranks staleness: the silence that follows it is
+        # expected, and already accounted for.
+        if self.capture_stopped:
+            return VideoStatus.STOPPED
         if stale_after > 0 and age > stale_after:
-            return VIDEO_STALE
+            return VideoStatus.STALE
         if self.no_video:
-            return VIDEO_NO_VIDEO
+            return VideoStatus.NO_VIDEO
         # Paused outranks seeking to match what the status page has always
         # shown: a scrub on a paused video reads as paused.
         if self.paused:
-            return VIDEO_PAUSED
+            return VideoStatus.PAUSED
         if self.seeking:
-            return VIDEO_SEEKING
-        return VIDEO_PLAYING
+            return VideoStatus.SEEKING
+        return VideoStatus.PLAYING
 
     def is_auto_switch_paused(self) -> bool:
         return (

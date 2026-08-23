@@ -273,27 +273,41 @@ identically — as `paused`, which is also the startup default. That ambiguity i
 what made a stuck capture look like a paused video for as long as it took to
 notice by hand.
 
-`AppState.video_status()` collapses the flags and the report age into one value,
-and is what the `/is_ad` page renders. Most severe first:
+`AppState.video_status()` collapses the flags and the report age into one
+`VideoStatus`, and is what the `/is_ad` page renders. Declared most severe
+first, which is the order it resolves them in:
 
 | Status | Meaning |
 |---|---|
 | `waiting` | Nothing has ever reported; `paused` is a default, not a reading |
+| `stopped` | The extension said it stopped capturing |
 | `stale` | Reported once, but not within `video_report_stale_seconds` |
 | `no_video` | Extension is reporting and can't find a player element |
 | `paused` / `seeking` / `playing` | A current reading |
 
-`no_video` is reported by the extension (a `no_video` form field on `/receive`
-and `/video-state`); `waiting` and `stale` are inferred from `last_report_at`,
-which every call to either endpoint refreshes. Ordering is by severity because a
+`no_video` and `stopped` are reported by the extension (`no_video` and
+`capture_stopped` form fields); `waiting` and `stale` are inferred from
+`last_report_at`, which every call to `/receive` or `/video-state` refreshes.
+Ordering is by severity, so a reported condition outranks an inferred one: a
 reading nobody has confirmed recently says nothing about the player regardless
-of what it holds — `stale` therefore outranks `no_video`, and `paused` outranks
-`seeking` to match what the page has always shown for a scrub on a paused video.
+of what it holds, and an explicit `stopped` outranks `stale` because the silence
+after a stop is expected rather than a fault. `paused` outranks `seeking` to
+match what the page has always shown for a scrub on a paused video.
+
+A stop carries a `stop_reason` — a `StopReason` (`user`, `tab_closed`,
+`no_endpoints`), validated against that set rather than passed through as free
+text, since the value reaches the status page. An unrecognized reason still
+registers the stop and records no reason. Because a stop describes the extension
+and not the page, it deliberately leaves `paused`/`seeking`/`no_video` standing
+instead of overwriting them with the defaults of a request that never described
+the player. Any subsequent report clears it — a frame arriving is proof capture
+is running, whatever the last thing we heard was.
 
 `/is_ad/status` carries `report_age` and `stale_after_seconds` alongside
 `video_status` so the page can age a reading into `stale` on a local timer. It
 has to be able to: nothing arriving is the whole signal, so there is no push
-coming to announce it.
+coming to announce it. `stopped` is exempt from that aging on the client too,
+for the same reason it outranks `stale` on the server.
 
 None of this gates matrix switching. Without frames there is nothing to
 classify and no switch to make, so the status is purely diagnostic — it exists
@@ -304,7 +318,7 @@ so the `/is_ad` page stops showing a confident answer it has no basis for.
 | Method | Path | Description |
 |---|---|---|
 | `POST` | `/receive` | Accept a screenshot + playback state from the extension |
-| `POST` | `/video-state` | Update playback state only (no image), including `no_video` |
+| `POST` | `/video-state` | Update playback state only (no image), including `no_video` and `capture_stopped` |
 | `POST` | `/report_wrong` | Report that the current classification is wrong |
 | `POST` | `/capture` | Save current in-memory recent frames to disk |
 | `GET` | `/recent_frames` | List in-memory recent frames with timestamps and classifications |
@@ -428,8 +442,13 @@ Sticky state gets a timeout for the same reason: `isSeeking` is cleared after
 and a latched flag suppresses every subsequent capture.
 
 A tick that finds no player element POSTs `no_video=true` to `/video-state`
-instead of going quiet, and logs its consecutive count in the popup. See "Video
-reporting status" for why the server can't infer that condition on its own.
+instead of going quiet, and logs its consecutive count in the popup. Capture
+ending reports itself the same way: `stopCapture()` POSTs `capture_stopped=true`
+with a reason on every path out — the popup's Stop button, the monitored tab
+closing, or no endpoints being configured. That notification deliberately
+doesn't look up the monitored tab for page metadata, because the commonest
+reason to send it is that the tab no longer exists. See "Video reporting status"
+for why the server can't infer either condition on its own.
 
 ---
 

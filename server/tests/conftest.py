@@ -42,6 +42,8 @@ def reset_state():
     s.paused = True
     s.seeking = False
     s.no_video = False
+    s.capture_stopped = False
+    s.capture_stop_reason = None
     s.last_report_at = None
     s.auto_switch = True
     s.enable_debounce = False

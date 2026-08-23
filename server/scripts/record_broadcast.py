@@ -285,9 +285,14 @@ def build_app(recorder: Recorder) -> FastAPI:
         is_paused: str = Form(default=""),
         is_seeking: str = Form(default=""),
         no_video: str = Form(default=""),
+        capture_stopped: str = Form(default=""),
+        stop_reason: str = Form(default=""),
         page_title: str = Form(default=""),
         video_title: str = Form(default=""),
     ):
+        if as_bool(capture_stopped):
+            log(f"capture stopped ({stop_reason or 'no reason given'})")
+            return {"recorded": False}
         status = (
             "no video on page"
             if as_bool(no_video)
