@@ -1,3 +1,4 @@
+- [ ] redirect `/` to `/is_ad`
 
 - [ ] on `/review`, add a field for what network the image is from (should be populated by default for new images)
 

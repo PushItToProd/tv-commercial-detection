@@ -15,17 +15,19 @@ Checkboxes key:
 
 - [ ] auto-save config when you click "start" (currently, it reports an error even though there's placeholder config pre-populated)
 - [ ] notify the server when the sender extension is started or stopped (and show this on the UI)
-- [ ] ensure we only accept images for classification from one tab/sender at a time -- don't want to accidentally DoS myself if I enable this on multiple tabs
+- [ ] ensure we only accept images for classification from one tab/sender at a time -- don't want to accidentally DoS myself or confuse the classifier if I enable this on multiple tabs
 - [ ] don't switch if I'm actively interacting with the video player tab (onmouseover?)
   - [ ] if I seek multiple times or catch up to live and end up on a commercial after having been on a break, wait to switch after a short delay in case I want to keep interacting
     - probably not that important of an enhancement compared to other options
-- [ ] maybe just get rid of multi-endpoint config and assume it's going to be linked to one control server from now on
+- [ ] maybe just get rid of multi-endpoint config and assume it's going to be linked to one control server from now on (but that would prevent `record_broadcast.py` from being useful)
 
 - [ ] +if the classifier service returned its result to the extension, the extension could do things like mute and (if possible) skip ahead automatically until it's not on an ad break anymore
 - [ ] package the extension so I can install it permanently in firefox
 
 - [ ] consider doing some of the OpenCV processing in the extension itself? https://docs.opencv.org/4.x/d8/dd1/tutorial_js_template_matching.html
-- [ ] could do some scene change detection in the extension and use that to decide when to send images
+- [ ] could do some scene change detection or other CV stuff in the extension and use that to decide when to send images
+
+- [ ] explore adopting a browser extension framework or scaffold of some kind - something to enable packaging, testing, etc.
 
 ## Web app
 
