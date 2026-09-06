@@ -3,13 +3,15 @@ NASCAR Cup Series on NBC Sports — both the NBC and USA Network feeds.
 
 NBC Sports carries Cup races on NBC proper and on USA. It's the same production
 with the same "NASCAR NON STOP" side-by-side break, but the corner bug differs,
-so this profile checks for either one. Whichever bug is present means the
+so this profile checks for any of them. Whichever bug is present means the
 broadcast is live, the same role the Fox logo plays in `nascar_on_fox`.
 
-The two bugs need genuinely different matching and are NOT interchangeable:
+The bugs need genuinely different matching and are NOT interchangeable:
 
 - The NBC peacock is opaque and coloured -> matched in colour.
 - The USA wordmark is translucent white -> matched on a white mask.
+- The newer "usa SPORTS" lockup is translucent white too -> also matched on a
+  white mask, but with its own template and window.
 
 See each section below.
 
@@ -84,9 +86,44 @@ USA_THRESHOLD = 0.65
 
 # A white mask only carries information when it isolates something. An empty
 # mask has nothing to match; a saturated one has no structure to separate the
-# glyph from its background. Treat either as "no detection".
-USA_MIN_MASK_FRACTION = 0.01
-USA_MAX_MASK_FRACTION = 0.90
+# glyph from its background. Treat either as "no detection". Shared by both
+# white-masked bug checks below.
+MIN_MASK_FRACTION = 0.01
+MAX_MASK_FRACTION = 0.90
+
+# --- "usa SPORTS" lockup (network bug, upper right) -> content --------------
+#
+# The wordmark above sits alone in the corner; this is the newer lockup, the
+# same "usa" glyphs with SPORTS set under them. Both appear in the archive, so
+# both are checked — this one does not replace the other.
+#
+# It is translucent white like the plain wordmark, so it takes the same
+# white-masked match and the same mask-fraction guard, NOT the peacock's color
+# match. Color matching it does work — the lockup is large and high-contrast
+# enough — but it is measurably worse, because the template's backdrop is
+# whatever happened to be behind the bug when it was cropped and every frame
+# with a different backdrop pays for that. Over the same frames: 513 detections
+# in color against 570 on the mask, and the color version's margin over the
+# archive is half as wide.
+#
+# Measured over 1428 frames from the 2026-09-06 USA broadcast against 3000
+# archive frames from other days:
+#
+#   USA broadcast, bug present (~592 frames by inspection): 570 >= 0.65
+#   Archive frames, bug absent (n=2997):                    max 0.431
+#   Archive frames, bug present (n=3, Aug 13 and Aug 23):   0.596-0.615
+#
+# ~96% recall with no false positives and ~0.2 of margin. The ~20 misses are
+# the bug ghosted over a blown-out sky, where it carries almost no signal;
+# they fall through to the LLM, same as the plain wordmark's faint frames.
+#
+# The window is wider than the plain wordmark's because the lockup has moved
+# between broadcasts: it sits at x 1789 / y 57 on the September feed and
+# x 1780 / y 52 in August. This leaves ~20 px of margin around both.
+USA_SPORTS_LOGO = logo_match.LOGOS_DIR / "usa_sports_logo.png"
+USA_SPORTS_TEMPLATE = logo_match.load_masked(USA_SPORTS_LOGO)
+USA_SPORTS_REGION = (1730, 1900, 30, 150)  # x0, x1, y0, y1
+USA_SPORTS_THRESHOLD = 0.65
 
 # --- "NASCAR NON STOP" (side-by-side ad break, upper left) -> ad ------------
 #
@@ -124,6 +161,7 @@ SIDE_BY_SIDE_THRESHOLD = 0.8
 # by editing these at the console.
 ENABLE_PEACOCK_CHECK = True
 ENABLE_USA_CHECK = True
+ENABLE_USA_SPORTS_CHECK = True
 ENABLE_SIDE_BY_SIDE_CHECK = True
 
 PROMPT = llm_match.load_prompt("prompt_nbc.txt")
@@ -147,23 +185,32 @@ def has_peacock_logo(
     return peacock_score(img, template) >= threshold
 
 
-def usa_score(img: cv2.typing.MatLike, template: cv2.typing.MatLike = USA_TEMPLATE) -> float:
-    """Best match score for the USA wordmark within its search window.
+def _white_masked_score(
+    img: cv2.typing.MatLike,
+    region: tuple[int, int, int, int],
+    template: cv2.typing.MatLike,
+) -> float:
+    """Best match score for a white-masked template within *region*.
 
     Returns 0.0 when the white mask is empty or saturated; see
-    USA_MIN_MASK_FRACTION. *img* must already be resized to 1920x1080.
+    MIN_MASK_FRACTION. *img* must already be resized to 1920x1080.
     """
-    x0, x1, y0, y1 = USA_REGION
+    x0, x1, y0, y1 = region
     masked = logo_match.mask_non_white(img[y0:y1, x0:x1].copy())
 
     mask_fraction = masked.any(axis=2).mean()
-    if not USA_MIN_MASK_FRACTION <= mask_fraction <= USA_MAX_MASK_FRACTION:
+    if not MIN_MASK_FRACTION <= mask_fraction <= MAX_MASK_FRACTION:
         return 0.0
 
     score = logo_match.match_template(masked, template).max_val
     # Guard anyway: a uniform patch that slips past the fraction check still
     # produces a divide-by-zero inside matchTemplate.
     return float(score) if math.isfinite(score) else 0.0
+
+
+def usa_score(img: cv2.typing.MatLike, template: cv2.typing.MatLike = USA_TEMPLATE) -> float:
+    """Best match score for the USA wordmark within its search window."""
+    return _white_masked_score(img, USA_REGION, template)
 
 
 def has_usa_logo(
@@ -174,11 +221,28 @@ def has_usa_logo(
     return usa_score(img, template) >= threshold
 
 
+def usa_sports_score(
+    img: cv2.typing.MatLike, template: cv2.typing.MatLike = USA_SPORTS_TEMPLATE
+) -> float:
+    """Best match score for the "usa SPORTS" lockup within its search window."""
+    return _white_masked_score(img, USA_SPORTS_REGION, template)
+
+
+def has_usa_sports_logo(
+    img: cv2.typing.MatLike,
+    template: cv2.typing.MatLike = USA_SPORTS_TEMPLATE,
+    threshold: float = USA_SPORTS_THRESHOLD,
+) -> bool:
+    return usa_sports_score(img, template) >= threshold
+
+
 def has_network_logo(img: cv2.typing.MatLike) -> bool:
-    """True if either NBC Sports corner bug is present."""
+    """True if any NBC Sports corner bug is present."""
     if ENABLE_PEACOCK_CHECK and has_peacock_logo(img):
         return True
-    return ENABLE_USA_CHECK and has_usa_logo(img)
+    if ENABLE_USA_CHECK and has_usa_logo(img):
+        return True
+    return ENABLE_USA_SPORTS_CHECK and has_usa_sports_logo(img)
 
 
 def side_by_side_score(

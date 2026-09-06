@@ -21,14 +21,18 @@ from tv_commercial_detector.classifiers.nascar_on_nbc import (
     PEACOCK_TEMPLATE,
     SIDE_BY_SIDE_REGION,
     SIDE_BY_SIDE_TEMPLATE,
+    USA_SPORTS_REGION,
+    USA_SPORTS_TEMPLATE,
     USA_TEMPLATE,
     has_network_logo,
     has_peacock_logo,
     has_side_by_side_logo,
     has_usa_logo,
+    has_usa_sports_logo,
     peacock_score,
     side_by_side_score,
     usa_score,
+    usa_sports_score,
 )
 
 # Where the peacock actually sits in a 1920x1080 frame.
@@ -214,3 +218,76 @@ def test_either_bug_satisfies_has_network_logo():
 def test_usa_outside_search_window_is_ignored():
     frame = frame_with_logo_at(USA_TEMPLATE, 400, 600, fill=0)
     assert has_usa_logo(frame) is False
+
+
+# --- "usa SPORTS" lockup ---------------------------------------------------
+
+# Where the lockup sits on the September feed. It sat 9 px left and 5 px up in
+# August, which is why the window carries margin.
+USA_SPORTS_ABS_X = 1789
+USA_SPORTS_ABS_Y = 57
+USA_SPORTS_AUGUST_ABS_X = 1780
+USA_SPORTS_AUGUST_ABS_Y = 52
+
+
+def test_usa_sports_detected_at_expected_position():
+    frame = frame_with_logo_at(USA_SPORTS_TEMPLATE, USA_SPORTS_ABS_X, USA_SPORTS_ABS_Y, fill=0)
+    assert has_usa_sports_logo(frame) is True
+    assert usa_sports_score(frame) > 0.95
+
+
+@pytest.mark.parametrize("fill", [0, 128], ids=["black", "grey"])
+def test_no_usa_sports_in_blank_frame(fill):
+    assert has_usa_sports_logo(blank_bgr(fill=fill)) is False
+
+
+def test_usa_sports_score_is_zero_on_blown_out_frame():
+    """Same degenerate-match trap as the plain wordmark; see that test."""
+    assert usa_sports_score(blank_bgr(fill=255)) == 0.0
+    assert has_usa_sports_logo(blank_bgr(fill=255)) is False
+
+
+def test_usa_sports_template_is_white_masked():
+    """The lockup is translucent white, so it is masked like the wordmark.
+
+    Guards against someone matching it in color alongside the peacock: that
+    does detect it, but pins the match to whatever backdrop the template was
+    cropped over, and measured 513 detections against the mask's 570.
+    """
+    assert USA_SPORTS_TEMPLATE.any()
+    assert np.array_equal(USA_SPORTS_TEMPLATE, load_masked(LOGOS_DIR / "usa_sports_logo.png"))
+
+
+def test_usa_sports_outside_search_window_is_ignored():
+    frame = frame_with_logo_at(USA_SPORTS_TEMPLATE, 400, 600, fill=0)
+    assert has_usa_sports_logo(frame) is False
+
+
+@pytest.mark.parametrize(
+    ("abs_x", "abs_y"),
+    [
+        (USA_SPORTS_ABS_X, USA_SPORTS_ABS_Y),
+        (USA_SPORTS_AUGUST_ABS_X, USA_SPORTS_AUGUST_ABS_Y),
+    ],
+    ids=["september", "august"],
+)
+def test_usa_sports_search_window_contains_both_observed_positions(abs_x, abs_y):
+    x0, x1, y0, y1 = USA_SPORTS_REGION
+    th, tw = USA_SPORTS_TEMPLATE.shape[:2]
+    assert x0 <= abs_x and abs_x + tw <= x1
+    assert y0 <= abs_y and abs_y + th <= y1
+    frame = frame_with_logo_at(USA_SPORTS_TEMPLATE, abs_x, abs_y, fill=0)
+    assert has_usa_sports_logo(frame) is True
+
+
+def test_usa_sports_bug_satisfies_has_network_logo():
+    frame = frame_with_logo_at(USA_SPORTS_TEMPLATE, USA_SPORTS_ABS_X, USA_SPORTS_ABS_Y, fill=0)
+    assert has_network_logo(frame) is True
+
+
+def test_usa_sports_check_does_not_mutate_caller_frame():
+    """The side-by-side and peacock checks share the frame with this one."""
+    frame = frame_with_logo_at(USA_SPORTS_TEMPLATE, USA_SPORTS_ABS_X, USA_SPORTS_ABS_Y, fill=0)
+    before = frame.copy()
+    has_usa_sports_logo(frame)
+    assert np.array_equal(frame, before)
