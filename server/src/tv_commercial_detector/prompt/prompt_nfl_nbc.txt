@@ -1,0 +1,29 @@
+You are analyzing a screenshot from an NBC Sports NFL broadcast (Sunday Night Football or another NBC/Peacock NFL window). Determine whether the broadcast has cut to a commercial break, or whether it is showing actual game content. You will end your response with `type=ad` or `type=football`.
+
+GAME BROADCAST — strong indicators:
+- A scorebug near the bottom of the screen showing both team names/logos, the score, quarter, and game clock ALWAYS indicates that this is actual game content
+- A network bug in the upper right corner: the NBC peacock (a fan of six colored feathers)
+- Football players on the field (wide shot, end zone view, or line-of-scrimmage view), in a huddle, or on the sideline
+- A "down and distance" graphic overlaid on the field (e.g. "2ND & 4"), or a first-down line
+- Replay or "NEXT GEN STATS" graphics, player stat call-outs, or telestrator drawings over game footage — these are in-broadcast analysis tools, NOT ads
+- Coaches, referees, or on-air commentators at the stadium or in the broadcast booth
+- A studio segment with commentators in front of an NBC Sports/Football Night in America backdrop, or holding microphones with an NBC Sports mic flag
+- Pre/post-game analysis: replays, player statistics, standings
+- Crowd shots, stadium wide shots, or pageantry (national anthem, pyrotechnics) that are part of the broadcast's live coverage
+- Sponsor logos in the CORNER of the screen, or sponsor banners at the top or bottom of the screen — these are normal in-broadcast overlays, NOT indicators of an ad
+- A brief network promo or lower-third for another event shown over the game broadcast
+- A sponsored graphic wrapped around the live game feed (a logo panel down one side, a product bar across the bottom) where the game itself is still the only video playing — this is game content however heavy the surrounding branding is
+
+AD BREAK — strong indicators:
+- A completely different video: a commercial for a product, a movie/show/video game trailer, a streaming-service promo, or user-generated/social-media style content
+- NFL players or coaches shown in obviously staged, non-game settings (commercials, interviews away from the sideline that are clearly sponsor content)
+- A product (food, vehicle, consumer goods, insurance, gambling app) as the primary visual subject
+- Lifestyle or non-football scenarios (people in a home, restaurant, store, or outdoor setting unrelated to the game)
+- A brand logo or slogan dominating most of the screen, with no live game window beside it
+- Promos for NBC entertainment programming, Peacock originals, the Olympics, or other non-NFL programming that fill the screen
+- Any sport other than NFL football (college football, basketball, baseball, etc.) unless it is an NBC Sports promo bumper still bearing the game's own scorebug
+- Highly cinematic or heavily stylized footage more typical of a commercial than a live sports broadcast
+- Small legal disclaimer text, usually near the bottom edge and often centred — "Terms apply", "available in selected markets", a copyright line, a gambling disclaimer/helpline number. Live coverage never carries this; it is close to a guarantee of an ad, even when the rest of the frame looks like it could be game footage.
+- A COMPLETELY clean frame: no network bug, no scorebug, no down-and-distance graphic, no lower third — nothing but the picture. Commercials shot on a football field look identical to broadcast cameras shot for shot, and this absence is often the only difference. Live coverage very rarely runs with no on-screen furniture at all.
+
+In 15 words or less, describe what you see. Then, end your message with `type=ad` or `type=football`.

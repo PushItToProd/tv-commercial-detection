@@ -46,6 +46,7 @@ server/              FastAPI application
       nhra_on_fox.py   Variant for NHRA drag racing broadcasts on Fox/FS1
       nascar_on_hbo_max.py  TNT Sports coverage on HBO Max; OpenCV logo checks only, no LLM pass needed
       nascar_on_nbc.py  NBC Sports Cup coverage on NBC and USA; peacock/USA bug checks, then LLM fallback
+      nfl_on_nbc.py    NFL on NBC/Peacock; peacock bug check (own search window), then LLM fallback
     routes/            FastAPI routers
     prompt/            LLM prompt text and logo images used for OpenCV matching
     static/            Static assets (Bootstrap CSS/JS for UI templates)
@@ -537,7 +538,9 @@ The `nascar_on_hbo_max` profile covers TNT Sports coverage on HBO Max. It runs t
 
 The `nascar_on_nbc` profile covers NBC Sports Cup coverage on **both NBC and USA Network** — the same production and the same "NASCAR NON STOP" break, only the corner bug differs. It checks the side-by-side banner in the upper left (`ad`), then any of the network bugs in the upper right (`content`), then falls through to the LLM quick check and `prompt_nbc.txt`.
 
-The three bugs need different matching and are not interchangeable:
+The `nfl_on_nbc` profile covers NFL broadcasts on NBC (Sunday Night Football and other NBC/Peacock windows). It carries the same peacock bug as `nascar_on_nbc`, but that profile's search window doesn't apply here — this graphics package renders the bug noticeably higher and further right (`x 1795–1905, y 10–95` vs NASCAR's `x 1740–1880, y 40–140`), so reusing NASCAR's window clips the logo out entirely regardless of threshold. There's no NASCAR NON STOP equivalent on this feed — NBC's NFL coverage cuts to a full-screen commercial rather than a side-by-side panel — so the peacock is the only OpenCV signal; its absence falls through to the LLM quick check and `prompt_nfl_nbc.txt` rather than defaulting to `ad`. Threshold `0.7`: the bug's backing varies with what's behind it (a neutral panel scores 0.8–0.86, but the same logo over a bright graphic or a crowd shot can drop to 0.5–0.7 despite being clearly visible), and the highest score observed with no peacock present sits in that same 0.5–0.6 band, so there's no clean gap to split on — 0.7 clears every confirmed false match with margin, at the cost of sending the weaker true positives to the LLM instead.
+
+The three NASCAR-on-NBC bugs need different matching and are not interchangeable:
 
 - **NBC peacock** — opaque and coloured, so matched **in colour**. `load_masked` / `mask_non_white` zero out everything that isn't near-white and would erase a six-colour logo entirely, so this template is loaded with a plain `cv2.imread`. Its search window is tight (`x 1740–1880, y 40–140` at 1920×1080); over the wide upper-right region the Fox profile uses, the weakest true positive scores below the strongest false positive and the match is unusable. Threshold `0.55`, measured at 21/21 recall with 0/3000 false positives.
 - **USA wordmark** — white, so white-masked like the Fox logo, but *translucent*. Over a blown-out sky it fades to a near-invisible ghost and the masked region saturates into a uniform patch, where `TM_CCOEFF_NORMED` divides by zero and can report a perfect `1.0`. The mask-fraction guard shared by the white-masked checks is what makes them safe; without it every bright sky reads as `content`. Those ghost frames are deliberately not chased — they carry too little signal to reach without wrecking precision, and fall through to the LLM. Threshold `0.65`, measured at ~82% recall with 0/3000 false positives.

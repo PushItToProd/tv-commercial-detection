@@ -57,7 +57,12 @@ CLASSIFICATION_TIME = prometheus_client.Histogram(
 )
 
 AD_MATCH_REGEX = re.compile(r"\btype=ad\b|\"classification\"\s*:\s*\"ad\"")
-RACING_MATCH_REGEX = re.compile(r"\btype=racing\b|\"classification\"\s*:\s*\"racing\"")
+# "racing" is the historical label; "football"/"content" let non-racing
+# profiles (e.g. nfl_on_nbc) use a prompt that names their own sport instead.
+CONTENT_LABELS = "racing|football|content"
+CONTENT_MATCH_REGEX = re.compile(
+    rf"\btype=(?:{CONTENT_LABELS})\b|\"classification\"\s*:\s*\"(?:{CONTENT_LABELS})\""
+)
 
 
 def _resize_image(image_path: str) -> bytes:
@@ -98,7 +103,7 @@ def _get_classification_from_response(reply: str) -> ClassificationResult:
         return ClassificationResult(
             source="llm", type="ad", reason="model-match", reply=reply
         )
-    if RACING_MATCH_REGEX.search(reply):
+    if CONTENT_MATCH_REGEX.search(reply):
         return ClassificationResult(
             source="llm", type="content", reason="model-match", reply=reply
         )
@@ -106,7 +111,7 @@ def _get_classification_from_response(reply: str) -> ClassificationResult:
     data = _extract_json(reply)
     if data is not None:
         classification = data.get("classification")
-        if classification == "racing":
+        if classification in ("racing", "football", "content"):
             return ClassificationResult(
                 source="llm", type="content", reason="model-match", reply=reply
             )
@@ -120,13 +125,19 @@ def _get_classification_from_response(reply: str) -> ClassificationResult:
     )
 
 
-def _report_racing_related(image_data: str, audio_data: str | None = None) -> bool:
-    """Ask the LLM whether the image contains NASCAR racing content."""
+def _report_racing_related(
+    image_data: str, audio_data: str | None = None, subject: str = "NASCAR racing"
+) -> bool:
+    """Ask the LLM whether the image contains content related to *subject*.
+
+    Defaults to NASCAR racing for the existing racing profiles; pass a
+    different *subject* (e.g. "NFL football") for other sports.
+    """
     msg_content: list = [
         {
             "type": "text",
             "text": (
-                "Does this image contain anything related to NASCAR racing?"
+                f"Does this image contain anything related to {subject}?"
                 " Reply with only 'yes' or 'no'."
             ),
         },
@@ -139,7 +150,7 @@ def _report_racing_related(image_data: str, audio_data: str | None = None) -> bo
         msg_content[0]["text"] = (
             "This image and audio clip are from the same segment of a video. "
             "Based on both the audio and the image, does it seem more likely than not "
-            "that this segment is from a NASCAR race broadcast (not an ad)? Reply 'Yes' or 'No'."
+            f"that this segment is from a {subject} broadcast (not an ad)? Reply 'Yes' or 'No'."
         )
         msg_content.append(
             {
