@@ -38,6 +38,7 @@ Checkboxes key:
 - [-] potentially resize using canvas https://stackoverflow.com/a/39637827
 - [-] allow configuring separate intervals for each endpoint
 - [x] weird 'No video found' error sometimes
+- [-] maybe just get rid of multi-endpoint config and assume it's going to be linked to one control server from now on (but that would prevent `record_broadcast.py` from being useful)
 
 ## Web app
 - [x] deploy everything in docker

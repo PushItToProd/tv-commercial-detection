@@ -1,4 +1,4 @@
-- [ ] redirect `/` to `/is_ad`
+- [x] redirect `/` to `/is_ad`
 
 - [ ] on `/review`, add a field for what network the image is from (should be populated by default for new images)
 
@@ -21,4 +21,4 @@
 - [/] deduplicate images -- figure out how to clean up without losing information (maybe save as symlinks?)
   - [ ] deduplicate images on save if possible -- at least ones with identical md5 hashes, maybe phashes too
 
-- [/] thorny question: how do I modularize this and make it configurable so this app isn't permanently hardcoded to only work on Fox?
+- [ ] thorny question: how do I modularize this and make it configurable so I don't have to create a new classifier from scratch for every TV series

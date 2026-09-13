@@ -19,7 +19,6 @@ Checkboxes key:
 - [ ] don't switch if I'm actively interacting with the video player tab (onmouseover?)
   - [ ] if I seek multiple times or catch up to live and end up on a commercial after having been on a break, wait to switch after a short delay in case I want to keep interacting
     - probably not that important of an enhancement compared to other options
-- [ ] maybe just get rid of multi-endpoint config and assume it's going to be linked to one control server from now on (but that would prevent `record_broadcast.py` from being useful)
 
 - [ ] +if the classifier service returned its result to the extension, the extension could do things like mute and (if possible) skip ahead automatically until it's not on an ad break anymore
 - [ ] package the extension so I can install it permanently in firefox
