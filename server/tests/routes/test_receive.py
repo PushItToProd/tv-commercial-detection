@@ -445,3 +445,78 @@ def test_frames_without_audio_leave_status_clean(client, mocker):
     for _ in range(app_config.audio_silence_clips + 1):
         _post_frame(client, "content", mocker)
     assert client.get("/is_ad/status").json()["audio_warning"] is None
+
+
+# ---------------------------------------------------------------------------
+# Audio sensor
+# ---------------------------------------------------------------------------
+
+
+def test_sensor_observes_the_clip_classify_image_receives(client, mocker):
+    # The sensor only answers for the clip it last observed, by identity, so the
+    # route must hand both the very same bytes object.
+    from tests.test_audio_health import tone_wav
+    from tv_commercial_detector import audio_sensor
+
+    observe = mocker.spy(audio_sensor.sensor, "observe")
+    wav = tone_wav(0.1)
+    _post_frame(client, "content", mocker, audio=wav, video_offset="12.5", is_seeking="true")
+
+    from tv_commercial_detector.routes import receive
+
+    observed = observe.call_args.args
+    classified = receive.classify_image.call_args.args
+    assert observed[0] == wav
+    assert observed[1:] == (12.5, True)
+    assert classified[1] is observed[0]
+
+
+def test_status_carries_the_audio_sensor_reading(client, mocker):
+    from tv_commercial_detector import audio_sensor
+
+    assert client.get("/is_ad/status").json()["audio_sensor"] is None
+    audio_sensor.sensor.last_reading = audio_sensor.AudioReading(
+        p_ad=0.93, clips=15, span_seconds=28.0
+    )
+    status = client.get("/is_ad/status").json()["audio_sensor"]
+    assert status == {"p_ad": 0.93, "abstain": None, "clips": 15, "span_seconds": 28.0}
+
+
+def test_audio_verdicts_go_through_debounce(client, mocker):
+    # Only source="opencv" bypasses debounce; an audio verdict has to repeat.
+    from tv_commercial_detector.classify import ClassificationResult
+
+    state_module.state.enable_debounce = True
+    state_module.state.classification = "content"
+    state_module.state.last_result = "content"
+    mocker.patch("tv_commercial_detector.routes.receive.apply_matrix_settings")
+    mocker.patch("tv_commercial_detector.routes.receive.save_frames_batch")
+    mocker.patch(
+        "tv_commercial_detector.routes.receive.classify_image",
+        return_value=ClassificationResult(
+            source="audio", type="ad", reason="audio_sensor", reply=None
+        ),
+    )
+    files = {"image": ("frame.jpg", _jpeg_bytes(), "image/jpeg")}
+    data = {"is_paused": "false", "is_seeking": "false"}
+
+    client.post("/receive", data=data, files=files)
+    assert state_module.state.classification == "content"
+    client.post("/receive", data=data, files=files)
+    assert state_module.state.classification == "ad"
+
+
+def test_report_wrong_resets_the_audio_window(client, mocker):
+    import numpy as np
+
+    from tv_commercial_detector import audio_sensor
+    from tv_commercial_detector.audio_features import FEATURES
+
+    _post_frame(client, "ad", mocker)
+    mocker.patch("tv_commercial_detector.routes.receive.save_frames_batch", return_value=[])
+    for i in range(15):
+        audio_sensor.sensor.window.add(i * 2.0, np.zeros(len(FEATURES)))
+
+    resp = client.post("/report_wrong", json={"correct_label": "content", "switch": False})
+    assert resp.status_code == 200
+    assert len(audio_sensor.sensor.window) == 0

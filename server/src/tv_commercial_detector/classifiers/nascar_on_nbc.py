@@ -40,12 +40,18 @@ of frames would fall through instead of short-circuiting.
 That asymmetry is deliberate. A false positive claims content during an ad and
 costs a missed break; a miss only falls through to the LLM, which will most
 likely reach the same verdict for a few hundred ms. Prefer missing.
+
+Frames neither OpenCV check settles go to the audio sensor before the LLM; see
+the audio section below.
 """
 import base64
+import dataclasses
 import math
+from pathlib import Path
 
 import cv2
 
+from .. import audio_sensor
 from ..classification import llm_match, logo_match
 from ..classification.result import ClassificationResult
 
@@ -156,6 +162,45 @@ SIDE_BY_SIDE_TEMPLATE = cv2.cvtColor(cv2.imread(str(SIDE_BY_SIDE_LOGO)), cv2.COL
 SIDE_BY_SIDE_REGION = (0, 500, 0, 160)  # x0, x1, y0, y1
 SIDE_BY_SIDE_THRESHOLD = 0.8
 
+# --- Audio sensor (frames neither OpenCV check settles) -> ad / content -----
+#
+# p(ad) from the last ~30 s of audio (`audio_sensor.py`): band energies, loudness
+# dynamics, spectral flatness and stationarity — an engine-roar band against the
+# bass-heavy, flat mastering of national spots. It decides only when confident;
+# the middle band still goes to the LLM, and it abstains outright while its
+# window is filling, when capture is silent, or at a capture interval too
+# coarse for the model.
+#
+# It runs after both OpenCV checks, not before, because vision is the better
+# authority at a rejoin: two-thirds of rejoins carry a sponsor read over live
+# pictures, so audio holds `ad` for a while after the race is back. The bug
+# check catches most of those frames first. Going into a break it's the other
+# way round, and audio usually leads — except over the network's own bumpers,
+# which sound like the show because they are the show's material.
+#
+# The band is asymmetric on purpose: a false `content` leaves a commercial on
+# screen, so the content side demands more confidence than the ad side.
+#
+# Fit on the 2026-08-13 Iowa Corn 350 on USA against the operator's rulings, with
+# the band chosen out-of-fold on frames the OpenCV checks leave undecided:
+# ad >= 0.70 right 98.1% of the time, content <= 0.014 right 99.2%, deciding
+# 83% of those frames. Held out on the 2026-08-16 Cook Out 400 on USA, with the
+# OpenCV verdicts as proxy labels, it ranks the anchored frames at AUC 0.991.
+# All 3177 of its confident `content` calls there agreed with the anchor, but
+# only 684 of its 886 confident `ad` calls did: the other 202 were frames showing
+# the bug. 141 of those sit within 45 s of break material — sponsor reads at
+# rejoins, bumpers carrying the bug — which is the lag vision is ordered first to
+# cover. The rest are live content without pack roar: in-car camera audio and
+# caution laps score p(ad) 0.94-1.00 and hold there for over a minute. The bug
+# check settles those when it's visible; without it (pylon mode, a ghosted bug)
+# nothing does, and the 2-frame debounce won't absorb a run that long. Only 7 of
+# the 609 undecided frames audio called `ad` on that broadcast sat between bug
+# frames under 60 s apart, but that bounds the problem rather than measuring it.
+# Refit with `scripts/fit_audio_model.py`.
+AUDIO_MODEL = audio_sensor.load_model(
+    Path(__file__).parent / "audio_models" / "nascar_on_nbc.json"
+)
+
 # Toggles so any single check can be turned off mid-broadcast without a code
 # change, via `/settings/classifier_profile` swapping to a known-good profile or
 # by editing these at the console.
@@ -163,6 +208,7 @@ ENABLE_PEACOCK_CHECK = True
 ENABLE_USA_CHECK = True
 ENABLE_USA_SPORTS_CHECK = True
 ENABLE_SIDE_BY_SIDE_CHECK = True
+ENABLE_AUDIO_CHECK = True
 
 PROMPT = llm_match.load_prompt("prompt_nbc.txt")
 
@@ -269,6 +315,13 @@ def classify_image(image_path: str, audio_bytes: bytes | None = None) -> Classif
     cv_img = cv2.imread(image_path)
     cv_img_1080p = cv2.resize(cv_img, (1920, 1080))
 
+    # Read for every frame, whatever ends up deciding it, so the score is on
+    # record alongside OpenCV and LLM verdicts too.
+    reading = audio_sensor.sensor.reading(
+        AUDIO_MODEL if ENABLE_AUDIO_CHECK else None, audio_bytes
+    )
+    signals = reading.signals()
+
     # Side-by-side runs first: during a break the race stays on screen, so the
     # peacock can still be visible and would otherwise win.
     if ENABLE_SIDE_BY_SIDE_CHECK and has_side_by_side_logo(cv_img_1080p):
@@ -277,14 +330,37 @@ def classify_image(image_path: str, audio_bytes: bytes | None = None) -> Classif
             type="ad",
             reason="side_by_side",
             reply="NASCAR NON STOP side-by-side logo match (opencv)",
+            signals=signals,
         )
 
     if has_network_logo(cv_img_1080p):
         return ClassificationResult(
-            source="opencv", type="content", reason="network_logo", reply="(opencv)"
+            source="opencv",
+            type="content",
+            reason="network_logo",
+            reply="(opencv)",
+            signals=signals,
         )
 
-    # No OpenCV verdict. Fall through to the LLM rather than assuming content:
+    if ENABLE_AUDIO_CHECK and AUDIO_MODEL is not None and reading.p_ad is not None:
+        if reading.p_ad >= AUDIO_MODEL.ad_threshold:
+            return ClassificationResult(
+                source="audio",
+                type="ad",
+                reason="audio_sensor",
+                reply=f"audio p(ad)={reading.p_ad:.3f}",
+                signals=signals,
+            )
+        if reading.p_ad <= AUDIO_MODEL.content_threshold:
+            return ClassificationResult(
+                source="audio",
+                type="content",
+                reason="audio_sensor",
+                reply=f"audio p(ad)={reading.p_ad:.3f}",
+                signals=signals,
+            )
+
+    # No confident verdict. Fall through to the LLM rather than assuming content:
     # the NBC graphics package hasn't been verified against this season, so a
     # silent content default would hide every case where the templates are stale.
     image_data = llm_match.load_image_b64(image_path)
@@ -296,6 +372,8 @@ def classify_image(image_path: str, audio_bytes: bytes | None = None) -> Classif
             type="ad",
             reason="model_quick_reject",
             reply="No NASCAR-related content detected",
+            signals=signals,
         )
 
-    return llm_match.classify_by_prompt(image_data, audio_data, prompt=PROMPT)
+    result = llm_match.classify_by_prompt(image_data, audio_data, prompt=PROMPT)
+    return dataclasses.replace(result, signals=signals)

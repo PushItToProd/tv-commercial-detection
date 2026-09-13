@@ -9,6 +9,7 @@ from pathlib import Path
 from fastapi import APIRouter, File, Form, HTTPException, Response, UploadFile
 from pydantic import BaseModel
 
+from .. import audio_sensor
 from ..audio_health import record_clip
 from ..classify import classify_image
 from ..config import app_config
@@ -93,6 +94,7 @@ async def receive(
     frame_bytes = await image.read()
     audio_bytes = await audio.read() if audio is not None else None
     record_clip(audio_bytes)
+    audio_sensor.sensor.observe(audio_bytes, offset_secs, is_seeking_bool)
 
     # Write to a temp file so classify_image (which expects a path) can read it
     with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as tmp:
@@ -273,6 +275,10 @@ async def report_wrong(data: ReportWrongRequest):
     # is enabled and we get another wrong classification).
     state.classification = correct_label
     state.last_result = correct_label
+    # The audio window still holds the evidence the operator just overruled, and
+    # would keep reaching the same verdict from it for up to 30 s — past the end
+    # of the auto-switch pause below.
+    audio_sensor.sensor.reset_window("operator reported a wrong classification")
 
     # Temporarily pause auto-switch so we don't flip back immediately on the
     # next classification result (only if auto-switch is currently enabled).

@@ -26,7 +26,9 @@ native_host/         Firefox native messaging host for audio capture
   venv/                Python virtual environment (created by install.sh)
 server/              FastAPI application
   src/tv_commercial_detector/
+    audio_features.py  DSP features over each audio clip (shared with the model-fitting script)
     audio_health.py    Detects silent (dead) audio capture from the received clips
+    audio_sensor.py    Rolling window of audio features; p(ad) from a profile's fitted model
     classify.py        Entry point for classification; dispatches to active classifier profile
     config.py          App configuration dataclass (AppConfig)
     frame_saver.py     Periodic frame saving; rolling in-memory buffer of recent frames
@@ -45,7 +47,8 @@ server/              FastAPI application
       nascar_on_fox.py Multi-pass classifier: logo → rectangle → LLM quick check → LLM prompt
       nhra_on_fox.py   Variant for NHRA drag racing broadcasts on Fox/FS1
       nascar_on_hbo_max.py  TNT Sports coverage on HBO Max; OpenCV logo checks only, no LLM pass needed
-      nascar_on_nbc.py  NBC Sports Cup coverage on NBC and USA; peacock/USA bug checks, then LLM fallback
+      nascar_on_nbc.py  NBC Sports Cup coverage on NBC and USA; peacock/USA bug checks, audio sensor, then LLM fallback
+      audio_models/    Fitted audio models (JSON), one per profile that consults the audio sensor
       nfl_on_nbc.py    NFL on NBC/Peacock; peacock bug check (own search window), then LLM fallback
     routes/            FastAPI routers
     prompt/            LLM prompt text and logo images used for OpenCV matching
@@ -55,7 +58,7 @@ server/              FastAPI application
     classification/    Tests for logo_match and rectangle_match
     routes/            Tests for each route
     integration/       Integration tests (require a live llama.cpp server)
-  scripts/             Utility scripts (record_broadcast.py, find_dupes.py, view_classification_results.py, etc.)
+  scripts/             Utility scripts (record_broadcast.py, fit_audio_model.py, find_dupes.py, etc.)
   config.json          Optional local config (gitignored; overrides defaults)
   frames/              Save dir (runtime, gitignored)
     images/              Full-size frames
@@ -114,6 +117,7 @@ Requires Python ≥ 3.14 (see `server/pyproject.toml`).
 | `jinja2` | HTML templates for review UI and status page |
 | `prometheus-fastapi-instrumentator` | Metrics endpoint (`/metrics`) |
 | `aiofiles` | Async file I/O for saving/reading frames |
+| `scipy` | STFT and resampling for the audio sensor's features |
 
 ### Configuration
 
@@ -263,6 +267,60 @@ Frames arriving without audio are not reported: the extension only sends clips
 while the native host is connected, and running without it isn't a fault. Clips
 that can't be parsed as WAV neither start nor break a silent streak — a corrupt
 clip says nothing about whether the capture source is live.
+
+### Audio sensor
+
+Audio alone separates commercials from live racing well — an engine-roar band
+against the flat, bass-heavy mastering of national spots — and it's right in
+exactly the place vision is blind: long stretches of live racing with no corner
+bug. `notes/broadcast-structure-2026-08.md` has the measurements.
+
+`/receive` passes every clip to `audio_sensor.sensor.observe()`, which computes
+the features in `audio_features.py` (a few ms) and keeps them in a rolling
+window keyed on `video_offset`. A profile asks for a `reading()` against its own
+model and gets p(ad) over the last 30 s of audio, or an abstention with a reason:
+
+| `abstain` | Why |
+|---|---|
+| `no_model` | The profile ships no usable model, or its check is disabled |
+| `no_clip` | The frame being classified isn't the clip last observed |
+| `unparseable` | The clip couldn't be analyzed |
+| `silent` | `audio_health` says capture is dead |
+| `cold` | Too few clips in the window — after a restart or seek, or always at a capture interval much coarser than 2 s |
+
+The window lives in broadcast time rather than frame count because the model's
+trailing statistics were learned over ~15 clips at a 2 s cadence; at the
+extension's default 10 s interval it never fills, and the profile runs exactly as
+it would without audio. A seek, a backward step in `video_offset`, or dead
+capture resets it. `no_clip` is checked by identity so that re-classifying a
+saved frame can never borrow the live window's opinion of a different clip.
+
+The reading is recorded with every classification from a profile that consults
+it — as `classification_signals` in `classifications.jsonl`, whatever decided the
+frame — and shown in `/is_ad/status` as `audio_sensor`.
+
+Models are L2 logistic regression, fit and checked against continuous
+`record_broadcast.py` recordings by `scripts/fit_audio_model.py`, which replays
+them through the same window the live sensor uses:
+
+```bash
+B=/mnt/data/tv-commercial-detector/full_broadcasts/tv.youtube.com
+uv run python scripts/fit_audio_model.py fit --dir $B/USA_4K_Iowa_Corn_350 \
+    --verdicts experiments/review_verdicts.json \
+    --out src/tv_commercial_detector/classifiers/audio_models/nascar_on_nbc.json
+uv run python scripts/fit_audio_model.py check --dir $B/USA_4K_Cook_Out_400 \
+    --model src/tv_commercial_detector/classifiers/audio_models/nascar_on_nbc.json
+```
+
+`fit` takes the operator's rulings from the ground-truth review app, and chooses
+the confidence band from segment-blocked out-of-fold scores on the frames the
+profile's OpenCV checks leave undecided — the only frames an audio verdict can
+reach. Neighboring clips share half their samples, so in-sample or randomly split
+scores would tune the band far too loose. `check` scores a model against a
+recording it wasn't fit on, using the profile's OpenCV verdicts as proxy labels.
+`audio_features.py` must stay arithmetically identical to
+`experiments/structure/extract_audio.py`, which the parity test enforces: a
+model's weights mean nothing against features computed differently.
 
 ### Video reporting status
 
@@ -536,7 +594,7 @@ The `nhra_on_fox` profile follows the same structure but uses NHRA-specific logo
 
 The `nascar_on_hbo_max` profile covers TNT Sports coverage on HBO Max. It runs two OpenCV logo checks — a full-screen "we'll be back" card (`ad`) and a side-by-side "commercial break in progress" overlay (`content`, since racing is still shown side-by-side) — and falls back to `content` by default. HBO Max doesn't insert traditional ad breaks, so those two cards are the only break signals there are; they're reliable enough that the rectangle-detection and LLM passes the other profiles need aren't necessary here.
 
-The `nascar_on_nbc` profile covers NBC Sports Cup coverage on **both NBC and USA Network** — the same production and the same "NASCAR NON STOP" break, only the corner bug differs. It checks the side-by-side banner in the upper left (`ad`), then any of the network bugs in the upper right (`content`), then falls through to the LLM quick check and `prompt_nbc.txt`.
+The `nascar_on_nbc` profile covers NBC Sports Cup coverage on **both NBC and USA Network** — the same production and the same "NASCAR NON STOP" break, only the corner bug differs. It checks the side-by-side banner in the upper left (`ad`), then any of the network bugs in the upper right (`content`), then the audio sensor, then falls through to the LLM quick check and `prompt_nbc.txt`.
 
 The `nfl_on_nbc` profile covers NFL broadcasts on NBC (Sunday Night Football and other NBC/Peacock windows). It carries the same peacock bug as `nascar_on_nbc`, but that profile's search window doesn't apply here — this graphics package renders the bug noticeably higher and further right (`x 1795–1905, y 10–95` vs NASCAR's `x 1740–1880, y 40–140`), so reusing NASCAR's window clips the logo out entirely regardless of threshold. There's no NASCAR NON STOP equivalent on this feed — NBC's NFL coverage cuts to a full-screen commercial rather than a side-by-side panel — so the peacock is the only OpenCV signal; its absence falls through to the LLM quick check and `prompt_nfl_nbc.txt` rather than defaulting to `ad`. Threshold `0.7`: the bug's backing varies with what's behind it (a neutral panel scores 0.8–0.86, but the same logo over a bright graphic or a crowd shot can drop to 0.5–0.7 despite being clearly visible), and the highest score observed with no peacock present sits in that same 0.5–0.6 band, so there's no clean gap to split on — 0.7 clears every confirmed false match with margin, at the cost of sending the weaker true positives to the LLM instead.
 
@@ -546,13 +604,15 @@ The three NASCAR-on-NBC bugs need different matching and are not interchangeable
 - **USA wordmark** — white, so white-masked like the Fox logo, but *translucent*. Over a blown-out sky it fades to a near-invisible ghost and the masked region saturates into a uniform patch, where `TM_CCOEFF_NORMED` divides by zero and can report a perfect `1.0`. The mask-fraction guard shared by the white-masked checks is what makes them safe; without it every bright sky reads as `content`. Those ghost frames are deliberately not chased — they carry too little signal to reach without wrecking precision, and fall through to the LLM. Threshold `0.65`, measured at ~82% recall with 0/3000 false positives.
 - **"usa SPORTS" lockup** — the newer USA bug, the same glyphs with SPORTS set under them. Translucent white like the wordmark, so white-masked the same way, but with its own template and a wider window (`x 1730–1900, y 30–150`) because the lockup has moved between broadcasts. Threshold `0.65`, measured over one 1428-frame USA broadcast at ~96% recall with 0/3000 false positives (strongest false positive `0.43`). It does not replace the plain wordmark; both appear in the archive and both are checked. Matching it in color like the peacock also works, but measurably worse — 513 detections against the mask's 570 — because a color template carries whatever backdrop it was cropped over.
 
-Each bug check has its own toggle (`ENABLE_PEACOCK_CHECK`, `ENABLE_USA_CHECK`, `ENABLE_USA_SPORTS_CHECK`), as does the side-by-side banner (`ENABLE_SIDE_BY_SIDE_CHECK`).
+The audio sensor (see "Audio sensor") decides only when confident — p(ad) at or above `ad_threshold` is `ad`, at or below `content_threshold` is `content`, both stored in `audio_models/nascar_on_nbc.json` — and returns `source="audio"`, which goes through debounce like an LLM verdict. The band is asymmetric because a false `content` leaves a commercial on screen. It runs after both OpenCV checks because vision is the better authority at a rejoin: most rejoins carry a sponsor read over live pictures, which audio hears as an ad for a while after the race is back. Its known weakness is live content without pack roar. Held out on the Cook Out 400 (OpenCV verdicts as proxy labels), all 3177 confident `content` calls agreed with the anchor, but 202 of 886 confident `ad` calls landed on frames showing the bug: 141 within 45 s of a break (sponsor reads, bumpers), the rest in-car camera audio and caution laps scoring p(ad) 0.94–1.00 for over a minute at a stretch. The bug check settles those when it's visible; in pylon mode or under a ghosted bug nothing does, and debounce won't absorb a run that long.
+
+Each bug check has its own toggle (`ENABLE_PEACOCK_CHECK`, `ENABLE_USA_CHECK`, `ENABLE_USA_SPORTS_CHECK`), as do the side-by-side banner (`ENABLE_SIDE_BY_SIDE_CHECK`) and the audio sensor (`ENABLE_AUDIO_CHECK`).
 
 Note that the LLM fallback is weak on pre-race paddock and driver-intro content, which `_report_racing_related` tends to reject as an ad. The corner-bug checks run first specifically because they are far more reliable for that material.
 
 Images are resized to at most 800 px on the longest side and JPEG-encoded (quality 50) before being sent to the LLM. The default prompt lives in `server/prompt/prompt.txt`; profiles can supply their own by passing `prompt=` to `llm_match.classify_by_prompt`.
 
-Classification labels: `ad`, `content` (racing), `unknown`.
+Classification labels: `ad`, `content` (racing), `unknown`. A `ClassificationResult` may also carry `signals`, the raw scores behind the verdict (e.g. `p_audio`), saved as `classification_signals`.
 
 ---
 

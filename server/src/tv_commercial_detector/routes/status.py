@@ -12,6 +12,7 @@ from fastapi.responses import (
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 
+from .. import audio_sensor
 from ..audio_health import warning as audio_warning
 from ..classify import list_profiles
 from ..config import app_config
@@ -55,6 +56,7 @@ def _get_status_data() -> dict:
         if state.is_auto_switch_paused()
         else None,
         "audio_warning": audio_warning(),
+        "audio_sensor": audio_sensor.sensor.status(),
     }
 
 

@@ -291,3 +291,114 @@ def test_usa_sports_check_does_not_mutate_caller_frame():
     before = frame.copy()
     has_usa_sports_logo(frame)
     assert np.array_equal(frame, before)
+
+
+# --- classify_image: where the audio sensor sits in the pipeline --------------
+#
+# The OpenCV checks and the LLM are patched out: these tests are about ordering
+# and the confidence band, not about any one detector.
+
+
+@pytest.fixture
+def pipeline(tmp_path, mocker):
+    """A blank frame on disk, with every detector patched to a controllable stub."""
+    from tv_commercial_detector import audio_sensor
+    from tv_commercial_detector.classification.result import ClassificationResult
+    from tv_commercial_detector.classifiers import nascar_on_nbc
+
+    path = tmp_path / "frame.png"
+    cv2.imwrite(str(path), blank_bgr())
+
+    stubs = {
+        "banner": mocker.patch.object(nascar_on_nbc, "has_side_by_side_logo", return_value=False),
+        "bug": mocker.patch.object(nascar_on_nbc, "has_network_logo", return_value=False),
+        "quick": mocker.patch.object(
+            nascar_on_nbc.llm_match, "_report_racing_related", return_value=True
+        ),
+        "prompt": mocker.patch.object(
+            nascar_on_nbc.llm_match,
+            "classify_by_prompt",
+            return_value=ClassificationResult(
+                source="llm", type="content", reason="llm", reply="racing"
+            ),
+        ),
+        "reading": mocker.patch.object(audio_sensor.sensor, "reading"),
+    }
+    mocker.patch.object(nascar_on_nbc.llm_match, "load_image_b64", return_value="")
+    assert nascar_on_nbc.AUDIO_MODEL is not None
+
+    def set_audio(p_ad, abstain=None):
+        stubs["reading"].return_value = audio_sensor.AudioReading(
+            p_ad=p_ad, clips=15, span_seconds=28.0, abstain=abstain
+        )
+
+    set_audio(None, "cold")
+
+    def classify():
+        return nascar_on_nbc.classify_image(str(path), b"wav")
+
+    return nascar_on_nbc, stubs, set_audio, classify
+
+
+def test_confident_audio_ad_skips_the_llm(pipeline):
+    profile, stubs, set_audio, classify = pipeline
+    set_audio(profile.AUDIO_MODEL.ad_threshold)
+    result = classify()
+    assert (result.source, result.type) == ("audio", "ad")
+    assert result.signals == {"p_audio": profile.AUDIO_MODEL.ad_threshold, "audio_abstain": None}
+    stubs["quick"].assert_not_called()
+    stubs["prompt"].assert_not_called()
+
+
+def test_confident_audio_content_skips_the_llm(pipeline):
+    profile, stubs, set_audio, classify = pipeline
+    set_audio(profile.AUDIO_MODEL.content_threshold)
+    result = classify()
+    assert (result.source, result.type) == ("audio", "content")
+    stubs["quick"].assert_not_called()
+
+
+def test_audio_between_the_thresholds_goes_to_the_llm(pipeline):
+    profile, stubs, set_audio, classify = pipeline
+    model = profile.AUDIO_MODEL
+    p = (model.ad_threshold + model.content_threshold) / 2
+    set_audio(p)
+    result = classify()
+    assert result.source == "llm"
+    # The score still rides along with the LLM's verdict.
+    assert result.signals == {"p_audio": p, "audio_abstain": None}
+    stubs["prompt"].assert_called_once()
+
+
+def test_abstaining_audio_goes_to_the_llm(pipeline):
+    _, stubs, _, classify = pipeline
+    result = classify()
+    assert result.source == "llm"
+    assert result.signals == {"p_audio": None, "audio_abstain": "cold"}
+
+
+def test_banner_outranks_confident_audio_content(pipeline):
+    profile, stubs, set_audio, classify = pipeline
+    stubs["banner"].return_value = True
+    set_audio(0.0)
+    result = classify()
+    assert (result.source, result.type, result.reason) == ("opencv", "ad", "side_by_side")
+    assert result.signals["p_audio"] == 0.0
+
+
+def test_bug_outranks_confident_audio_ad(pipeline):
+    # Sponsor reads over live pictures at a rejoin: vision is the authority.
+    profile, stubs, set_audio, classify = pipeline
+    stubs["bug"].return_value = True
+    set_audio(1.0)
+    result = classify()
+    assert (result.source, result.type) == ("opencv", "content")
+
+
+def test_audio_check_can_be_disabled(pipeline, mocker):
+    profile, stubs, set_audio, classify = pipeline
+    mocker.patch.object(profile, "ENABLE_AUDIO_CHECK", False)
+    set_audio(1.0)
+    result = classify()
+    assert result.source == "llm"
+    assert stubs["reading"].call_args.args[0] is None

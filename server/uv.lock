@@ -660,6 +660,7 @@ dependencies = [
     { name = "pillow" },
     { name = "prometheus-fastapi-instrumentator" },
     { name = "python-multipart" },
+    { name = "scipy" },
     { name = "uvicorn", extra = ["standard"] },
 ]
 
@@ -682,6 +683,7 @@ requires-dist = [
     { name = "pillow", specifier = ">=12.1.1" },
     { name = "prometheus-fastapi-instrumentator", specifier = ">=7.0.0" },
     { name = "python-multipart", specifier = ">=0.0.20" },
+    { name = "scipy", specifier = ">=1.17.1" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.34.0" },
 ]
 

@@ -6,6 +6,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 import tv_commercial_detector.audio_health as audio_health_module
+import tv_commercial_detector.audio_sensor as audio_sensor_module
 import tv_commercial_detector.phash_override as phash_override_module
 from tv_commercial_detector import state as state_module
 from tv_commercial_detector.config import app_config
@@ -55,6 +56,7 @@ def reset_state():
     state_module.recent_frames.clear()
     phash_override_module.reset()
     audio_health_module.reset()
+    audio_sensor_module.reset()
 
     app_config.matrix_url = "http://localhost:5000"
     app_config.enable_debounce = False

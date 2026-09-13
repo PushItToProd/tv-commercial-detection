@@ -80,6 +80,28 @@ def test_writes_classifications_metadata_at_save_dir_root(save_dir):
     assert records[0]["note"] == "hi"
 
 
+def test_writes_classification_signals_when_present(save_dir):
+    from tv_commercial_detector.classification.result import ClassificationResult
+
+    with_signals = _entry(timestamp="2026-01-01T08:00:00.000001")
+    with_signals.result = ClassificationResult(
+        source="audio",
+        type="ad",
+        reason="audio_sensor",
+        reply=None,
+        signals={"p_audio": 0.97, "audio_abstain": None},
+    )
+    without = _entry(timestamp="2026-01-01T08:00:02.000001")
+    without.result = ClassificationResult(source="llm", type="ad", reason="x", reply=None)
+    save_frames_batch([with_signals, without], "test")
+    records = [
+        json.loads(line)
+        for line in (save_dir / CLASSIFICATIONS_FILE).read_text().splitlines()
+    ]
+    assert records[0]["classification_signals"] == {"p_audio": 0.97, "audio_abstain": None}
+    assert "classification_signals" not in records[1]
+
+
 def test_writes_timebase_fields(save_dir):
     save_frames_batch(
         [

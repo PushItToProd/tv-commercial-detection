@@ -61,6 +61,8 @@ def save_frames_batch(
                 record["classification"] = entry.result.type
                 record["classification_reason"] = entry.result.reason
                 record["model_reply"] = entry.result.reply
+                if entry.result.signals:
+                    record["classification_signals"] = entry.result.signals
             if extra:
                 record.update(extra)
             f.write(json.dumps(record) + "\n")

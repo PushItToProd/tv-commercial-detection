@@ -79,6 +79,7 @@
     <div class="text-center flex-grow-1 text-white">
       <h1 id="label" class="text-mega text-white mb-0">...</h1>
       <div id="classification-reason" class="mt-0 pt-0 fs-3 fst-italic"></div>
+      <div id="audio-sensor" class="fs-5 text-white-50"></div>
       <h2 id="paused-indicator" class="display-2 text-white mb-0 pb-0"></h2>
     </div>
 
@@ -259,6 +260,20 @@ function updateAudioWarning(warning) {
   document.getElementById('audio-warning-detail').textContent = parts.join(' ') + '.';
 }
 
+// The audio sensor's score for the last frame, or why it had none. Absent
+// entirely for profiles that don't consult it.
+function updateAudioSensor(sensor) {
+  const el = document.getElementById('audio-sensor');
+  if (!el) return;
+  if (!sensor) {
+    el.textContent = '';
+  } else if (sensor.p_ad !== null) {
+    el.textContent = `audio p(ad) ${sensor.p_ad.toFixed(2)}`;
+  } else {
+    el.textContent = `audio: no opinion (${sensor.abstain})`;
+  }
+}
+
 // Last status payload and when it arrived, so the indicator can be re-rendered
 // on a timer without re-running the rest of applyData (which reloads the frame
 // image every call).
@@ -364,6 +379,7 @@ function applyData(data) {
   }
   updatePauseCountdown();
   updateAudioWarning(data.audio_warning);
+  updateAudioSensor(data.audio_sensor);
   const pauseBtn = document.getElementById('btn-pause-auto-switch');
   if (pauseBtn) pauseBtn.style.display = (data.auto_switch && !autoSwitchPausedUntil) ? '' : 'none';
 }
