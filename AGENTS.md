@@ -169,7 +169,7 @@ The extension posts to every endpoint in its list, so it can run alongside the
 detector — add its `/receive` URL as a second endpoint in the popup.
 
 ```bash
-uv run python scripts/record_broadcast.py -d /mnt/data/tv-commercial-detector/full_broadcast_frames
+uv run python scripts/record_broadcast.py -d /mnt/data/tv-commercial-detector/full_broadcasts
 ```
 
 Each broadcast gets its own directory under `-d`, named from the page hostname,

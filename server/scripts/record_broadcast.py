@@ -9,7 +9,7 @@ The browser extension posts to every endpoint in its list, so this can run
 alongside the real detector: add `http://<host>:11680/receive` as a second
 endpoint in the extension popup and both get the same frames.
 
-    uv run python scripts/record_broadcast.py -d /mnt/data/tv-commercial-detector/full_broadcast_frames
+    uv run python scripts/record_broadcast.py -d /mnt/data/tv-commercial-detector/full_broadcasts
 
 Frames land in a per-broadcast directory derived from the page's hostname, the
 network name (YouTube TV reports one; other sites don't) and the video or page
