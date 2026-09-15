@@ -1,5 +1,7 @@
 # A reusable broadcast lab
 
+Superseded by [plan-broadcast-annotation-app](./plan-broadcast-annotation-app.md)
+
 ## Context
 
 The current experiment tree measured a lot but can only ever measure one race.
