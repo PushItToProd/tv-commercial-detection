@@ -58,7 +58,7 @@ server/              FastAPI application
     classification/    Tests for logo_match and rectangle_match
     routes/            Tests for each route
     integration/       Integration tests (require a live llama.cpp server)
-  scripts/             Utility scripts (record_broadcast.py, fit_audio_model.py, find_dupes.py, etc.)
+  scripts/             Utility scripts (record_broadcast.py, annotate_broadcasts.py, fit_audio_model.py, etc.)
   config.json          Optional local config (gitignored; overrides defaults)
   frames/              Save dir (runtime, gitignored)
     images/              Full-size frames
@@ -227,6 +227,57 @@ produces a `classifications.jsonl` that Python reads back but `jq` and
 detector's `/receive` and `record_broadcast.py` so both write the same fields.
 Every field is independently optional, so an older extension still posts
 successfully and simply records nulls.
+
+### Annotating recorded broadcasts
+
+`scripts/annotate_broadcasts.py` is a standalone app for ruling on a
+recording's frames by hand. It reads nothing but the recording's
+`classifications.jsonl` and media, and writes an `annotations.json` beside
+them; no classifier, experiment or ground truth is involved.
+
+```bash
+uv run python scripts/annotate_broadcasts.py                    # http://localhost:8766/
+uv run python scripts/annotate_broadcasts.py --root DIR --port 8766
+```
+
+`--root` defaults to `/mnt/data/tv-commercial-detector/full_broadcasts`. A
+broadcast is a recording directory, `<root>/<host>/<dir>/`, and is identified
+by that relative path — deliberately not by the manifest's `video_id`, which
+on YouTube TV is the channel rather than the program (four different USA
+recordings share one). The dropdown lists every recording under the root; a
+recording still being written picks up new frames as its manifest grows.
+
+Each frame's record is flat and every field optional:
+
+| Field | Values | Meaning |
+|---|---|---|
+| `verdict` | `ad` / `content` | binary; there is no third class |
+| `exclude` | `true` | genuinely undecidable (bumper, black, capture artifact) — a scoring mask, not a verdict |
+| `note` | text | free-form |
+| `video` / `audio` / `risk` | the vocabularies in the script | what is on screen, in the sound, and whether the frame is safe to learn from |
+| `care_away` / `care_back` | 0–3 | what being wrong costs in each direction |
+
+The vocabularies are the ones the operator wrote down during the Iowa review;
+nothing is inferred from notes. The UI has cards (one frame, every field
+editable), a contact sheet (thumbnails of the whole selection, for finding
+segment edges by eye), a lightbox that walks the broadcast with a filmstrip
+and audio, and shift-click range selection with a bulk editor where every field
+is independently left alone, set or cleared. `A` / `R` fill from the previous
+ruled frame through the current one, which is how a whole segment is ruled in
+one keystroke; a fill longer than `FILL_MAX` frames is refused in favor of a
+range edit, and `u` undoes the last one. Filters: `unlabeled`, `labeled`, `ad`,
+`content`, `exclude`, `boundary` (verdict differs from a neighbour's),
+`noted`, `unfaceted`, `fraught`, `ad_read`, `all`. Thumbnails are generated
+into `<broadcast>/thumbnails/` on first request.
+
+`import-verdicts` brings rulings over from the old review app's files, dry run
+by default. `other` rulings arrive with no verdict and their note, so they land
+under `unlabeled` for a real ruling; a facet `artifact` becomes `exclude`.
+
+```bash
+uv run python scripts/annotate_broadcasts.py import-verdicts \
+    --broadcast tv.youtube.com/USA_4K_Iowa_Corn_350 [--overwrite] --apply
+```
 
 ### Pruning silent audio files
 
