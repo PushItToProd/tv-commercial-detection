@@ -122,3 +122,41 @@ def test_warning_logged_once_per_transition(caplog):
             audio_health.record_clip(silent_wav(0.1))
     dead = [r for r in caplog.records if "Audio capture appears dead" in r.message]
     assert len(dead) == 1
+
+
+# --- is_silent_clip: the per-clip gate, independent of the streak ------------
+
+
+def test_is_silent_clip_on_digital_silence():
+    assert audio_health.is_silent_clip(silent_wav(0.1)) is True
+
+
+def test_is_silent_clip_on_a_clip_with_signal():
+    assert audio_health.is_silent_clip(tone_wav(0.1)) is False
+
+
+def test_is_silent_clip_at_the_threshold():
+    """`record_clip` counts a peak at the threshold as silence; so does this."""
+    full_scale = 32768.0
+    at = int(app_config.audio_silence_threshold * full_scale)
+    assert audio_health.is_silent_clip(make_wav(np.full(100, at, dtype=np.int16)))
+    assert not audio_health.is_silent_clip(
+        make_wav(np.full(100, at + 1, dtype=np.int16))
+    )
+
+
+def test_is_silent_clip_ignores_the_streak():
+    """One silent clip is uninformative whatever the clips around it did."""
+    audio_health.record_clip(tone_wav(0.1))
+    assert audio_health.warning() is None
+    assert audio_health.is_silent_clip(silent_wav(0.1)) is True
+
+
+def test_is_silent_clip_on_a_missing_clip():
+    assert audio_health.is_silent_clip(None) is False
+    assert audio_health.is_silent_clip(b"") is False
+
+
+def test_is_silent_clip_on_an_unparseable_clip():
+    """Nothing was measured, so nothing is claimed — it's passed through."""
+    assert audio_health.is_silent_clip(b"not a wav file") is False

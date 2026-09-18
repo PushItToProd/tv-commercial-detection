@@ -33,7 +33,6 @@ keeps ~62% of frames on the fast path; the weaker true positives it misses
 fall through to the LLM instead of being misread, which is the safer failure
 mode (see `nascar_on_nbc` docstring for the same asymmetry argument).
 """
-import base64
 
 import cv2
 
@@ -86,7 +85,7 @@ def classify_image(image_path: str, audio_bytes: bytes | None = None) -> Classif
     # as a genuine ad, and a silent ad default would hide every case where the
     # template has gone stale against a new graphics package.
     image_data = llm_match.load_image_b64(image_path)
-    audio_data = base64.b64encode(audio_bytes).decode("utf-8") if audio_bytes is not None else None
+    audio_data = llm_match.audio_b64(audio_bytes)
 
     if not llm_match._report_racing_related(image_data, audio_data, subject="NFL football"):
         return ClassificationResult(

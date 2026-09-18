@@ -1,4 +1,3 @@
-import base64
 
 import cv2
 
@@ -135,7 +134,7 @@ def classify_image(image_path: str, audio_bytes: bytes | None = None) -> Classif
         )
 
     image_data = llm_match.load_image_b64(image_path)
-    audio_data = base64.b64encode(audio_bytes).decode("utf-8") if audio_bytes is not None else None
+    audio_data = llm_match.audio_b64(audio_bytes)
 
     racing_related = llm_match._report_racing_related(image_data, audio_data)
     if not racing_related:

@@ -60,6 +60,20 @@ def peak_amplitude(wav_bytes: bytes) -> float | None:
     return float(deviation) / full_scale
 
 
+def is_silent_clip(wav_bytes: bytes | None) -> bool:
+    """Whether this one clip carries no signal worth handing to a model.
+
+    Independent of the rolling streak below: a single silent clip is already
+    uninformative, whatever the clips around it did. A clip that can't be
+    parsed is not called silent, matching `record_clip` — nothing was measured,
+    so nothing is claimed.
+    """
+    if not wav_bytes:
+        return False
+    peak = peak_amplitude(wav_bytes)
+    return peak is not None and peak <= app_config.audio_silence_threshold
+
+
 @dataclass
 class AudioHealth:
     """Rolling view of recent clips. Reset between test functions."""

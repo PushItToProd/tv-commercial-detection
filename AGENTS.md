@@ -319,6 +319,22 @@ while the native host is connected, and running without it isn't a fault. Clips
 that can't be parsed as WAV neither start nor break a silent streak — a corrupt
 clip says nothing about whether the capture source is live.
 
+Separately from that streak, `is_silent_clip()` gates each clip on its own
+before it reaches the model: `llm_match.audio_b64()` returns None for a silent
+one, so both LLM passes run image-only. A silent clip is worse than no clip,
+because this model won't report silence — asked five times to describe one clip
+of pure digital silence, Qwen3-Omni described an engine revving, a person
+speaking, a crowd cheering and (twice) a synthesizer note — and both passes are
+written to weigh what it hears alongside the image, so the invention launders
+into evidence about the broadcast. Measured over 30 ruled Iowa frames the
+OpenCV checks leave undecided, sending one archived silent clip alongside each
+took `_report_racing_related` from 28/30 agreement with the operator to 24/30,
+and every one of the six errors ran the dangerous way — an ad called `content`,
+which leaves a commercial on screen. One silent clip is already uninformative,
+which is why the gate is per-clip rather than waiting for the streak. A clip
+that can't be parsed is passed through: nothing was measured, so nothing is
+claimed.
+
 ### Audio sensor
 
 Audio alone separates commercials from live racing well — an engine-roar band

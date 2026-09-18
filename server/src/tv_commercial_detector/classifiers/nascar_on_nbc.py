@@ -44,7 +44,6 @@ likely reach the same verdict for a few hundred ms. Prefer missing.
 Frames neither OpenCV check settles go to the audio sensor before the LLM; see
 the audio section below.
 """
-import base64
 import dataclasses
 import math
 from pathlib import Path
@@ -364,7 +363,7 @@ def classify_image(image_path: str, audio_bytes: bytes | None = None) -> Classif
     # the NBC graphics package hasn't been verified against this season, so a
     # silent content default would hide every case where the templates are stale.
     image_data = llm_match.load_image_b64(image_path)
-    audio_data = base64.b64encode(audio_bytes).decode("utf-8") if audio_bytes is not None else None
+    audio_data = llm_match.audio_b64(audio_bytes)
 
     if not llm_match._report_racing_related(image_data, audio_data):
         return ClassificationResult(

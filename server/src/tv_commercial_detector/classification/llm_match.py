@@ -1,6 +1,7 @@
 import base64
 import io
 import json
+import logging
 import os
 import re
 from pathlib import Path
@@ -10,8 +11,11 @@ from openai import OpenAI
 from openai.types.chat import ChatCompletionMessageParam
 from PIL import Image
 
+from .. import audio_health
 from ..config import app_config
 from .result import ClassificationResult
+
+logger = logging.getLogger(__name__)
 
 # Model name is now read from app_config.llm_model_name at call time.
 
@@ -80,6 +84,24 @@ def _resize_image(image_path: str) -> bytes:
 def load_image_b64(image_path: str) -> str:
     image_data = base64.b64encode(_resize_image(image_path)).decode("utf-8")
     return image_data
+
+
+def audio_b64(audio_bytes: bytes | None) -> str | None:
+    """Encode a clip for the model, or None when it carries no signal.
+
+    Silence is withheld rather than sent. Asked to describe a digitally silent
+    clip this model doesn't report silence — it invents play-by-play, returning
+    crowd and engine noise for a file whose largest sample is 1 — and both LLM
+    passes below are written to weigh what it hears alongside the image, so the
+    invention launders into evidence that the broadcast is live. No audio at
+    all is a case both passes already handle.
+    """
+    if audio_bytes is None:
+        return None
+    if audio_health.is_silent_clip(audio_bytes):
+        logger.debug("Withholding a silent audio clip from the LLM")
+        return None
+    return base64.b64encode(audio_bytes).decode("utf-8")
 
 
 def _extract_json(reply: str) -> dict | None:

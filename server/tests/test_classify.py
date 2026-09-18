@@ -3,10 +3,14 @@
 All tests use synthetic JPEG fixtures — no real broadcast images needed.
 """
 
+import io
 import json
+import math
+import wave
 from pathlib import Path
 from unittest.mock import MagicMock
 
+import numpy as np
 from PIL import Image
 
 from tv_commercial_detector.classification.llm_match import (
@@ -328,3 +332,60 @@ def test_classify_by_prompt_handles_malformed_json(mocker):
 
     result = classify_by_prompt("fakebase64data==")
     assert result.type == "ad"
+
+
+# ---------------------------------------------------------------------------
+# Silent audio is withheld from both LLM passes
+# ---------------------------------------------------------------------------
+
+
+def _wav(amplitude: int, seconds: float = 0.1) -> bytes:
+    t = np.arange(int(44100 * seconds)) / 44100
+    samples = (amplitude * np.sin(2 * math.pi * 440 * t)).astype(np.int16)
+    buf = io.BytesIO()
+    with wave.open(buf, "wb") as wf:
+        wf.setnchannels(1)
+        wf.setsampwidth(2)
+        wf.setframerate(44100)
+        wf.writeframes(samples.tobytes())
+    return buf.getvalue()
+
+
+def _audio_passed_to_llm(tmp_path, mocker, audio_bytes):
+    """Run the LLM path of classify_image and report what audio each pass saw."""
+    image_path = _make_jpeg(tmp_path)
+    mocker.patch(
+        "tv_commercial_detector.classifiers.nascar_on_fox.has_network_logo",
+        return_value=False,
+    )
+    mocker.patch(
+        "tv_commercial_detector.classifiers.nascar_on_fox.has_side_by_side_logo",
+        return_value=False,
+    )
+    mocker.patch(
+        "tv_commercial_detector.classification.rectangle_match.image_has_known_ad_rectangle",
+        return_value=None,
+    )
+    quick = mocker.patch(
+        "tv_commercial_detector.classification.llm_match._report_racing_related",
+        return_value=True,
+    )
+    full = mocker.patch(
+        "tv_commercial_detector.classification.llm_match.classify_by_prompt",
+        return_value=ClassificationResult(
+            source="llm", type="content", reason="model-match", reply=""
+        ),
+    )
+    classify_image(image_path, audio_bytes)
+    return quick.call_args.args[1], full.call_args.args[1]
+
+
+def test_silent_audio_is_not_sent_to_either_llm_pass(tmp_path, mocker):
+    """A silent clip is worse than none: the model invents engine noise from it."""
+    assert _audio_passed_to_llm(tmp_path, mocker, _wav(amplitude=0)) == (None, None)
+
+
+def test_audio_with_signal_is_sent_to_both_llm_passes(tmp_path, mocker):
+    quick, full = _audio_passed_to_llm(tmp_path, mocker, _wav(amplitude=8000))
+    assert quick is not None
+    assert quick == full
