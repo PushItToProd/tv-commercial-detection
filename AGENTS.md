@@ -321,19 +321,29 @@ clip says nothing about whether the capture source is live.
 
 Separately from that streak, `is_silent_clip()` gates each clip on its own
 before it reaches the model: `llm_match.audio_b64()` returns None for a silent
-one, so both LLM passes run image-only. A silent clip is worse than no clip,
-because this model won't report silence — asked five times to describe one clip
-of pure digital silence, Qwen3-Omni described an engine revving, a person
-speaking, a crowd cheering and (twice) a synthesizer note — and both passes are
-written to weigh what it hears alongside the image, so the invention launders
-into evidence about the broadcast. Measured over 30 ruled Iowa frames the
-OpenCV checks leave undecided, sending one archived silent clip alongside each
-took `_report_racing_related` from 28/30 agreement with the operator to 24/30,
-and every one of the six errors ran the dangerous way — an ad called `content`,
-which leaves a commercial on screen. One silent clip is already uninformative,
-which is why the gate is per-clip rather than waiting for the streak. A clip
-that can't be parsed is passed through: nothing was measured, so nothing is
-claimed.
+one, so the LLM passes run image-only. A silent clip is worse than no clip
+because the model won't report silence, it confabulates — asked five times to
+describe one clip of pure digital silence, Qwen3-Omni heard an engine revving,
+a person speaking, a crowd cheering and (twice) a synthesizer note.
+
+The damage lands on the quick check, the one pass that asks about audio:
+`_report_racing_related` rewrites its question to weigh "both the audio and the
+image" whenever a clip is attached. Measured over 30 ruled Iowa frames the
+OpenCV checks leave undecided — the only frames an LLM verdict can reach —
+sending one archived silent clip alongside each took its agreement with the
+operator from 28/30 to 24/30, and every one of the six errors ran the dangerous
+way: an ad called `content`, which leaves a commercial on screen.
+
+The full-prompt pass shows no such effect, because no prompt file mentions
+audio at all — every one of them opens "you are analyzing a screenshot", so an
+attached clip arrives as a content part the instructions never refer to. Over
+20 of the same frames the verdict was identical with the silent clip and
+without it, and no reply mentioned audio. The gate covers that pass anyway,
+since the asymmetry is a property of the prompt text and not of the plumbing.
+
+One silent clip is already uninformative, which is why the gate is per-clip
+rather than waiting for the streak. A clip that can't be parsed is passed
+through: nothing was measured, so nothing is claimed.
 
 ### Audio sensor
 
