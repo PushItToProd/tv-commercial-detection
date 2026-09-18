@@ -22,3 +22,6 @@
   - [ ] deduplicate images on save if possible -- at least ones with identical md5 hashes, maybe phashes too
 
 - [ ] thorny question: how do I modularize this and make it configurable so I don't have to create a new classifier from scratch for every TV series
+
+- [ ] the audio-based ad detection based on bass triggers false positives on rumbling car engines heard on pit road
+  - [ ] identify example audio I can provide as a test case to an agent
