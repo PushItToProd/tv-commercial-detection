@@ -334,12 +334,21 @@ sending one archived silent clip alongside each took its agreement with the
 operator from 28/30 to 24/30, and every one of the six errors ran the dangerous
 way: an ad called `content`, which leaves a commercial on screen.
 
-The full-prompt pass shows no such effect, because no prompt file mentions
-audio at all — every one of them opens "you are analyzing a screenshot", so an
-attached clip arrives as a content part the instructions never refer to. Over
-20 of the same frames the verdict was identical with the silent clip and
-without it, and no reply mentioned audio. The gate covers that pass anyway,
-since the asymmetry is a property of the prompt text and not of the plumbing.
+The full-prompt pass is less exposed, because no prompt file mentions audio at
+all — each opens "you are analyzing a screenshot", so a clip arrives as a
+content part the instructions never refer to. It is not immune: over the 57
+hardest Iowa frames (`ad_read`, `chatter` or `fraught`), attaching the real
+clip to the unchanged prompt still moved five verdicts. A silent clip there
+costs little, though — 70% on those frames either way.
+
+The gate covers that pass anyway, because the margin is a property of the
+prompt text rather than the plumbing. An audio-aware variant of
+`prompt_nbc.txt` scored 79% on those frames with the real clip and 63% with a
+silent one — worse than ignoring audio altogether — and telling the prompt in
+so many words to disregard silence did not defend it: only 39 of 130 replies
+noticed the silence, and those that did scored lower than those that didn't.
+The moment a prompt starts listening, the gate is what stands between it and
+a confabulation.
 
 One silent clip is already uninformative, which is why the gate is per-clip
 rather than waiting for the streak. A clip that can't be parsed is passed
