@@ -14,7 +14,6 @@ Checkboxes key:
 - [ ] `track_interactions.js` registers event listeners on the video tag, but it doesn't unregister them if it later targets another video tag
 
 - [ ] auto-save config when you click "start" (currently, it reports an error even though there's placeholder config pre-populated)
-- [ ] notify the server when the sender extension is started or stopped (and show this on the UI)
 - [ ] ensure we only accept images for classification from one tab/sender at a time -- don't want to accidentally DoS myself or confuse the classifier if I enable this on multiple tabs
 - [ ] don't switch if I'm actively interacting with the video player tab (onmouseover?)
   - [ ] if I seek multiple times or catch up to live and end up on a commercial after having been on a break, wait to switch after a short delay in case I want to keep interacting
@@ -55,12 +54,10 @@ Checkboxes key:
   - I suppose a rudimentary way to do it would be to make all the request processing on the `/receive` endpoint synchronous, so it only sends a response after classification is finished and the switcher has switched (if needed). Of course, the extension's scheduled screenshot sending would need to be tweaked so it could tell if it had gotten a response from the server for its last request yet and skip sending a new screenshot if it hasn't.
 - [ ] elegantly handle timeouts from both the llama.cpp server and the HDMI Matrix control server
 
-- [/] review jpg support one last time -- some places still assume png
 - [ ] build an abstraction layer for accessing image files and associated data
 
 - [ ] the receiver saves the received image as a file, but then `_classify_image` takes the file path and reads it as base64 -- maybe that can be cut out
 - [ ] factor out an enum of classification labels to support more consistent typing
-- [ ] keep track of last receive time -- if we haven't gotten a new screenshot in a while (depending on the receive frequency), update the state to reflect possible connection loss and show that in the UI as well
 
 - [ ] allow importing classification profiles from a full Python path (so they could be added as plugins)
   - e.g. in `config.json` you could put `my_classifiers.some_sport` and it'd auto-import that package
@@ -74,7 +71,6 @@ Checkboxes key:
 #### Review
 
 - [ ] I keep wanting to add new label types or update existing ones -- e.g. now I want to just tag every image that's a Fox side-by-side ad break -- maybe support custom tags of some kind
-- [x] support better filtering of images based on classifications and things (like `view_classification_results.py`)
 - [ ] I want like a timeline view that shows all the images captured in a given broadcast (or at least a given timeframe) in chronological order
 - [ ] replace date range filters with custom ones that will use YYYY-MM-DD date formats
 
@@ -95,8 +91,6 @@ Checkboxes key:
 - [ ] the logo match gets confused when the upper right is mostly white
 
 ##### `logo_match.py`
-
-- [ ] `LOGO_PATH` is currently hardcoded -- it should be configurable
 
 #### Prompt
 
@@ -119,9 +113,6 @@ Checkboxes key:
   - I guess that's kinda what the first "quick reject" prompt is for
   - feels like this would probably exacerbate the current misclassifications
 
-- [ ] maybe include the previous reported state in the prompt to see if that helps -- e.g. `You last reported seeing (an ad|racing).`
-  - try including the previous screenshot, too
-  - if I hit "Report", include the corrected value in the prompt instead
 - [ ] include the broadcast network, racing series, and race name in the prompt
 - [ ] having the Fox/FS1 logo in the corner means it's almost always the main broadcast -- how fast would it be to just ask the model if there's a "Fox" logo in the upper right hand corner? would it be faster on average to start by prompting it to check that and then only doing other checks if there isn't one there?
 - [ ] I suppose I could also take a set of correctly and incorrectly classified images, feed them to the LLM I'm using to classify them, ask it what it sees, then ask it to generate a prompt for itself with a summary of elements to look for based on the actual classifications.
@@ -147,14 +138,10 @@ Checkboxes key:
   - maybe even better: `What percentage of this image contains NASCAR racing content? Reply with just the percentage.`
     - -> ask it to grade each image and then react based on the percentages (moving average?) of the last several images. If we go (100, 90, 100, 30), maybe don't switch right away, but if we go (100, 75, 75, 30), then maybe do switch right away.
 
-- [ ] could I just give Claude or some agent access to my `check_classification.py` script and prompt it to iterate on the prompt until we end up with an optimal one?
-- [ ] capture an entire race broadcast (or multiple broadcasts) as frames+audio, then have Claude just iterate on ways to consistently and quickly detect ads -- let it churn overnight or w/e and see what it comes up with
+#### Audio
 
-#### Future ideas
-
-- [ ] somehow capture the broadcast audio and use whisper or something with speaker diarization to check if one of the current network's hosts is talking
+- [ ] use whisper (or something similar with speaker identification/diarization) to check if one of the current network's hosts is talking
   - or try using some kind of audio classification model
-  - maybe volume and dynamic range would be a viable signal?
 
 ### Switching
 
@@ -163,8 +150,7 @@ Checkboxes key:
 
 ### UI
 
-- [x] display the reason for the categorization on the UI
-  - [ ] display the LLM's output
+- [ ] display the LLM's output in the `/is_ad` UI if it was used for classification
 - [ ] seems like the `/is_ad` SSE channel gets disconnected if the server is down for too long (more than a few seconds) or if I SIGTERM it -- the page should detect if the connection is closed, show a "connection lost" message, and fall back on polling
 - [ ] kinda wish I had hot reload on the frontend when I make UI changes
 - [ ] right now, the client requests `/is_ad/last_frame?t=${Date.now}` every time it receives a message from the server, even if there's no new image. this should be updated to avoid a pointless fetch if the image hasn't changed
@@ -175,9 +161,7 @@ Checkboxes key:
 - [ ] when in the "Pending" state, provide a way to confirm it's right and switch right away
 
 - [ ] when I click "Report", it should include a unique ID (timestamp?) of the image reported so there's no race condition from hitting it a split second too late -- currently, I think there's a race condition where I could hit "Report" just as it changes and it would associate that with the wrong image (though it retains multiple images, so maybe it's fine)
-- [ ] ambitious: when I click "Report", temporarily update the classifier prompt to include the relevant screenshot as an example.
 
-- [ ] stretch: allow controlling YTTV (pause, rewind, etc.) from the web UI
 - [ ] include `incorrect_frames` in the `/review` endpoint so I can classify them
 - [ ] if the server stops responding when the UI polls for updates, show that the connection was lost
 - [ ] show a counter of the number of seconds since the last image was received

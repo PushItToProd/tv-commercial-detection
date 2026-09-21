@@ -39,6 +39,7 @@ Checkboxes key:
 - [-] allow configuring separate intervals for each endpoint
 - [x] weird 'No video found' error sometimes
 - [-] maybe just get rid of multi-endpoint config and assume it's going to be linked to one control server from now on (but that would prevent `record_broadcast.py` from being useful)
+- [x] notify the server when the sender extension is started or stopped (and show this on the UI)
 
 ## Web app
 - [x] deploy everything in docker
@@ -67,6 +68,10 @@ Checkboxes key:
   - [x] first just find a way to record a race broadcast with video and audio
 - [x] don't save compressed images into the same directory as their originals
 - [x] move the images in the save_dir to two subdirectories under that directory: `${save_dir}/images` for full sized images and `${save_dir}/thumbnails` for compressed images
+- [x] review jpg support one last time -- some places still assume png
+- [x] keep track of last receive time -- if we haven't gotten a new screenshot in a while (depending on the receive frequency), update the state to reflect possible connection loss and show that in the UI as well
+- [x] capture an entire race broadcast (or multiple broadcasts) as frames+audio, then have Claude just iterate on ways to consistently and quickly detect ads -- let it churn overnight or w/e and see what it comes up with
+- [x] somehow capture the broadcast audio
 
 #### Review
 
@@ -74,6 +79,7 @@ Checkboxes key:
 - [x] update `/review` to let me categorize images based on additional features
 - [x] record the broadcast name, network, page URL, and seek time with each image
 - [x] make `/review` paginated and filterable
+- [x] support better filtering of images based on classifications and things (like `view_classification_results.py`)
 
 #### Accuracy
 
@@ -85,6 +91,8 @@ Checkboxes key:
 - [x] manually classify a bunch of images for testing my OpenCV-based approach
 
 ##### `logo_match.py`
+
+- [x] `LOGO_PATH` is currently hardcoded -- it should be configurable
 
 #### Prompt
 
@@ -105,10 +113,21 @@ Checkboxes key:
   - https://prometheus.github.io/client_python/exporting/http/flask/
 - [x] prompt the model to include a confidence score -- not sure it'll help but could be useful in the future
   - ~~maybe if the confidence is high enough, switch without waiting for a second result~~ -- turns out the confidence is always too high. stupid overconfident LLMs...
+- [x] maybe include the previous reported state in the prompt to see if that helps -- e.g. `You last reported seeing (an ad|racing).`
+  - try including the previous screenshot, too
+  - if I hit "Report", include the corrected value in the prompt instead
+  - -> this approach didn't work per the hystersis experiments
+- [-] ambitious: when I click "Report", temporarily update the classifier prompt to include the relevant screenshot as an example.
+  - feels not super useful with the current approach
+  - also now I have phashing
+
+#### Audio
+
+- [x] maybe volume and dynamic range would be a viable signal?
 
 #### Future ideas
 
-- [-] to improve the prompt further, grab closed captions/subtitles and include them with the screenshot when sending to the LLM
+- [-] ~~to improve the prompt further, grab closed captions/subtitles and include them with the screenshot when sending to the LLM~~
   - [x] can we grab subtitles/captions from the `<video>` tag? -> looks like no
 
 ### Switching
@@ -139,6 +158,8 @@ Checkboxes key:
 - [x] maybe use a CSS framework
 - [x] mobile-friendly UI so I can use it on my phone (another argument for using a CSS framework -- something like Bootstrap would probably make this easier)
 - [x] when I tap "Report", show a popup with all the recently captured frames and their classifications. let me pick which ones specifically were classified wrongly and save the whole batch
+- [x] display the reason for the categorization on the UI
+- [-] ~~stretch: allow controlling YTTV (pause, rewind, etc.) from the web UI~~ -> now a goal of my living-room-control project
 
 ## Additional tools
 
