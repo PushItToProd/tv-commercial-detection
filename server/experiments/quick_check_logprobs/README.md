@@ -471,9 +471,10 @@ verdict token, so P(ad) says little about how hard a frame is.
 
 ## Suggestions
 
-1. **Remove the quick check from `nascar_on_nbc`.** It changed no verdict on
-   the census and costs 133 ms per LLM frame on average. Keep
-   `_report_racing_related` for the other profiles until they're measured.
+1. **Remove the quick check from `nascar_on_nbc`.** Done. It changed no
+   verdict on the census and cost 133 ms per LLM frame on average. The other
+   profiles keep `_report_racing_related` until each has an annotated
+   broadcast to measure against.
 2. **Iterate the full prompt against the survey test set.** `survey.py` asks
    all four conditions; for prompt work only `full_audio` (production) and
    perhaps `full_image` are needed, about 2.5 minutes each over 500 frames. A

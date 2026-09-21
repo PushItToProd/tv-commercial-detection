@@ -312,8 +312,9 @@ def pipeline(tmp_path, mocker):
     stubs = {
         "banner": mocker.patch.object(nascar_on_nbc, "has_side_by_side_logo", return_value=False),
         "bug": mocker.patch.object(nascar_on_nbc, "has_network_logo", return_value=False),
+        # Set to reject, so a frame that reached it would come back as an ad.
         "quick": mocker.patch.object(
-            nascar_on_nbc.llm_match, "_report_racing_related", return_value=True
+            nascar_on_nbc.llm_match, "_report_racing_related", return_value=False
         ),
         "prompt": mocker.patch.object(
             nascar_on_nbc.llm_match,
@@ -346,7 +347,6 @@ def test_confident_audio_ad_skips_the_llm(pipeline):
     result = classify()
     assert (result.source, result.type) == ("audio", "ad")
     assert result.signals == {"p_audio": profile.AUDIO_MODEL.ad_threshold, "audio_abstain": None}
-    stubs["quick"].assert_not_called()
     stubs["prompt"].assert_not_called()
 
 
@@ -355,7 +355,7 @@ def test_confident_audio_content_skips_the_llm(pipeline):
     set_audio(profile.AUDIO_MODEL.content_threshold)
     result = classify()
     assert (result.source, result.type) == ("audio", "content")
-    stubs["quick"].assert_not_called()
+    stubs["prompt"].assert_not_called()
 
 
 def test_audio_between_the_thresholds_goes_to_the_llm(pipeline):
@@ -367,6 +367,14 @@ def test_audio_between_the_thresholds_goes_to_the_llm(pipeline):
     assert result.source == "llm"
     # The score still rides along with the LLM's verdict.
     assert result.signals == {"p_audio": p, "audio_abstain": None}
+    stubs["prompt"].assert_called_once()
+
+
+def test_undecided_frame_goes_straight_to_the_full_prompt(pipeline):
+    _, stubs, _, classify = pipeline
+    result = classify()
+    assert (result.source, result.type) == ("llm", "content")
+    stubs["quick"].assert_not_called()
     stubs["prompt"].assert_called_once()
 
 

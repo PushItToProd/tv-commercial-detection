@@ -87,6 +87,9 @@ def classify_image(image_path: str, audio_bytes: bytes | None = None) -> Classif
     image_data = llm_match.load_image_b64(image_path)
     audio_data = llm_match.audio_b64(audio_bytes)
 
+    # TODO: evaluate removing this quick check, as was done for nascar_on_nbc
+    # (see experiments/quick_check_logprobs/README.md). It needs a fully
+    # annotated NFL-on-NBC recording to measure against first.
     if not llm_match._report_racing_related(image_data, audio_data, subject="NFL football"):
         return ClassificationResult(
             source="llm",

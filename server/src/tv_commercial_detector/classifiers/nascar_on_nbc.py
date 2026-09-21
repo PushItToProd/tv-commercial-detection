@@ -362,17 +362,15 @@ def classify_image(image_path: str, audio_bytes: bytes | None = None) -> Classif
     # No confident verdict. Fall through to the LLM rather than assuming content:
     # the NBC graphics package hasn't been verified against this season, so a
     # silent content default would hide every case where the templates are stale.
+    #
+    # There is no yes/no quick check before the full prompt here. Over both
+    # annotated NBC/USA recordings, every frame it rejected the full prompt also
+    # called an ad, and since OpenCV and the audio sensor settle most ads first,
+    # it rejected too few of the frames left over to pay for its own request
+    # (~170 ms against the full prompt's ~300 ms). See
+    # experiments/quick_check_logprobs/README.md.
     image_data = llm_match.load_image_b64(image_path)
     audio_data = llm_match.audio_b64(audio_bytes)
-
-    if not llm_match._report_racing_related(image_data, audio_data):
-        return ClassificationResult(
-            source="llm",
-            type="ad",
-            reason="model_quick_reject",
-            reply="No NASCAR-related content detected",
-            signals=signals,
-        )
 
     result = llm_match.classify_by_prompt(image_data, audio_data, prompt=PROMPT)
     return dataclasses.replace(result, signals=signals)

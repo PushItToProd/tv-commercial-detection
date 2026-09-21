@@ -67,6 +67,10 @@ Checkboxes key:
   - maybe just send the full-match prompt as a reply to the model's previous response? (except the model will have replied `yes` already, even if it's wrong, so that could influence the next reply).
   - alternatively, just structure the prompt to put the image and audio first maybe? (except then we lose the advantage of caching the long text prompt for the full match).
   - so maybe there's no good way to do this
+- [ ] evaluate removing the quick reject check from `nascar_on_fox`, `nhra_on_fox` and `nfl_on_nbc`, as was done for `nascar_on_nbc` (see `server/experiments/quick_check_logprobs/README.md`)
+  - on NBC/USA it never changed a verdict the full prompt would have reached and cost ~130 ms per LLM frame, because OpenCV and the audio sensor settle most ads before the LLM sees them
+  - blocked on a fully annotated broadcast for each profile; `survey.py` can be pointed at one once it exists
+  - the other profiles have no audio sensor, so their LLM likely sees a larger share of ads and the quick check has a better chance of paying for itself there
 
 #### Review
 

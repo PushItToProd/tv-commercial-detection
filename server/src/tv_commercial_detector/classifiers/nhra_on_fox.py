@@ -121,6 +121,9 @@ def classify_image(image_path: str) -> ClassificationResult:
 
     image_data = llm_match.load_image_b64(image_path)
 
+    # TODO: evaluate removing this quick check, as was done for nascar_on_nbc
+    # (see experiments/quick_check_logprobs/README.md). It needs a fully
+    # annotated NHRA-on-Fox recording to measure against first.
     racing_related = llm_match._report_racing_related(image_data)
     if not racing_related:
         return ClassificationResult(
