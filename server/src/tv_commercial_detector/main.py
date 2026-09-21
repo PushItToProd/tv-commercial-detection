@@ -1,5 +1,4 @@
 import asyncio
-import json
 import logging
 import os
 from contextlib import asynccontextmanager
@@ -8,7 +7,7 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
-from .config import app_config
+from .config import app_config, load_config
 from .frame_saver import periodic_frame_saver
 from .metrics import instrumentator
 from .routes.receive import router as receive_router
@@ -22,29 +21,7 @@ logging.basicConfig(level=logging.INFO)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Load config.json
-    config_path = Path(os.environ.get("CONFIG_FILE", "config.json"))
-    if config_path.exists():
-        with config_path.open() as f:
-            for k, v in json.load(f).items():
-                if hasattr(app_config, k.lower()):
-                    setattr(app_config, k.lower(), v)
-
-    # Environment variable overrides: DETECTOR_MATRIX_URL, DETECTOR_SAVE_DIR, etc.
-    env_map = {
-        "DETECTOR_MATRIX_URL": "matrix_url",
-        "LLAMA_SERVER_URL": "llm_url",
-        "DETECTOR_SAVE_DIR": "save_dir",
-        "DETECTOR_ENABLE_DEBOUNCE": "enable_debounce",
-        "DETECTOR_CLASSIFIER_PROFILE": "classifier_profile",
-    }
-    for env_key, attr in env_map.items():
-        val = os.environ.get(env_key)
-        if val is not None:
-            setattr(app_config, attr, val)
-
-    # Ensure path type and create directory
-    app_config.save_dir = Path(app_config.save_dir)
+    load_config(app_config, Path(os.environ.get("CONFIG_FILE", "config.json")))
     app_config.save_dir.mkdir(parents=True, exist_ok=True)
 
     state.enable_debounce = app_config.enable_debounce

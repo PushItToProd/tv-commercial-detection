@@ -81,7 +81,7 @@ def has_network_logo(img, masked_logos=MASKED_NETWORK_LOGOS):
 
 
 
-def classify_image(image_path: str) -> ClassificationResult:
+def classify_image(image_path: str, audio_bytes: bytes | None = None) -> ClassificationResult:
     """Three-pass classification: logo detection, scoreboard detection,
     then prompt-based fallback."""
     # FIXME: don't pass the image as a path to every function here. Load it once
@@ -120,11 +120,12 @@ def classify_image(image_path: str) -> ClassificationResult:
         )
 
     image_data = llm_match.load_image_b64(image_path)
+    audio_data = llm_match.audio_b64(audio_bytes)
 
     # TODO: evaluate removing this quick check, as was done for nascar_on_nbc
     # (see experiments/quick_check_logprobs/README.md). It needs a fully
     # annotated NHRA-on-Fox recording to measure against first.
-    racing_related = llm_match._report_racing_related(image_data)
+    racing_related = llm_match._report_racing_related(image_data, audio_data)
     if not racing_related:
         return ClassificationResult(
             source="llm",
@@ -138,4 +139,4 @@ def classify_image(image_path: str) -> ClassificationResult:
     ## just toggle off the final lengthy step.)
     # return ClassificationResult(type="content", reason="assume_content", reply="")
 
-    return llm_match.classify_by_prompt(image_data)
+    return llm_match.classify_by_prompt(image_data, audio_data)

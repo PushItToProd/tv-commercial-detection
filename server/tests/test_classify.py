@@ -3,6 +3,8 @@
 All tests use synthetic JPEG fixtures — no real broadcast images needed.
 """
 
+import importlib
+import inspect
 import io
 import json
 import math
@@ -11,6 +13,7 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 import numpy as np
+import pytest
 from PIL import Image
 
 from tv_commercial_detector.classification.llm_match import (
@@ -18,7 +21,7 @@ from tv_commercial_detector.classification.llm_match import (
     _get_classification_from_response,
 )
 from tv_commercial_detector.classification.result import ClassificationResult
-from tv_commercial_detector.classify import classify_image
+from tv_commercial_detector.classify import classify_image, list_profiles
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -40,6 +43,23 @@ def _mock_openai_response(text: str):
     response = MagicMock()
     response.choices = [choice]
     return response
+
+
+# ---------------------------------------------------------------------------
+# Every profile accepts the arguments classify.py dispatches with
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("profile", list_profiles())
+def test_profile_accepts_dispatch_arguments(profile):
+    """classify.py calls every profile as classify_image(image_path, audio_bytes).
+
+    A mismatch raises TypeError inside /receive, which catches it and records
+    the frame as unknown, so a broken profile never switches the matrix and
+    only shows up as a log line.
+    """
+    module = importlib.import_module(f"tv_commercial_detector.classifiers.{profile}")
+    inspect.signature(module.classify_image).bind("frame.jpg", b"")
 
 
 # ---------------------------------------------------------------------------

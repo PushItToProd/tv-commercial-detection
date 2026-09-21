@@ -1,9 +1,11 @@
-"""Tests for AppConfig — defaults, JSON loading, and env-var overrides."""
+"""Tests for AppConfig and load_config — defaults, JSON loading, and env-var overrides."""
 
 import json
-import os
+from pathlib import Path
 
-from tv_commercial_detector.config import AppConfig
+import pytest
+
+from tv_commercial_detector.config import AppConfig, load_config
 
 
 def test_defaults():
@@ -24,22 +26,24 @@ def test_custom_values():
     assert config.enable_debounce is True
 
 
-def test_config_json_loading(tmp_path):
-    """Simulate the JSON-loading loop from lifespan."""
-    config_data = {
-        "matrix_url": "http://json-matrix:9999",
-        "enable_debounce": True,
-        "auto_switch": False,
-        "output_settings": {"ad": {"1": 2}, "content": {"1": 1}},
-    }
+def _write_config(tmp_path, data) -> Path:
     config_file = tmp_path / "config.json"
-    config_file.write_text(json.dumps(config_data))
+    config_file.write_text(json.dumps(data))
+    return config_file
 
+
+def test_config_json_loading(tmp_path):
+    config_file = _write_config(
+        tmp_path,
+        {
+            "matrix_url": "http://json-matrix:9999",
+            "enable_debounce": True,
+            "auto_switch": False,
+            "output_settings": {"ad": {"1": 2}, "content": {"1": 1}},
+        },
+    )
     cfg = AppConfig()
-    with config_file.open() as f:
-        for k, v in json.load(f).items():
-            if hasattr(cfg, k.lower()):
-                setattr(cfg, k.lower(), v)
+    load_config(cfg, config_file, environ={})
 
     assert cfg.matrix_url == "http://json-matrix:9999"
     assert cfg.enable_debounce is True
@@ -49,49 +53,92 @@ def test_config_json_loading(tmp_path):
 
 def test_config_json_ignores_unknown_keys(tmp_path):
     """Unknown keys in config.json are silently skipped."""
-    config_data = {"matrix_url": "http://ok:1", "nonexistent_key": "boom"}
-    config_file = tmp_path / "config.json"
-    config_file.write_text(json.dumps(config_data))
-
+    config_file = _write_config(
+        tmp_path, {"matrix_url": "http://ok:1", "nonexistent_key": "boom"}
+    )
     cfg = AppConfig()
-    with config_file.open() as f:
-        for k, v in json.load(f).items():
-            if hasattr(cfg, k.lower()):
-                setattr(cfg, k.lower(), v)
+    load_config(cfg, config_file, environ={})
 
     assert cfg.matrix_url == "http://ok:1"
+    assert not hasattr(cfg, "nonexistent_key")
 
 
-def test_env_var_matrix_url(monkeypatch):
-    """DETECTOR_MATRIX_URL is applied by the lifespan env-var loop."""
-    monkeypatch.setenv("DETECTOR_MATRIX_URL", "http://env-matrix:8080")
-
-    env_map = {
-        "DETECTOR_MATRIX_URL": "matrix_url",
-        "DETECTOR_SAVE_DIR": "save_dir",
-        "DETECTOR_ENABLE_DEBOUNCE": "enable_debounce",
-    }
+def test_missing_config_file_keeps_defaults(tmp_path):
     cfg = AppConfig()
-    for env_key, attr in env_map.items():
-        val = os.environ.get(env_key)
-        if val is not None:
-            setattr(cfg, attr, val)
+    load_config(cfg, tmp_path / "absent.json", environ={})
+    assert cfg == AppConfig()
 
+
+def test_env_var_matrix_url(tmp_path):
+    cfg = AppConfig()
+    load_config(
+        cfg,
+        tmp_path / "absent.json",
+        environ={"DETECTOR_MATRIX_URL": "http://env-matrix:8080"},
+    )
     assert cfg.matrix_url == "http://env-matrix:8080"
 
 
-def test_env_var_save_dir(monkeypatch, tmp_path):
-    monkeypatch.setenv("DETECTOR_SAVE_DIR", str(tmp_path / "custom_frames"))
-
-    env_map = {
-        "DETECTOR_MATRIX_URL": "matrix_url",
-        "DETECTOR_SAVE_DIR": "save_dir",
-        "DETECTOR_ENABLE_DEBOUNCE": "enable_debounce",
-    }
+def test_env_var_save_dir_becomes_path(tmp_path):
     cfg = AppConfig()
-    for env_key, attr in env_map.items():
-        val = os.environ.get(env_key)
-        if val is not None:
-            setattr(cfg, attr, val)
+    load_config(
+        cfg,
+        tmp_path / "absent.json",
+        environ={"DETECTOR_SAVE_DIR": str(tmp_path / "custom_frames")},
+    )
+    assert cfg.save_dir == tmp_path / "custom_frames"
 
-    assert str(cfg.save_dir) == str(tmp_path / "custom_frames")
+
+def test_env_var_overrides_config_json(tmp_path):
+    config_file = _write_config(tmp_path, {"enable_debounce": True})
+    cfg = AppConfig()
+    load_config(cfg, config_file, environ={"DETECTOR_ENABLE_DEBOUNCE": "0"})
+    assert cfg.enable_debounce is False
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        ("1", True),
+        ("true", True),
+        ("True", True),
+        ("yes", True),
+        ("on", True),
+        ("0", False),
+        ("false", False),
+        ("FALSE", False),
+        ("no", False),
+        ("off", False),
+    ],
+)
+def test_env_var_enable_debounce_is_parsed(tmp_path, value, expected):
+    """Every env value is a string, and bool("0") is True."""
+    cfg = AppConfig(enable_debounce=not expected)
+    load_config(
+        cfg, tmp_path / "absent.json", environ={"DETECTOR_ENABLE_DEBOUNCE": value}
+    )
+    assert cfg.enable_debounce is expected
+
+
+def test_empty_env_var_counts_as_unset(tmp_path):
+    """docker-compose.yml passes an unset RECEIVER_ENABLE_DEBOUNCE through as ""."""
+    config_file = _write_config(tmp_path, {"enable_debounce": True})
+    cfg = AppConfig()
+    load_config(cfg, config_file, environ={"DETECTOR_ENABLE_DEBOUNCE": ""})
+    assert cfg.enable_debounce is True
+
+
+def test_unparseable_bool_env_var_raises(tmp_path):
+    with pytest.raises(ValueError, match="enable_debounce"):
+        load_config(
+            AppConfig(),
+            tmp_path / "absent.json",
+            environ={"DETECTOR_ENABLE_DEBOUNCE": "maybe"},
+        )
+
+
+def test_string_bool_in_config_json_is_parsed(tmp_path):
+    config_file = _write_config(tmp_path, {"auto_switch": "false"})
+    cfg = AppConfig()
+    load_config(cfg, config_file, environ={})
+    assert cfg.auto_switch is False

@@ -362,7 +362,7 @@ async function doCapture() {
 
 // ── message handler (used by popup) ─────────────────────────────────────────
 
-browser.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+browser.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   switch (msg.type) {
     // popup actions
     case 'getCaptureState':
@@ -381,7 +381,11 @@ browser.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       sendResponse({ ok: true });
       break;
     case 'videoStateChange':
-      postVideoState(msg.isPaused, msg.isSeeking);
+      // The content script runs in every tab, so a pause elsewhere would
+      // otherwise be reported as the monitored video's state.
+      if (captureState.running && sender.tab?.id === captureState.tabId) {
+        postVideoState(msg.isPaused, msg.isSeeking);
+      }
       sendResponse({ ok: true });
       break;
   }
