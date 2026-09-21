@@ -3,9 +3,22 @@
 How confident are the LLM passes — the quick check
 (`llm_match._report_racing_related`) and the full prompt (`classify_by_prompt`
 with `prompt_nbc.txt`) — how does their confidence line up with the operator's
-rulings on the Cook Out 400, and does a yes/no grammar change anything?
+rulings, and does a yes/no grammar change anything?
 
-Summary: on ordinary commercials the quick check is confident and correct. On
+The findings come from three runs. Two small samples from the Cook Out 400 (160
+frames) come first. The 500-frame survey over the Cook Out 400 and the Iowa Corn
+350 comes last, and where the two disagree the survey's numbers stand.
+
+Survey summary: in production the LLM sees 3% of frames (380 of 11,682), and
+78% of those are content. On them the full prompt passes 3 of 82 ads and calls
+26 of 298 content frames `ad`. Half of those 26 are frames the operator rated
+cheap to get wrong. The quick check changed no verdict and added 133 ms per
+frame on average, so it can be removed from `nascar_on_nbc`. Attaching the
+clip to the full prompt made no difference. Over the whole broadcast, the audio
+sensor calls 101 Cook Out content frames `ad`, four times the LLM's errors on
+that broadcast.
+
+Small-sample summary: on ordinary commercials the quick check is confident and correct. On
 NASCAR-themed ads the image-only prompt is confidently wrong, because it asks
 whether the image contains "anything related to NASCAR", and those ads do. The
 audio prompt production runs asks the right question and is rarely confidently
@@ -46,7 +59,7 @@ Two samples:
 | File | Frames | Selection |
 |---|---|---|
 | `results.jsonl` | 50 ad, 50 content | Stratified: 3–5 frames from each operator note (Hamlin, Briscoe, Wallace/Reddick, Americana promo, post-break ad read, Diffey segment, Americana ad read, squeezeback), plus `care_away`&`care_back` both nonzero, `fraught`, bumper, side-by-side, studio, live race, random fill |
-| `results_undecided.jsonl` | 30 ad, 30 content | Random frames the `nascar_on_nbc` OpenCV checks leave undecided, which are the frames production sends to the LLM |
+| `results_undecided.jsonl` | 30 ad, 30 content | Random frames the `nascar_on_nbc` OpenCV checks leave undecided. Production also consults the audio sensor before the LLM, which these samples ignore; the survey accounts for it |
 
 The stratified sample was built to contain the hard cases and ended up with
 almost no ordinary spots, which is why the second sample exists. Consecutive
@@ -61,6 +74,14 @@ uv run python experiments/quick_check_logprobs/analyze.py [results_undecided.jso
 uv run python experiments/quick_check_logprobs/grammar_test.py [--audio]
 uv run python experiments/quick_check_logprobs/full_prompt.py               # results_full_prompt.jsonl
 uv run python experiments/quick_check_logprobs/analyze_full_prompt.py
+B=/mnt/data/tv-commercial-detector/full_broadcasts/tv.youtube.com
+for b in USA_4K_Cook_Out_400 USA_4K_Iowa_Corn_350; do
+  uv run python scripts/fit_audio_model.py check --dir $B/$b \
+      --model src/tv_commercial_detector/classifiers/audio_models/nascar_on_nbc.json \
+      --dump experiments/quick_check_logprobs/cascade_$b.jsonl
+done
+uv run python experiments/quick_check_logprobs/survey.py                    # survey_sample.jsonl, survey_raw.jsonl
+uv run python experiments/quick_check_logprobs/analyze_survey.py
 ```
 
 ## Findings
@@ -283,8 +304,148 @@ Every frame the quick check rejected, the full prompt would also have called
 frame it rejects, at a cost of about 165 ms (the quick check with
 `max_tokens=1`) on each frame it passes on. That breaks even when it rejects
 more than about 54% of the frames reaching the LLM. It rejected 27% of this
-mix, which is weighted toward ads, so here it cost time. The real share of ads
-among undecided frames in a broadcast would settle it.
+mix, which is weighted toward ads, so here it cost time. The survey measures
+the real share: 22% of frames sent to the LLM are ads.
+
+## 500-frame survey (Cook Out 400 and Iowa Corn 350)
+
+`survey.py` asks all four conditions (quick check and full prompt, each
+image-only and with the clip) on a 500-frame test set, and
+`analyze_survey.py` summarizes it. The test set is meant to stay fixed while
+the prompt is iterated on.
+
+### Test set
+
+Where each frame falls in the `nascar_on_nbc` cascade comes from replaying both
+recordings through the OpenCV checks and the audio sensor
+(`scripts/fit_audio_model.py check --dump`, saved as
+`cascade_<broadcast>.jsonl`). Non-excluded frames only:
+
+| | Cook Out 400 | Iowa Corn 350 |
+|---|---|---|
+| frames | 5881 | 5801 |
+| OpenCV calls `ad` (wrong) | 701 (0) | 409 (0) |
+| OpenCV calls `content` (wrong) | 4299 (11) | 3431 (45) |
+| audio sensor calls `ad` (wrong) | 608 (101, 16.6%) | 805 (10, 1.2%) |
+| audio sensor calls `content` (wrong) | 144 (8) | 905 (2) |
+| sent to the LLM | 129 (27 ad, 102 content) | 251 (55 ad, 196 content) |
+
+The audio model was fit on Iowa, so its Iowa numbers are in-sample: it decides
+more Iowa frames, and more of them correctly, than it would on a held-out
+broadcast. The Cook Out numbers are the honest ones.
+
+`survey_sample.jsonl` holds:
+
+- **census**: all 380 frames sent to the LLM, weight 1. Rates over these are
+  production rates, with no sampling error from the selection.
+- **audio-decided**: 120 of the 2462 frames the audio sensor decides, 30 ad
+  and 30 content per broadcast. In each cell, half are plain frames and half
+  are spread evenly over the operator's notes and flags. Each carries `weight`,
+  the number of frames it stands for. These frames reach the LLM whenever the
+  audio sensor abstains (dead capture, a coarse capture interval, a new model).
+
+No clip in either recording was silent, so every frame ran all four
+conditions. The run took 8 minutes (76 s, 95 s, 137 s and 161 s per
+condition); `survey_raw.jsonl` holds one line per condition and frame, and a
+re-run skips what's already there.
+
+### Timing
+
+Medians (p90), prompt caching on:
+
+| Condition | Wall | Prefill | Generation |
+|---|---|---|---|
+| quick check, image-only (`max_tokens=1`) | 130 ms (167) | 100 ms | 1 token |
+| quick check, with audio (`max_tokens=1`) | 170 ms (175) | 124 ms | 1 token |
+| full prompt, image-only | 248 ms (296) | 87 ms | 104 ms, 20 tokens |
+| full prompt, with audio | 297 ms (339) | 127 ms | 98 ms, 20 tokens |
+
+### Accuracy on the census
+
+Production conditions are the audio variants.
+
+| Condition | Ads passed as content | Content called ad | AUC |
+|---|---|---|---|
+| quick check, image-only | 24/82 | 5/298 | 0.869 |
+| quick check, with audio | 34/82 | 0/298 | 0.957 |
+| full prompt, image-only | 2/82 | 24/298 | 0.980 |
+| full prompt, with audio | 3/82 | 26/298 | 0.974 |
+| quick check then full prompt (production) | 3/82 | 26/298 | |
+
+Split by broadcast, the production cascade passes 1/27 ads and calls 11/102
+content frames `ad` on Cook Out, and 2/55 and 15/196 on Iowa.
+
+Three full-prompt replies (all Iowa content, with audio) described the frame
+and stopped without a verdict, which production parses as `unknown`. They are
+counted as not `ad` above.
+
+The clip made no difference to the full prompt here, in line with the Iowa
+measurement in `AGENTS.md`. The 160-frame Cook Out sample suggested it helped;
+that sample was built around hard cases and the survey doesn't bear it out.
+
+### What the errors cost
+
+The operator's `care_away` (an ad left on screen) and `care_back` (the race
+switched away from) rate each frame's error cost from 0 to 3. The 26 content
+frames the production full prompt calls `ad`:
+
+| `care_back` | 0 | 1 | 2 | 3 |
+|---|---|---|---|---|
+| frames | 1 | 13 | 2 | 10 |
+
+The 3 ads it passes have `care_away` 2, 3 and 3.
+
+Grouped by what they show, the census errors are:
+
+- **Pre-race and feature content, 12 frames** (4 rated 3; the five pre-race
+  hype frames are rated 1). Examples: in-car and
+  driver-with-fans shots in the pre-race hype segment, a track diagram,
+  aerials of the track and parking lots, the Diffey segment. The replies
+  mostly give the clean-frame rule as the reason: "no scoring strip, no
+  network bug".
+- **Live racing with no on-screen furniture, 4 frames** (3 rated 3). "Race
+  cars on track, no scoring strip, no "LIVE" badge, no network bug." The same
+  rule.
+- **The Cheddar's squeezeback on Iowa, 7 frames**, ruled content with
+  `care_back` 1 ("low-importance post-ad-break chatter"). The left panel
+  shows food close-ups beside the race. The prompt says a second video panel
+  of commercial content is a side-by-side break, so the model is applying the
+  prompt as written. At `care_back` 1 a late return costs little, so this is
+  deferred.
+- **Everything else, 3 content frames** (all rated 3): a crowd shot, racing
+  under a "NASCAR Americana" promo overlay, and racing under a post-race promo
+  overlay.
+- **Ads passed as content, 3 frames**: a post-break interview at night, a
+  NASCAR interstitial card with the announcer calling the race, and an in-car
+  view with a DraftKings overlay during a post-break ad read.
+
+Over all 500 frames, the operator groups with the most errors are the pre-race
+hype segment (8/13), the sponsor squeezeback on Iowa (8/8, all audio-decided
+frames), the post-break chatter (7/7) and the Diffey segment (4/7).
+
+### The quick check adds nothing
+
+On the census, every frame the quick check rejected, the full prompt also
+called `ad`. It never corrected the full prompt, at any threshold tried:
+
+| Quick check rejects at | Ads passed as content | Content called ad |
+|---|---|---|
+| P(yes) ≤ 0.1 | 3/82 | 26/298 |
+| P(yes) ≤ 0.5 (production) | 3/82 | 26/298 |
+| P(yes) ≤ 0.9 | 3/82 | 29/298 |
+
+It rejected 13% of census frames against a break-even of 57% (170 ms against
+297 ms). The mean LLM time per frame is 430 ms with it and 297 ms without.
+
+On the audio-decided sample it rejected 25%, still well short of break-even,
+and a 0.9 threshold rescued one ad there.
+
+### Confidence
+
+The full prompt's P(ad) fell between 0.05 and 0.95 on 18 of 380 census
+frames. Of its 29 census errors (26 content, 3 ads), 25 were confident. The
+small-sample finding holds: the description commits the model before the
+verdict token, so P(ad) says little about how hard a frame is.
 
 ## Side observations
 
@@ -299,6 +460,10 @@ among undecided frames in a broadcast would settle it.
   quick-check numbers above that include OpenCV-decided frames, still count
   them as content. None of them reach the LLM, so the OpenCV-undecided numbers
   are unaffected.
+- **The audio sensor's false `ad` calls on the Cook Out 400** (101 of 608,
+  16.6%) outnumber the LLM's errors on that broadcast four to one. This is the
+  known weakness in `AGENTS.md`: in-car audio and caution laps without pack
+  roar.
 - **Server sampling defaults**: `/props` reports `top_k=40`, `min_p=0.05`.
   Neither changes the logprobs measured here, but `min_p` removes the minority
   answer from production sampling once it falls below 5% of the majority's
@@ -306,43 +471,27 @@ among undecided frames in a broadcast would settle it.
 
 ## Suggestions
 
-1. **Fix the full prompt's clean-frame rule** before tuning anything else. It
-   causes most of the content called `ad` on frames that reach the LLM. Pre-race
-   features (garage, autographs, driver close-ups, the Diffey segment) are
-   produced without a scoring strip or network bug. Candidates: limit the rule
-   to frames showing race cars on track, or add pre-race feature material to
-   the race-broadcast indicators.
-2. **Run a larger sample (~500 frames).** At the timings above, asking both
-   quick-check prompts and both full-prompt conditions takes about 0.9 s per
-   frame (quick check ~0.3 s, full prompt ~0.56 s), so 500 frames is about
-   7–8 minutes; the production conditions alone (quick check and full prompt,
-   both with audio) take about 4. Concurrent requests don't help, since the
-   server is prefill-bound. `run.py` samples; `full_prompt.py` currently reads
-   its frames from `run.py`'s output files.
-3. **Decide whether to keep the quick check.** It changed no verdict here and
-   only pays for itself if it rejects more than about half the frames reaching
-   the LLM. The larger sample (or a full-broadcast run) can measure that share.
-   If it stays, pick a P(yes) threshold from the larger sample instead of the
-   0.5 the reply implies, broken down by operator note and `care_*`.
-4. **Get a usable confidence out of the full prompt**, if one is wanted: count
-   verdicts over several sampled descriptions, or ask for the verdict before the
-   description (and measure what that costs in accuracy).
-5. **Record P(yes) and P(ad) in `ClassificationResult.signals`.** Logprobs cost
-   nothing measurable, and recording them in `classifications.jsonl` would
-   allow calibrating on live broadcasts.
-6. **Try shortening the description.** A third of the full prompt's time goes
-   to generating ~22 tokens. Whether the description helps accuracy is untested.
-7. **Reword the image-only quick-check prompt** for frames with a silent or
-   missing clip, to ask whether the frame is live race coverage or a
-   commercial, and compare it against the current wording on the NASCAR-themed
-   ads.
-8. **Try fusing instead of cascading.** The LLM probabilities and the audio
-   sensor's p(ad) are all continuous. A logistic regression on them, fit the
-   way `fit_audio_model.py` fits the audio model, might beat running them in
-   sequence with a hard cutoff at each step.
-9. **Set temperature 0** on both passes, so a frame always gets the same
-   verdict. (`max_tokens=1` on the quick check is done: ~9.5% faster.)
-10. **Run against both full broadcasts** (Cook Out 400 and Iowa Corn 350, about
-    12,000 frames) when coverage needs measuring more comprehensively. Run
-    OpenCV first and record its verdict. `run.py` would need a mode that takes
-    every frame and resumes from existing output, keyed on filename.
+1. **Remove the quick check from `nascar_on_nbc`.** It changed no verdict on
+   the census and costs 133 ms per LLM frame on average. Keep
+   `_report_racing_related` for the other profiles until they're measured.
+2. **Iterate the full prompt against the survey test set.** `survey.py` asks
+   all four conditions; for prompt work only `full_audio` (production) and
+   perhaps `full_image` are needed, about 2.5 minutes each over 500 frames. A
+   `--conditions` and `--prompt` option would let a prompt variant write to its
+   own raw file. Targets, in order of cost:
+   - the clean-frame rule, which accounts for 16 of the 26 content errors on
+     the census, 7 of them rated 3;
+   - replies with no verdict (3 of 500), which a stricter closing instruction
+     or a grammar on the final line would remove.
+3. **Look at the audio sensor on held-out broadcasts.** On the Cook Out 400 it
+   produces more wrong switches than the LLM. Raising `ad_threshold` sends more
+   frames to the LLM; the survey's audio-decided sample estimates how the full
+   prompt does on them (5% of ads passed, 7% of content called `ad`, weighted).
+4. **Record P(ad) in `ClassificationResult.signals`** anyway. It rarely
+   carries information today, but a prompt that asks for the verdict before the
+   description, or samples several descriptions, might change that.
+5. **Set temperature 0** on the full prompt, so a frame always gets the same
+   verdict.
+6. **Run against both full broadcasts** when coverage needs measuring beyond
+   the census. For the LLM only the census matters, so this is mostly a check on
+   the audio-decided estimates.
