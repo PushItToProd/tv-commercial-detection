@@ -188,7 +188,7 @@ def _report_racing_related(
         response = _get_client().chat.completions.create(
             model=app_config.llm_model_name,
             messages=messages,
-            max_tokens=10,
+            max_tokens=1,
             temperature=0.2,
         )
 
