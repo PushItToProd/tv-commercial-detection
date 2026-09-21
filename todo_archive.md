@@ -54,6 +54,7 @@ Checkboxes key:
   - [x] clean up project structure
     - [x] move all code into a `src/` directory
 - [x] take a path to a single folder to use for all outputs and data saved by the server
+- [x] redirect `/` to `/is_ad`
 
 ### Classification/Receiver
 
@@ -65,6 +66,7 @@ Checkboxes key:
 - [x] multimodal classification with audio capture -- use Qwen3-Omni
   - [x] first just find a way to record a race broadcast with video and audio
 - [x] don't save compressed images into the same directory as their originals
+- [x] move the images in the save_dir to two subdirectories under that directory: `${save_dir}/images` for full sized images and `${save_dir}/thumbnails` for compressed images
 
 #### Review
 
