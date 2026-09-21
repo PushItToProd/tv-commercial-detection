@@ -1,12 +1,12 @@
 """Summarize results.jsonl from run.py. "yes" (racing-related) is the content answer."""
 
 import json
-import math
+import sys
 from collections import defaultdict
 from pathlib import Path
 
-import sys
-rows = [json.loads(l) for l in (Path(__file__).parent / (sys.argv[1] if len(sys.argv) > 1 else "results.jsonl")).open()]
+name = sys.argv[1] if len(sys.argv) > 1 else "results.jsonl"
+rows = [json.loads(line) for line in (Path(__file__).parent / name).open()]
 
 
 def auc(pos, neg):
@@ -32,7 +32,8 @@ for mode in ("image_only", "with_audio"):
         neg = [r[mode]["p_yes_norm"] for r in sub if r["verdict"] == "ad"]
         print(f"\n-- {subset_name}: {len(pos)} content, {len(neg)} ad; AUC={auc(pos, neg):.3f}")
         for thr in (0.5, 0.9, 0.99, 0.999):
-            tp = sum(p > thr for p in pos); fp = sum(n > thr for n in neg)
+            tp = sum(p > thr for p in pos)
+            fp = sum(n > thr for n in neg)
             print(f"   reject as ad if p_yes<={thr}: ads caught {len(neg)-fp}/{len(neg)}, content wrongly rejected {len(pos)-tp}/{len(pos)}")
         # wrong answers by confidence
         wrong = [(r, r[mode]["p_yes_norm"]) for r in sub if (r[mode]["p_yes_norm"] > 0.5) != (r["verdict"] == "content")]
