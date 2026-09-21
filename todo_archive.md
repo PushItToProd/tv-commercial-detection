@@ -137,3 +137,20 @@ Checkboxes key:
 - [x] maybe use a CSS framework
 - [x] mobile-friendly UI so I can use it on my phone (another argument for using a CSS framework -- something like Bootstrap would probably make this easier)
 - [x] when I tap "Report", show a popup with all the recently captured frames and their classifications. let me pick which ones specifically were classified wrongly and save the whole batch
+
+## Additional tools
+
+### `annotate_broadcasts.py`
+
+- [x] improve `review_ground_truth.py`
+  - [x] when I click ad/content/other or edit the note, it should focus the card.
+  - [x] add a way to bulk select and confirm or modify classifications. let me select ranges of cards to edit at once in the contact sheet and in the card view by shift+clicking on the first and last image I want to select and let me make edits on all of them. maybe pop up a modal with all the selected images as a filmstrip.
+  - [x] make sure the currently focused image is visibly highlighted in the contact strip view. put like a nice thick box shadow around it like you do with the cards. then, when switching between card and contact strip view, make the focus box in the new view blink a few times to make it more visible. stop the blinking early if I do anything that would've changed the focus so it won't keep blinking while I'm trying to do something
+  - [x] if I click play on an audio player stop any other player(s) already playing audio
+  - [x] when i exit the bulk edit modal, focus on the second image i clicked when picking the range (currently the page scrolls to the last selected image before range selection)
+  - [x] give me a way to select/focus an image in the contact strip without navigating to it in card view. if I click on an image that isn't currently focused, just focus it. if i click on an image that is currently focused, go to card view
+  - [x] give me a shortcut (I'm thinking `c`) to toggle between contact strip and cards view
+  - [x] !! make this a reusable tool and process - support multiple races
+
+
+### `check_classification.py`
