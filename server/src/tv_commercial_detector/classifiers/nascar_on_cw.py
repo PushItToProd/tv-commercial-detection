@@ -24,15 +24,18 @@ Two things set this graphics package apart from Fox and NBC:
    inside side-by-side breaks, and had a scoring ticker Las Vegas did not.
    Both bugs are checked, and the ticker check only knows the Charlotte one.
 
-A frame no check settles goes to the LLM. There is no audio model for this
-feed; fitting one needs a continuous recording.
+A frame no OpenCV check settles goes to the audio sensor, then the LLM. The
+audio model is borrowed from `nascar_on_nbc`; see the audio section below.
 """
 
+import dataclasses
 import math
+from pathlib import Path
 
 import cv2
 import numpy as np
 
+from .. import audio_sensor
 from ..classification import llm_match, logo_match, rectangle_match
 from ..classification.result import ClassificationResult
 
@@ -166,10 +169,26 @@ TICKER_THRESHOLD = 0.2
 SIDE_BY_SIDE_TICKER_CELL_ROWS = (997, 1023, 1024, 1031)
 SIDE_BY_SIDE_TICKER_SEPARATOR_ROWS = (992, 1026, 1028)
 
+# --- Audio sensor -> ad or content ------------------------------------------
+#
+# This is `nascar_on_nbc`'s model, loaded from that profile's file: no CW
+# recording has been ruled, so there is nothing to fit one on. It is borrowed
+# on the observation that CW's mix sounds like NBC's, engine roar under live
+# racing against the flat mastering of national spots. See `nascar_on_nbc.py`
+# for the model's known weakness, live content without pack roar.
+#
+# Checked against the Charlotte recording with the OpenCV verdicts above as
+# proxy labels; the numbers are in AGENTS.md. Set ENABLE_AUDIO_CHECK to False
+# if it misbehaves, and the profile runs as it would with no audio at all.
+AUDIO_MODEL = audio_sensor.load_model(
+    Path(__file__).parent / "audio_models" / "nascar_on_nbc.json"
+)
+
 # Toggles so a single check can be turned off mid-broadcast at the console.
 ENABLE_SIDE_BY_SIDE_CHECK = True
 ENABLE_BUG_CHECK = True
 ENABLE_TICKER_CHECK = True
+ENABLE_AUDIO_CHECK = True
 
 PROMPT = llm_match.load_prompt("prompt_cw.txt")
 
@@ -267,11 +286,28 @@ def has_ticker(img: cv2.typing.MatLike, threshold: float = TICKER_THRESHOLD) -> 
     return ticker_score(img) >= threshold
 
 
+def has_side_by_side_logo(img: cv2.typing.MatLike) -> bool:
+    """The profile's OpenCV `ad` verdict, under the name `fit_audio_model.py` calls."""
+    return is_side_by_side(img)
+
+
+def has_network_logo(img: cv2.typing.MatLike) -> bool:
+    """The profile's OpenCV `content` verdict, under the name `fit_audio_model.py` calls."""
+    return has_bug(img) or has_ticker(img)
+
+
 def classify_image(
     image_path: str, audio_bytes: bytes | None = None
 ) -> ClassificationResult:
     cv_img = cv2.imread(image_path)
     cv_img_1080p = cv2.resize(cv_img, (1920, 1080))
+
+    # Read for every frame, whatever ends up deciding it, so the score is on
+    # record alongside OpenCV and LLM verdicts too.
+    reading = audio_sensor.sensor.reading(
+        AUDIO_MODEL if ENABLE_AUDIO_CHECK else None, audio_bytes
+    )
+    signals = reading.signals()
 
     # Side-by-side runs first: the bug stays up through the break and would
     # otherwise win.
@@ -281,21 +317,51 @@ def classify_image(
             type="ad",
             reason="side_by_side",
             reply="CW side-by-side break (opencv)",
+            signals=signals,
         )
 
     if ENABLE_BUG_CHECK and has_bug(cv_img_1080p):
         return ClassificationResult(
-            source="opencv", type="content", reason="network_logo", reply="(opencv)"
+            source="opencv",
+            type="content",
+            reason="network_logo",
+            reply="(opencv)",
+            signals=signals,
         )
 
     if ENABLE_TICKER_CHECK and has_ticker(cv_img_1080p):
         return ClassificationResult(
-            source="opencv", type="content", reason="scoring_ticker", reply="(opencv)"
+            source="opencv",
+            type="content",
+            reason="scoring_ticker",
+            reply="(opencv)",
+            signals=signals,
         )
 
-    # No OpenCV verdict. A missing bug and ticker usually mean a full-screen
+    # Audio runs after every OpenCV check: vision is the better authority at a
+    # rejoin, where a sponsor read over live pictures still sounds like an ad.
+    if ENABLE_AUDIO_CHECK and AUDIO_MODEL is not None and reading.p_ad is not None:
+        if reading.p_ad >= AUDIO_MODEL.ad_threshold:
+            return ClassificationResult(
+                source="audio",
+                type="ad",
+                reason="audio_sensor",
+                reply=f"audio p(ad)={reading.p_ad:.3f}",
+                signals=signals,
+            )
+        if reading.p_ad <= AUDIO_MODEL.content_threshold:
+            return ClassificationResult(
+                source="audio",
+                type="content",
+                reason="audio_sensor",
+                reply=f"audio p(ad)={reading.p_ad:.3f}",
+                signals=signals,
+            )
+
+    # No verdict. A missing bug and ticker usually mean a full-screen
     # commercial, but the bug also ghosts out over bright backgrounds, so this
     # goes to the LLM instead of defaulting to ad.
     image_data = llm_match.load_image_b64(image_path)
     audio_data = llm_match.audio_b64(audio_bytes)
-    return llm_match.classify_by_prompt(image_data, audio_data, prompt=PROMPT)
+    result = llm_match.classify_by_prompt(image_data, audio_data, prompt=PROMPT)
+    return dataclasses.replace(result, signals=signals)

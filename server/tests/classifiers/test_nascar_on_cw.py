@@ -9,6 +9,7 @@ import cv2
 import numpy as np
 import pytest
 
+from tv_commercial_detector import audio_sensor
 from tv_commercial_detector.classification.result import ClassificationResult
 from tv_commercial_detector.classifiers import nascar_on_cw
 from tv_commercial_detector.classifiers.nascar_on_cw import (
@@ -243,6 +244,12 @@ def classify(tmp_path, mocker):
         ),
     )
     mocker.patch.object(nascar_on_cw.llm_match, "load_image_b64", return_value="")
+    # No audio opinion unless a test supplies one.
+    mocker.patch.object(
+        audio_sensor.sensor,
+        "reading",
+        return_value=audio_sensor.AudioReading(p_ad=None, abstain="cold"),
+    )
 
     def run(frame: np.ndarray) -> ClassificationResult:
         path = tmp_path / "frame.png"
@@ -313,3 +320,63 @@ def test_disabled_checks_fall_through(classify, mocker):
     run, llm = classify
     mocker.patch.object(nascar_on_cw, "ENABLE_BUG_CHECK", False)
     assert run(frame_with_bug(GREY_BUG)).source == "llm"
+
+
+# --- classify_image: where the audio sensor sits ------------------------------
+
+
+def set_audio(mocker, p_ad: float | None, abstain: str | None = None):
+    return mocker.patch.object(
+        audio_sensor.sensor,
+        "reading",
+        return_value=audio_sensor.AudioReading(p_ad=p_ad, abstain=abstain),
+    )
+
+
+def test_confident_audio_ad_skips_the_llm(classify, mocker):
+    run, llm = classify
+    set_audio(mocker, nascar_on_cw.AUDIO_MODEL.ad_threshold)
+    result = run(blank_bgr(20))
+    assert (result.source, result.type) == ("audio", "ad")
+    llm.assert_not_called()
+
+
+def test_confident_audio_content_skips_the_llm(classify, mocker):
+    run, llm = classify
+    set_audio(mocker, nascar_on_cw.AUDIO_MODEL.content_threshold)
+    result = run(blank_bgr(20))
+    assert (result.source, result.type) == ("audio", "content")
+    llm.assert_not_called()
+
+
+def test_unsure_audio_goes_to_the_llm_and_is_recorded(classify, mocker):
+    run, llm = classify
+    model = nascar_on_cw.AUDIO_MODEL
+    p = (model.ad_threshold + model.content_threshold) / 2
+    set_audio(mocker, p)
+    result = run(blank_bgr(20))
+    assert result.source == "llm"
+    assert result.signals == {"p_audio": p, "audio_abstain": None}
+
+
+def test_side_by_side_outranks_confident_audio_content(classify, mocker):
+    run, _ = classify
+    set_audio(mocker, 0.0)
+    result = run(side_by_side_ticker_frame())
+    assert (result.source, result.type) == ("opencv", "ad")
+    assert result.signals["p_audio"] == 0.0
+
+
+def test_bug_and_ticker_outrank_confident_audio_ad(classify, mocker):
+    run, _ = classify
+    set_audio(mocker, 1.0)
+    assert run(frame_with_bug(GREY_BUG)).type == "content"
+    assert run(ticker_frame()).type == "content"
+
+
+def test_audio_check_can_be_disabled(classify, mocker):
+    run, llm = classify
+    reading = set_audio(mocker, 1.0)
+    mocker.patch.object(nascar_on_cw, "ENABLE_AUDIO_CHECK", False)
+    assert run(blank_bgr(20)).source == "llm"
+    assert reading.call_args.args[0] is None

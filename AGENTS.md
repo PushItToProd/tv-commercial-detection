@@ -50,7 +50,7 @@ server/              FastAPI application
       nascar_on_nbc.py  NBC Sports Cup coverage on NBC and USA; peacock/USA bug checks, audio sensor, then LLM fallback
       audio_models/    Fitted audio models (JSON), one per profile that consults the audio sensor
       nfl_on_nbc.py    NFL on NBC/Peacock; peacock bug check (own search window), then LLM fallback
-      nascar_on_cw.py  O'Reilly Auto Parts Series on The CW; side-by-side panel, corner bug and scoring ticker checks, then LLM fallback (provisional thresholds)
+      nascar_on_cw.py  O'Reilly Auto Parts Series on The CW; side-by-side, corner bug and scoring ticker checks, the audio sensor, then LLM fallback (provisional thresholds)
     routes/            FastAPI routers
     prompt/            LLM prompt text and logo images used for OpenCV matching
     static/            Static assets (Bootstrap CSS/JS for UI templates)
@@ -685,7 +685,7 @@ The `nascar_on_nbc` profile covers NBC Sports Cup coverage on **both NBC and USA
 
 The `nfl_on_nbc` profile covers NFL broadcasts on NBC (Sunday Night Football and other NBC/Peacock windows). It carries the same peacock bug as `nascar_on_nbc`, but that profile's search window doesn't apply here — this graphics package renders the bug noticeably higher and further right (`x 1795–1905, y 10–95` vs NASCAR's `x 1740–1880, y 40–140`), so reusing NASCAR's window clips the logo out entirely regardless of threshold. There's no NASCAR NON STOP equivalent on this feed — NBC's NFL coverage cuts to a full-screen commercial rather than a side-by-side panel — so the peacock is the only OpenCV signal; its absence falls through to the LLM quick check and `prompt_nfl_nbc.txt` rather than defaulting to `ad`. Threshold `0.7`: the bug's backing varies with what's behind it (a neutral panel scores 0.8–0.86, but the same logo over a bright graphic or a crowd shot can drop to 0.5–0.7 despite being clearly visible), and the highest score observed with no peacock present sits in that same 0.5–0.6 band, so there's no clean gap to split on — 0.7 clears every confirmed false match with margin, at the cost of sending the weaker true positives to the LLM instead.
 
-The `nascar_on_cw` profile covers the O'Reilly Auto Parts Series on The CW. Its thresholds are provisional: they were measured on the saved frames of one race (Las Vegas), one pre-race show, and an unruled recording of a second race (Charlotte), with presence judged by eye. `prompt_cw.txt`, adapted from `prompt_nbc.txt`, has been run on only 30 Las Vegas frames. The profile runs three OpenCV checks and then the full prompt, with no quick check and no audio model.
+The `nascar_on_cw` profile covers the O'Reilly Auto Parts Series on The CW. Its thresholds are provisional: they were measured on the saved frames of one race (Las Vegas), one pre-race show, and an unruled recording of a second race (Charlotte), with presence judged by eye. `prompt_cw.txt`, adapted from `prompt_nbc.txt`, has been run on only 30 Las Vegas frames. The profile runs three OpenCV checks, then the audio sensor, then the full prompt, with no quick check.
 
 CW's graphics changed between those two races. Las Vegas carried a "cw SPORTS" bug and a ticker the ticker check does not recognize. Charlotte carried a "cw 20 YEARS" bug in live coverage and "cw SPORTS" only inside side-by-side breaks. Expect to re-measure when the package changes again.
 
@@ -694,6 +694,15 @@ CW's graphics changed between those two races. Las Vegas carried a "cw SPORTS" b
 - **Scoring ticker** (`content`) — the Charlotte ticker's cells are an opaque slate (`BGR 59, 54, 45`), the same over any picture. Counting slate pixels is not enough: real ticker frames score 0.21–0.49, dark commercials up to 0.26, and other networks' tickers up to 0.75. The check uses the row layout instead. Just inside the top and bottom of each cell about 63% of a pixel row is slate, and the separator between rows has none; the score is the weakest cell row minus the strongest separator row over the bottom two rows. Threshold `0.2`: 2929 frames from other networks score at most 0.02, and the Las Vegas ticker and Charlotte's side-by-side ticker score 0. It settled 41 of 1889 Charlotte frames the bug check missed.
 
 CW promos and scenic bumpers also carry the bug, and this profile calls them `content`.
+
+The audio sensor runs after the OpenCV checks, as in `nascar_on_nbc`, and uses that profile's model file: no CW recording has been ruled, so there is nothing to fit a CW model on. `ENABLE_AUDIO_CHECK = False` turns it off. Checked on the Charlotte recording with `fit_audio_model.py --profile nascar_on_cw check`, which takes the OpenCV verdicts as proxy labels:
+
+- AUC 0.979 over the 2497 frames OpenCV decides.
+- All 2067 confident `content` calls agreed with OpenCV.
+- 77 of 318 confident `ad` calls landed on frames showing the bug or ticker. OpenCV outranks audio, so those do not change a verdict.
+- Of the 965 frames OpenCV leaves undecided, audio called 614 `ad` and 238 `content`, abstained on 20, and left 93 for the LLM.
+
+By eye on 50 sampled frames of each kind, the `content` calls were all live coverage with the bug ghosted or absent. The `ad` calls were commercials except for pre-race ceremonies (the anthem and invocation), which have no engine noise, and a few track shots with no graphics that may be promos.
 
 On the ESPN stream the player shows a black frame with an ESPN logo during some breaks. No check recognizes it, so it goes to the LLM.
 
