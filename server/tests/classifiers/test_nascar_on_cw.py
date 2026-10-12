@@ -12,13 +12,18 @@ import pytest
 from tv_commercial_detector.classification.result import ClassificationResult
 from tv_commercial_detector.classifiers import nascar_on_cw
 from tv_commercial_detector.classifiers.nascar_on_cw import (
+    ANNIVERSARY_BUG_TEMPLATE,
     BUG_REGION,
     BUG_TEMPLATE,
     SIDE_BY_SIDE_RACE_PANEL,
+    TICKER_COLOR,
+    TICKER_X,
     bug_score,
     has_bug,
+    has_ticker,
     is_side_by_side,
     side_by_side_score,
+    ticker_score,
 )
 
 # Where the template's top-left corner sits in a 1920x1080 frame.
@@ -29,6 +34,7 @@ GREY_BUG = (190, 190, 190)
 # BGR. Luminance matches LIGHT_ASPHALT, which is what defeats a grayscale match.
 YELLOW_BUG = (0, 215, 255)
 LIGHT_ASPHALT = 196
+RED_BUG = (0, 0, 255)
 
 
 def blank_bgr(fill: int = 128) -> np.ndarray:
@@ -36,7 +42,10 @@ def blank_bgr(fill: int = 128) -> np.ndarray:
 
 
 def frame_with_bug(
-    color: tuple[int, int, int], fill: int = 128, abs_x: int = BUG_ABS_X, abs_y: int = BUG_ABS_Y
+    color: tuple[int, int, int],
+    fill: int = 128,
+    abs_x: int = BUG_ABS_X,
+    abs_y: int = BUG_ABS_Y,
 ) -> np.ndarray:
     frame = blank_bgr(fill)
     h, w = BUG_TEMPLATE.shape
@@ -75,6 +84,75 @@ def test_yellow_bug_detected_at_equal_luminance():
     gray = cv2.cvtColor(frame[y0:y1, x0:x1], cv2.COLOR_BGR2GRAY)
     assert nascar_on_cw._shape_score(gray, BUG_TEMPLATE) < nascar_on_cw.BUG_THRESHOLD
     assert has_bug(frame) is True
+
+
+def anniversary_frame(color: tuple[int, int, int], fill: int = 128) -> np.ndarray:
+    frame = blank_bgr(fill)
+    h, w = ANNIVERSARY_BUG_TEMPLATE.shape
+    frame[43 : 43 + h, 1633 : 1633 + w][ANNIVERSARY_BUG_TEMPLATE > 0] = color
+    return frame
+
+
+@pytest.mark.parametrize("color", [GREY_BUG, YELLOW_BUG, RED_BUG])
+def test_anniversary_bug_detected(color):
+    assert bug_score(anniversary_frame(color, fill=40)) > 0.95
+
+
+def test_red_bug_detected_at_equal_luminance():
+    # BGR (0, 0, 255) has luminance 76; a grey background at 76 hides it from
+    # the grayscale and yellowness passes.
+    frame = frame_with_bug(RED_BUG, fill=76)
+    x0, x1, y0, y1 = BUG_REGION
+    gray = cv2.cvtColor(frame[y0:y1, x0:x1], cv2.COLOR_BGR2GRAY)
+    assert nascar_on_cw._shape_score(gray, BUG_TEMPLATE) < nascar_on_cw.BUG_THRESHOLD
+    assert has_bug(frame) is True
+
+
+def test_bugs_do_not_match_each_other():
+    sports = frame_with_bug(GREY_BUG, fill=40)
+    anniversary = anniversary_frame(GREY_BUG, fill=40)
+    assert (
+        nascar_on_cw._bug_score(sports, *nascar_on_cw.BUGS[1])
+        < nascar_on_cw.BUG_THRESHOLD
+    )
+    assert (
+        nascar_on_cw._bug_score(anniversary, *nascar_on_cw.BUGS[0])
+        < nascar_on_cw.BUG_THRESHOLD
+    )
+
+
+def ticker_frame(covered_from_x: int | None = None) -> np.ndarray:
+    """Dark frame with the bottom two ticker rows: slate cells, black separators."""
+    frame = blank_bgr(20)
+    x0, x1 = TICKER_X
+    frame[992:1024, x0:x1] = TICKER_COLOR
+    frame[1027:1057, x0:x1] = TICKER_COLOR
+    # Green name cells take about a third of each row.
+    frame[992:1057, x0 : x0 + 500] = (40, 160, 40)
+    frame[1024:1027] = 20
+    if covered_from_x is not None:
+        frame[900:1080, covered_from_x:] = 230
+    return frame
+
+
+def test_no_ticker_in_blank_frame():
+    assert ticker_score(blank_bgr(20)) == 0.0
+
+
+def test_ticker_detected():
+    assert ticker_score(ticker_frame()) > 0.6
+    assert has_ticker(ticker_frame()) is True
+
+
+def test_slate_colored_area_without_rows_is_not_a_ticker():
+    frame = blank_bgr(20)
+    frame[900:1080] = TICKER_COLOR
+    assert ticker_score(frame) == 0.0
+    assert has_ticker(frame) is False
+
+
+def test_mostly_covered_ticker_is_not_claimed():
+    assert has_ticker(ticker_frame(covered_from_x=600)) is False
 
 
 def test_bug_outside_search_window_is_ignored():
@@ -130,7 +208,9 @@ def classify(tmp_path, mocker):
     llm = mocker.patch.object(
         nascar_on_cw.llm_match,
         "classify_by_prompt",
-        return_value=ClassificationResult(source="llm", type="ad", reason="llm", reply="ad"),
+        return_value=ClassificationResult(
+            source="llm", type="ad", reason="llm", reply="ad"
+        ),
     )
     mocker.patch.object(nascar_on_cw.llm_match, "load_image_b64", return_value="")
 
@@ -149,12 +229,28 @@ def test_bug_alone_is_content(classify):
     llm.assert_not_called()
 
 
+def test_ticker_alone_is_content(classify):
+    run, llm = classify
+    result = run(ticker_frame())
+    assert result.type == "content"
+    assert result.reason == "scoring_ticker"
+    llm.assert_not_called()
+
+
+def test_disabled_ticker_check_falls_through(classify, mocker):
+    run, _ = classify
+    mocker.patch.object(nascar_on_cw, "ENABLE_TICKER_CHECK", False)
+    assert run(ticker_frame()).source == "llm"
+
+
 def test_side_by_side_outranks_the_bug(classify):
     """The bug stays up through the break, so the panel has to win."""
     run, llm = classify
     frame = side_by_side_frame()
     h, w = BUG_TEMPLATE.shape
-    frame[BUG_ABS_Y : BUG_ABS_Y + h, BUG_ABS_X : BUG_ABS_X + w][BUG_TEMPLATE > 0] = GREY_BUG
+    frame[BUG_ABS_Y : BUG_ABS_Y + h, BUG_ABS_X : BUG_ABS_X + w][BUG_TEMPLATE > 0] = (
+        GREY_BUG
+    )
     assert has_bug(frame) is True
     result = run(frame)
     assert (result.type, result.reason) == ("ad", "side_by_side")

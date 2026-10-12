@@ -122,7 +122,7 @@ Set `classifier_profile` in `server/config.json` (or `DETECTOR_CLASSIFIER_PROFIL
 | `nhra_on_fox` | NHRA drag racing on Fox/FS1 | Same pipeline as `nascar_on_fox` with NHRA-specific logo assets |
 | `nascar_on_nbc` | NASCAR Cup on NBC and USA Network | Corner-bug and side-by-side logo detection → LLM quick check → NBC-specific prompt |
 | `nascar_on_hbo_max` | NASCAR on TNT Sports/HBO Max | OpenCV only; no LLM pass needed |
-| `nascar_on_cw` | NASCAR O'Reilly Auto Parts Series on The CW | Side-by-side panel detection → corner-bug detection → CW-specific prompt; thresholds provisional |
+| `nascar_on_cw` | NASCAR O'Reilly Auto Parts Series on The CW | Side-by-side panel detection → corner-bug detection → scoring-ticker detection → CW-specific prompt; thresholds provisional |
 
 `nascar_on_nbc` covers both NBC and USA, since it's the same production with the
 same "NASCAR NON STOP" break and only the corner bug differs. The two bugs need

@@ -2,7 +2,7 @@ You are analyzing a screenshot from a NASCAR O'Reilly Auto Parts Series TV broad
 
 RACE BROADCAST — strong indicators:
 - A tall scoring ticker across the BOTTOM of the screen, several rows of driver names and car numbers, with a "CW NASCAR" block and the track name at its left end, over a full-screen picture. This ALWAYS indicates actual race content.
-- The "CW SPORTS" bug in the upper right corner (the letters "cw" above the word SPORTS, grey and semi-transparent, or yellow during a caution) over a full-screen picture. The same bug stays on screen during side-by-side ad breaks, so it only counts when there is no second video panel.
+- The CW bug in the upper right corner: the letters "cw" above the word SPORTS, or "cw" beside "20 YEARS". It is grey and semi-transparent, yellow during a caution, or red during a red flag. It counts over a full-screen picture. The same bug stays on screen during side-by-side ad breaks, so it only counts when there is no second video panel.
 - Race cars on a track (wide shot, aerial view, or in-car cockpit/dashboard view)
 - Pit lane or pit road activity
 - Drivers, crew members, or on-air commentators at the race venue or broadcast booth
@@ -25,12 +25,12 @@ AD BREAK — strong indicators:
 - Promos for CW entertainment programming or other non-NASCAR programming that fill the screen
 - Any type of race cars other than NASCAR stock cars (e.g. open-wheel cars, Formula 1, IndyCar, sports cars, motorcycles)
 - Vehicles with very large tires or vehicles racing on dirt
-- A plain "cw" logo in the LOWER right corner, with no word SPORTS under it. This marks a CW promo for an upcoming race: cinematic footage of stock cars, often at night or at a different track, sometimes with a small speed readout such as "130 MPH". It is `type=ad` even though it shows NASCAR cars racing. The live broadcast's bug is in the UPPER right and reads "cw SPORTS".
-- Racing footage with NEITHER the "cw SPORTS" bug in the upper right NOR the scoring ticker along the bottom. Live coverage carries at least one of them.
+- A plain "cw" logo in the LOWER right corner, with no word SPORTS under it. This marks a CW promo for an upcoming race: cinematic footage of stock cars, often at night or at a different track, sometimes with a small speed readout such as "130 MPH". It is `type=ad` even though it shows NASCAR cars racing. The live broadcast's bug is in the UPPER right and reads "cw SPORTS" or "cw 20 YEARS".
+- Racing footage with NEITHER the CW bug in the upper right NOR the scoring ticker along the bottom. Live coverage carries at least one of them.
 - Highly cinematic shots of race cars or racing scenes that are more typical of commercials than live sports broadcasts
 - Racing-themed imagery (cars, drivers) used to sell a product rather than show live action
 - Small legal disclaimer text, usually near the bottom edge and often centred — "Available features shown throughout", "available in selected markets", "Terms apply", a copyright line. Live coverage never carries this; it is close to a guarantee of an ad, even when the rest of the frame looks exactly like race footage.
-- A COMPLETELY clean frame: no CW SPORTS bug, no scoring ticker, no lower third, no "LIVE" badge — nothing but the picture. Commercials cut from real race footage look identical to broadcast cameras shot for shot, and this absence is often the only difference. Live coverage very rarely runs with no on-screen furniture at all.
+- A COMPLETELY clean frame: no CW bug, no scoring ticker, no lower third, no "LIVE" badge — nothing but the picture. Commercials cut from real race footage look identical to broadcast cameras shot for shot, and this absence is often the only difference. Live coverage very rarely runs with no on-screen furniture at all.
 
 DECIDING WHEN THE RACE AND AN ADVERTISER SHARE THE SCREEN:
 
