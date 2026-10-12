@@ -6,6 +6,7 @@ import numpy as np
 from tv_commercial_detector.classification.rectangle_match import (
     EPS,
     KNOWN_RECTANGLES,
+    border_edge_fractions,
     detect_rectangles,
     find_matching_rectangle,
     find_matching_rectangles,
@@ -182,3 +183,25 @@ def test_image_has_known_ad_rectangle_detects_fox_sbs():
 def test_image_has_known_ad_rectangle_blank():
     img = np.zeros((1080, 1920, 3), dtype=np.uint8)
     assert image_has_known_ad_rectangle(img) is None
+
+
+# --- border_edge_fractions ---------------------------------------------------
+
+
+def test_border_edge_fractions_full_on_a_drawn_box():
+    gray = np.full((400, 600), 20, dtype=np.uint8)
+    gray[100:300, 150:450] = 200
+    assert border_edge_fractions(gray, (150, 450, 100, 300)) == (1.0, 1.0, 1.0, 1.0)
+
+
+def test_border_edge_fractions_reports_each_side_separately():
+    gray = np.full((400, 600), 20, dtype=np.uint8)
+    gray[100:300, :] = 200  # horizontal band: top and bottom edges only
+    assert border_edge_fractions(gray, (150, 450, 100, 300)) == (0.0, 0.0, 1.0, 1.0)
+
+
+def test_border_edge_fractions_does_not_wrap_on_uint8():
+    """A dark-to-bright and a bright-to-dark step must both register."""
+    gray = np.full((400, 600), 200, dtype=np.uint8)
+    gray[100:300, 150:450] = 20
+    assert border_edge_fractions(gray, (150, 450, 100, 300)) == (1.0, 1.0, 1.0, 1.0)

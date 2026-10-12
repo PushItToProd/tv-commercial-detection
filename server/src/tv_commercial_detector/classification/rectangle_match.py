@@ -133,3 +133,45 @@ def image_has_known_ad_rectangle(
         if name in matches:
             return name
     return None
+
+
+def border_edge_fractions(
+    gray: MatLike,
+    box: tuple[int, int, int, int],
+    min_step: int = 12,
+    slack: int = 6,
+    inset: int = 20,
+) -> tuple[float, float, float, float]:
+    """
+    Measure how much of each side of a known box is a visible edge.
+
+    `detect_rectangles` needs a panel to come out as its own closed contour,
+    which fails when the panel touches other graphics or sits on a textured
+    background. This asks the narrower question instead: at this exact box, is
+    there a brightness step along each side?
+
+    Args:
+        gray: Single-channel image.
+        box: (x0, x1, y0, y1) in pixels.
+        min_step: Brightness difference across the side that counts as an edge.
+        slack: How far either way the side may sit from the nominal position.
+        inset: Length trimmed from each end of a side, to stay clear of corners.
+
+    Returns:
+        (left, right, top, bottom), each the fraction of positions along that
+        side showing a step of at least `min_step`.
+    """
+    x0, x1, y0, y1 = box
+    g = gray.astype("int16")
+
+    def vertical(x: int) -> float:
+        rows = slice(y0 + inset, y1 - inset)
+        step = abs(g[rows, x - slack + 3 : x + slack + 1] - g[rows, x - slack : x + slack - 2])
+        return float((step.max(axis=1) > min_step).mean())
+
+    def horizontal(y: int) -> float:
+        cols = slice(x0 + inset, x1 - inset)
+        step = abs(g[y - slack + 3 : y + slack + 1, cols] - g[y - slack : y + slack - 2, cols])
+        return float((step.max(axis=0) > min_step).mean())
+
+    return vertical(x0), vertical(x1), horizontal(y0), horizontal(y1)
