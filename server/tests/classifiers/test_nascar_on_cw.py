@@ -135,6 +135,36 @@ def ticker_frame(covered_from_x: int | None = None) -> np.ndarray:
     return frame
 
 
+def side_by_side_ticker_frame() -> np.ndarray:
+    """Dark frame with the two-row ticker of a side-by-side break and no panel border.
+
+    The rows sit 2 px lower than the live ticker's bottom two rows.
+    """
+    frame = blank_bgr(20)
+    x0, x1 = TICKER_X
+    frame[994:1026, x0:x1] = TICKER_COLOR
+    frame[1029:1058, x0:x1] = TICKER_COLOR
+    frame[994:1058, x0 : x0 + 500] = (40, 160, 40)
+    frame[1026:1029] = 20
+    return frame
+
+
+def test_side_by_side_ticker_detected_without_a_panel_border():
+    frame = side_by_side_ticker_frame()
+    assert side_by_side_score(frame) < nascar_on_cw.SIDE_BY_SIDE_THRESHOLD
+    assert nascar_on_cw.side_by_side_ticker_score(frame) > 0.6
+    assert is_side_by_side(frame) is True
+
+
+def test_the_two_tickers_are_not_mistaken_for_each_other():
+    assert nascar_on_cw.side_by_side_ticker_score(ticker_frame()) <= 0.0
+    assert ticker_score(side_by_side_ticker_frame()) <= 0.0
+
+
+def test_no_side_by_side_ticker_in_blank_frame():
+    assert nascar_on_cw.side_by_side_ticker_score(blank_bgr(20)) == 0.0
+
+
 def test_no_ticker_in_blank_frame():
     assert ticker_score(blank_bgr(20)) == 0.0
 
@@ -227,6 +257,21 @@ def test_bug_alone_is_content(classify):
     result = run(frame_with_bug(GREY_BUG))
     assert (result.type, result.reason) == ("content", "network_logo")
     llm.assert_not_called()
+
+
+def test_side_by_side_ticker_outranks_the_bug(classify):
+    # A night race on the dark side-by-side background shows no panel border,
+    # and the bug is on screen.
+    run, _ = classify
+    frame = side_by_side_ticker_frame()
+    h, w = BUG_TEMPLATE.shape
+    frame[BUG_ABS_Y : BUG_ABS_Y + h, BUG_ABS_X : BUG_ABS_X + w][BUG_TEMPLATE > 0] = (
+        GREY_BUG
+    )
+    assert has_bug(frame) is True
+    result = run(frame)
+    assert result.type == "ad"
+    assert result.reason == "side_by_side"
 
 
 def test_ticker_alone_is_content(classify):

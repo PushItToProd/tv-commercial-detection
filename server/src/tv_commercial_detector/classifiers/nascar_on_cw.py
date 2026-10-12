@@ -132,7 +132,7 @@ MIN_PATCH_STD = 4.0
 #
 #   Other networks (n=2929):                  max 0.02
 #   Las Vegas (a different ticker, n=681):    max 0.00
-#   Charlotte side-by-side breaks (n=78):     max 0.00
+#   Charlotte side-by-side breaks:            max 0.00
 #   Charlotte, everything else:               233 of 1811 score >= 0.2
 #
 # Every Charlotte frame sampled between 0.05 and 0.45 was live coverage with
@@ -144,6 +144,27 @@ TICKER_X = (370, 1870)
 TICKER_CELL_ROWS = (995, 996, 1020, 1021, 1029, 1030, 1054)
 TICKER_SEPARATOR_ROWS = (990, 991, 1024, 1025)
 TICKER_THRESHOLD = 0.2
+
+# A side-by-side break has its own two-row ticker in the same slate, and it is
+# a second `ad` signal beside the race panel's border. The border check needs
+# a brightness step on all four sides of the panel, which a night race on the
+# break's dark background does not give: there the panel check scores 0.0-0.8
+# and the "cw SPORTS" bug, shown over that background, would win as content.
+#
+# The break's ticker sits 2 px lower than the live ticker's bottom two rows.
+# That is enough to tell them apart, because the graphics are opaque and land
+# on the same pixels every time: rows 1023-1024 are cell here and separator in
+# the live ticker, and row 1028 is separator here and cell there. Each ticker
+# scores below 0 on the other's rows.
+#
+#   Charlotte side-by-side frames (n=262):    min 0.29
+#   Every other Charlotte frame (n=2961):     max 0.02
+#   Other networks and Las Vegas (n=3610):    max 0.00
+#
+# All 148 Charlotte frames the panel check finds are among the 262. Of the 114
+# it misses, 82 had a bug match.
+SIDE_BY_SIDE_TICKER_CELL_ROWS = (997, 1023, 1024, 1031)
+SIDE_BY_SIDE_TICKER_SEPARATOR_ROWS = (992, 1026, 1028)
 
 # Toggles so a single check can be turned off mid-broadcast at the console.
 ENABLE_SIDE_BY_SIDE_CHECK = True
@@ -165,7 +186,11 @@ def side_by_side_score(img: cv2.typing.MatLike) -> float:
 def is_side_by_side(
     img: cv2.typing.MatLike, threshold: float = SIDE_BY_SIDE_THRESHOLD
 ) -> bool:
-    return side_by_side_score(img) >= threshold
+    """True if the race panel's border or the break's own ticker is on screen."""
+    return (
+        side_by_side_score(img) >= threshold
+        or side_by_side_ticker_score(img) >= TICKER_THRESHOLD
+    )
 
 
 def _shape_score(patch: cv2.typing.MatLike, template: cv2.typing.MatLike) -> float:
@@ -204,11 +229,10 @@ def has_bug(img: cv2.typing.MatLike, threshold: float = BUG_THRESHOLD) -> bool:
     return bug_score(img) >= threshold
 
 
-def ticker_score(img: cv2.typing.MatLike) -> float:
-    """How strongly the bottom of the frame shows the scoring ticker's rows.
-
-    *img* must already be resized to 1920x1080.
-    """
+def _ticker_rows_score(
+    img: cv2.typing.MatLike, cell_rows: tuple[int, ...], separator_rows: tuple[int, ...]
+) -> float:
+    """Weakest slate fraction over *cell_rows* minus the strongest over *separator_rows*."""
     x0, x1 = TICKER_X
 
     def slate_fraction(row: int) -> float:
@@ -216,9 +240,27 @@ def ticker_score(img: cv2.typing.MatLike) -> float:
         off_color = np.abs(line - np.array(TICKER_COLOR, dtype=np.int16)).max(axis=1)
         return float((off_color <= TICKER_COLOR_TOLERANCE).mean())
 
-    cells = min(slate_fraction(row) for row in TICKER_CELL_ROWS)
-    separators = max(slate_fraction(row) for row in TICKER_SEPARATOR_ROWS)
+    cells = min(slate_fraction(row) for row in cell_rows)
+    separators = max(slate_fraction(row) for row in separator_rows)
     return cells - separators
+
+
+def ticker_score(img: cv2.typing.MatLike) -> float:
+    """How strongly the bottom of the frame shows the live scoring ticker's rows.
+
+    *img* must already be resized to 1920x1080.
+    """
+    return _ticker_rows_score(img, TICKER_CELL_ROWS, TICKER_SEPARATOR_ROWS)
+
+
+def side_by_side_ticker_score(img: cv2.typing.MatLike) -> float:
+    """How strongly the bottom of the frame shows a side-by-side break's ticker.
+
+    *img* must already be resized to 1920x1080.
+    """
+    return _ticker_rows_score(
+        img, SIDE_BY_SIDE_TICKER_CELL_ROWS, SIDE_BY_SIDE_TICKER_SEPARATOR_ROWS
+    )
 
 
 def has_ticker(img: cv2.typing.MatLike, threshold: float = TICKER_THRESHOLD) -> bool:
@@ -238,7 +280,7 @@ def classify_image(
             source="opencv",
             type="ad",
             reason="side_by_side",
-            reply="CW side-by-side race panel (opencv)",
+            reply="CW side-by-side break (opencv)",
         )
 
     if ENABLE_BUG_CHECK and has_bug(cv_img_1080p):
